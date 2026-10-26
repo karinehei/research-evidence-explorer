@@ -80,7 +80,7 @@
       "doi": "10.18653/v1/2024.eacl-demo.16",
       "url": "https://doi.org/10.18653/v1/2024.eacl-demo.16",
       "access": "reported-abstract",
-      "accessNote": "",
+      "accessNote": "Suunnitteluasiakirjassa raportoitu abstraktitason tarkastelu. RAGAs, ARES ja RAGChecker pidetään erillisinä lähteinä eri DOI-tunnisteilla; tämä ei ole toisen kehyksen versio eikä menetelmällinen arviointi.",
       "notes": ""
     },
     {
@@ -93,7 +93,7 @@
       "doi": "10.18653/v1/2024.naacl-long.20",
       "url": "https://doi.org/10.18653/v1/2024.naacl-long.20",
       "access": "reported-abstract",
-      "accessNote": "",
+      "accessNote": "Suunnitteluasiakirjassa raportoitu abstraktitason tarkastelu. Erillinen DOI suhteessa RAGAs- ja RAGChecker-tietueisiin; julkaisukanavaa tai sivunumeroa ei ole inventoitu tähän työtilaan.",
       "notes": ""
     },
     {
@@ -106,7 +106,7 @@
       "doi": "10.52202/079017-0692",
       "url": "https://doi.org/10.52202/079017-0692",
       "access": "reported-abstract",
-      "accessNote": "",
+      "accessNote": "Suunnitteluasiakirjassa raportoitu abstraktitason tarkastelu. Erillinen DOI; ei versioviitettä RAGAs- tai ARES-tietueeseen. Abstraktitieto ei ole kokotekstiarvio.",
       "notes": ""
     },
     {
@@ -145,7 +145,7 @@
       "doi": "10.48550/arXiv.2603.26434",
       "url": "https://doi.org/10.48550/arXiv.2603.26434",
       "access": "reported-full-text",
-      "accessNote": "",
+      "accessNote": "Asiakirjassa raportoitu käsikirjoituksen tekstin tarkastelu. DOI on arXiv-tunniste; julkaisun tila (preprint vs julkaistu) on erillinen bibliografinen päätös. Kokoteksti ei nosta menetelmällistä arviointia.",
       "notes": ""
     }
   ],

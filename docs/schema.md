@@ -14,9 +14,13 @@ A workspace needs 1–400 graph records in total. Graph records are sources, con
 
 Bibliographic identity: `id`, `label`, `citation`, `year`, `publicationStatus`, `versionOf`, `doi`, `url`.
 
-Reported access: `access`, `accessNote`, plus the researcher's `notes` and an optional `position`.
+Reported access: `access`, `accessNote`. Researcher note fields: `notes` and optional `nextCheck`. Optional layout: `position`.
+
+Optional `bibliographicImport` stores a Zotero CSL-JSON import provenance without changing `schemaVersion`. It records `importedAt`, `provider` (`zotero-csl-json`), `itemKey`, `citationKey`, the sanitized `original` CSL object, `attachments` as metadata only (`title`, `path`, `linkMode`, `contentType`), and `flags` for review (for example a malformed author string). Attachment file contents are not stored. A missing `nextCheck` or `bibliographicImport` remains valid, as with claim `position`.
 
 `publicationStatus` is `not-recorded`, `preprint`, `published`, `in-press`, `manuscript` or `not-applicable`. `access` remains `reported-full-text`, `reported-abstract`, `not-recorded` or `not-applicable`. `versionOf` is empty or the id of another source, and the chain cannot cycle.
+
+Bibliographic CSL import may create source records. It does not create claims, invent methods, set reading status, or mark appraisal. DOI and explicit item identifiers are primary duplicate matches. Title and year only suggest a possible duplicate for review. Publication metadata stays separate from evidence appraisal.
 
 ### Source claim
 
@@ -103,6 +107,7 @@ The result names every affected record. The workspace asks for confirmation when
 These were left empty or unresolved on purpose. Filling them would have invented an inspection this migration did not do.
 
 - Publication status is `not-recorded` for all 11 sources, including those with a DOI and including `saukkoriipi26`, whose reported access is full text and whose DOI comes from an arXiv URL. Preprint versus published is still a bibliographic decision.
+- `ragas24`, `ares24` and `ragchecker24` remain separate sources with distinct DOIs and reported-abstract access notes. No `versionOf` link was invented among them. Venues and page numbers were not invented.
 - `year` was not split from labels such as “Järvelin ym. 2015”. `citation` is still the short label, not a full reference. `versionOf` is empty.
 - Claim `methodContext` is empty. Claim locators are the old planning-document locators. They are not page or passage locators checked against the original papers.
 - Every claim is an imported summary and is not appraised. Six sources still have access `not-recorded`.

@@ -7,9 +7,27 @@ export type Appraisal = 'not-appraised' | 'appraised';
 export type Meaning = 'motivates' | 'operationalises' | 'complements' | 'questions' | 'proposes';
 export type Position = { x: number; y: number };
 
+export interface AttachmentMeta {
+  title: string;
+  path: string;
+  linkMode: string;
+  contentType: string;
+}
+
+export interface BibliographicImport {
+  importedAt: string;
+  provider: 'zotero-csl-json';
+  itemKey: string;
+  citationKey: string;
+  original: unknown;
+  attachments: AttachmentMeta[];
+  flags: string[];
+}
+
 export interface Source {
   id: string; label: string; citation: string; year: string; publicationStatus: PublicationStatus;
-  versionOf: string; doi: string; url: string; access: Access; accessNote: string; notes: string; position?: Position;
+  versionOf: string; doi: string; url: string; access: Access; accessNote: string; notes: string;
+  nextCheck?: string; bibliographicImport?: BibliographicImport; position?: Position;
 }
 export interface Claim {
   id: string; sourceId: string; statement: string; methodContext: string; locator: string; limitations: string;

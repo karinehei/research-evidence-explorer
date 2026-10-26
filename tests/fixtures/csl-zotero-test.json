@@ -1,0 +1,66 @@
+[
+  {
+    "_comment": "TEST DATA ONLY. Metadata-only Zotero-style CSL-JSON fixture for Research Evidence Explorer. Not a real library export for publication use. Paths are fake local references and must never be uploaded or opened as file contents by the importer.",
+    "id": "http://zotero.org/users/0/items/TESTDOI1",
+    "type": "article-journal",
+    "title": "Järvelin & Sormunen 2024",
+    "author": [
+      { "family": "Järvelin", "given": "Kalervo" },
+      { "family": "Sormunen", "given": "Eero" }
+    ],
+    "issued": { "date-parts": [[2024]] },
+    "DOI": "https://doi.org/10.1145/3675162",
+    "URL": "https://doi.org/10.1145/3675162",
+    "container-title": "Test venue placeholder",
+    "attachments": [
+      {
+        "title": "Local PDF reference",
+        "path": "C:\\Users\\test\\Zotero\\storage\\TESTDOI1\\paper.pdf",
+        "linkMode": "imported_file",
+        "contentType": "application/pdf"
+      }
+    ]
+  },
+  {
+    "id": "http://zotero.org/users/0/items/TESTNEW1",
+    "type": "article-journal",
+    "title": "Unicode author probe for healthcare RAG evaluation",
+    "author": [
+      { "family": "Łajewska", "given": "Weronika" },
+      { "family": "Åström", "given": "Mårten" }
+    ],
+    "issued": { "date-parts": [[2025]] },
+    "URL": "https://example.org/test-metadata-only",
+    "attachments": []
+  },
+  {
+    "id": "http://zotero.org/users/0/items/TESTNODOL",
+    "type": "manuscript",
+    "title": "Missing DOI manuscript entry",
+    "author": [
+      { "family": "Testinen", "given": "Aino" }
+    ],
+    "issued": { "date-parts": [[2024]] }
+  },
+  {
+    "id": "http://zotero.org/users/0/items/TESTBAD1",
+    "type": "article",
+    "title": "Malformed author fields for review",
+    "author": [
+      { "family": "Click here to download", "given": "Select all" },
+      "https://example.org/not-a-name"
+    ],
+    "DOI": "10.9999/test.bad-author",
+    "issued": { "date-parts": [[2023]] }
+  },
+  {
+    "id": "http://zotero.org/users/0/items/TESTTITLE1",
+    "type": "article-journal",
+    "title": "RAGAs 2024",
+    "author": [
+      { "family": "Esfahani", "given": "Shahul" }
+    ],
+    "issued": { "date-parts": [[2024]] },
+    "URL": "https://example.org/title-year-suggestion-only"
+  }
+]

@@ -29,7 +29,9 @@ Dependencies are pinned in `package.json` and `package-lock.json`: React 19.2.0,
 
 One inspector edits the selected record. Long labels stay clamped on the canvas; the full text, rationale and limitations are in the selection. A relationship shows its meaning, rationale, evidence references, epistemic status and limitation. Adding a connection requires an explicit relationship type and can record a rationale. An arrow without that choice is not stored and does not imply a cause. Reported, adaptation and hypothesis links use text, line style and colour together. A claim’s link to its source is labelled as a source reference and has no causal arrowhead.
 
-The inspector keeps publication status, reported reading level, methodological appraisal and epistemic status separate. A source summary imported from the planning documents is labelled as an imported summary. A relationship created in the workspace stays proposed until it is explicitly marked reviewed. The initial records are provisional mappings; they require source-specific appraisal before manuscript use.
+The literature and evidence inspector keeps bibliographic identity, publication or version links, reported reading level, claim appraisal, source claims, methods or context, limitations, evidence locators and the researcher's own adaptations in separate sections. The full citation stays discoverable. Researcher notes and a next-check field are separate. A bibliography entry is not treated as a full-text appraisal.
+
+A source summary imported from the planning documents is labelled as an imported summary. Claims and locators are entered by the researcher. Automatic extraction from DOCX or PDF is outside this phase. A relationship created in the workspace stays proposed until it is explicitly marked reviewed. The initial records are provisional mappings; they require source-specific appraisal before manuscript use.
 
 Leaving a form with unsaved edits asks whether to save, discard or stay. A failed check stays on the form. If browser storage throws, the status says the local save failed and JSON export remains available.
 
@@ -52,7 +54,7 @@ Edits are saved to this browser's local storage when available, under `research-
 
 Import is limited to 2 MB. The model permits up to 400 graph records, 400 claims and 1,200 connections. Opening a link uses only HTTP(S). Imported text is rendered as text rather than HTML. CSV exports neutralise leading spreadsheet formula characters. Existing schema 1 JSON still loads through the migration layer.
 
-Structured case tables are edited in the JSON file or an exported workspace. The in-app case control edits only the cross-reference lists. This version does not import DOCX or Zotero automatically, perform bibliometric analysis or analyse empirical ratings.
+Structured case tables are edited in the JSON file or an exported workspace. The in-app case control edits only the cross-reference lists. **Tuo Zotero CSL** starts a user-initiated CSL-JSON import with a staging preview: DOI and explicit identifiers match first, title/year only suggests possible duplicates, and the researcher reviews conflicts before accept or cancel. Import may create source records and preserve original bibliographic metadata plus attachment paths as metadata only. It does not invent claims, methods, reading status or appraisals, and it does not upload local files. Malformed author fields are flagged for review. This version does not extract claims from DOCX or PDF, call an external AI service, perform bibliometric analysis or analyse empirical ratings. A tiny metadata-only fixture lives at `tests/fixtures/csl-zotero-test.json` and is labelled as test data.
 
 ## Figure and data exports
 
@@ -80,9 +82,11 @@ The included workflow was prepared but was not run in this session. Publishing a
 
 ## Checks for this port
 
-`npm test` passed 16 tests. `npm run build` with Vite 7.3.7 wrote `dist/` using relative `./assets` paths. A separate build with base `/research-evidence-explorer/` referenced that prefix and emitted the asset files; that temporary output was removed.
+`npm test` passed 21 tests after the literature inspector and CSL import work. `npm run build` with Vite 7.3.7 wrote `dist/` using relative `./assets` paths. A separate build with base `/research-evidence-explorer/` referenced that prefix and emitted the asset files; that temporary output was removed.
 
 In the browser, against the built `dist/` on a local server, the curated workspace opened on the sufficiency chain. Saving a note and undoing it left the 32 relationships in place. A schema 1 export imported into a usable schema 2 workspace and an invalid file did not replace it. An identical import did not add an undo step. The matrix and the graph kept the same selected record, and reloading `#graph/ranking` restored that view. A dirty form blocked navigation; a failed save stayed on the form. A connection without a chosen meaning was refused. Relationship details showed meaning, rationale, evidence references, epistemic status and limitation. The trace used relationship meanings and stated that support does not transfer through every ancestor. Zoom changed the viewport. Enter selected a focused node. Forcing `localStorage.setItem` to throw reported the failure and left JSON export available.
+
+The literature inspector showed separate bibliographic, publication/version, access, appraisal, claim, method/limitation/locator, adaptation and note/next-check sections for `ragas24`, with publication status still `not-recorded`. Zotero CSL staging previewed a DOI duplicate, a title/year suggestion, a missing DOI, Unicode author names and a malformed-author flag; cancel left storage unchanged; accept created three sources with `access: not-recorded` and did not add claims; invalid JSON was refused in the dialog.
 
 Not checked here: the GitHub Actions workflow, a completed file download in the browser’s download folder, Graphviz SVG/PDF/PNG rendering (`dot` is not installed; the script stopped with its Node-only DOT message), pointer dragging of a canvas card, and opening the module build with `file://`. The module build is served by the Vite development server or by the built files on a local server or GitHub Pages.
 

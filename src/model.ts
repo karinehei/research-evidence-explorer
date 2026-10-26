@@ -159,13 +159,39 @@ const SCHEMA = 2;
     if (graphCount < 1 || graphCount > 400) fail('Tarvitaan 1–400 lähdettä, käsitettä, kriteeriä tai propositiota.');
     const ids = new Set();
     const take = (id, label) => { if (typeof id !== 'string' || !idPattern.test(id) || ids.has(id)) fail(label + ': tunniste on virheellinen tai toistuu.'); ids.add(id); };
+    const attachmentMeta = (list, label) => {
+      if (!Array.isArray(list) || list.length > 40) fail(label + ': liitetietojen määrä on virheellinen.');
+      for (const item of list) {
+        keys(item, ['title', 'path', 'linkMode', 'contentType'], label + ' (liite)');
+        str(item.title, label + ' (liitteen nimi)', 400); str(item.path, label + ' (liitteen polku)', 2000); str(item.linkMode, label + ' (liitetapa)', 120); str(item.contentType, label + ' (mediatyyppi)', 200);
+      }
+    };
+    const bibliographicImport = (record, label) => {
+      if (record.bibliographicImport === undefined) return;
+      const bib = record.bibliographicImport;
+      keys(bib, ['importedAt', 'provider', 'itemKey', 'citationKey', 'original', 'attachments', 'flags'], label + ' (tuonti)');
+      str(bib.importedAt, label + ' (tuontiaika)', 80, true); str(bib.itemKey, label + ' (tuonnin tunniste)', 200); str(bib.citationKey, label + ' (viitetunniste)', 200);
+      if (bib.provider !== 'zotero-csl-json') fail(label + ': tuonnin lähde on virheellinen.');
+      if (bib.original === undefined) fail(label + ': alkuperäinen bibliografinen tietue puuttuu.');
+      try {
+        const packed = JSON.stringify(bib.original);
+        if (packed.length > 100000) fail(label + ': alkuperäinen bibliografinen tietue on liian suuri.');
+      } catch {
+        fail(label + ': alkuperäinen bibliografinen tietue ei ole JSONia.');
+      }
+      attachmentMeta(bib.attachments, label);
+      if (!Array.isArray(bib.flags) || bib.flags.length > 40) fail(label + ': tuonnin lippujen määrä on virheellinen.');
+      for (const flag of bib.flags) str(flag, label + ' (tuonnin lippu)', 400, true);
+    };
     for (const s of value.sources) {
-      keys(s, ['id', 'label', 'citation', 'year', 'publicationStatus', 'versionOf', 'doi', 'url', 'access', 'accessNote', 'notes', 'position'], 'Lähde');
+      keys(s, ['id', 'label', 'citation', 'year', 'publicationStatus', 'versionOf', 'doi', 'url', 'access', 'accessNote', 'notes', 'nextCheck', 'bibliographicImport', 'position'], 'Lähde');
       take(s.id, 'Lähde');
       str(s.label, 'Lähteen nimi', 160, true); str(s.citation, 'Viite', 8000); str(s.year, 'Vuosi', 40); str(s.versionOf, 'Versio', 120); str(s.doi, 'DOI', 200); str(s.url, 'URL'); str(s.accessNote, 'Lukemistiedon tarkenne'); str(s.notes, 'Muistiinpanot');
+      if (s.nextCheck !== undefined) str(s.nextCheck, 'Seuraava tarkistus');
       oneOf(s.publicationStatus, publication, 'Julkaisun tila'); oneOf(s.access, access, 'Lukemistieto');
       if (s.url && !/^https?:\/\//i.test(s.url)) fail('Lähdelinkin tulee alkaa http:// tai https://.');
       if (s.doi && !/^10\.\d{4,9}\/\S+$/.test(s.doi)) fail('DOI on virheellinen.');
+      bibliographicImport(s, 'Lähde');
       position(s, 'Lähde');
     }
     const sourceIds = new Set(value.sources.map(s => s.id));

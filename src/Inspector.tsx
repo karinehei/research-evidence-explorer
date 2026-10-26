@@ -108,36 +108,96 @@ function RelationshipForm({ model, edgeId, guard, onSave, onRemove }: { model: W
   </aside>;
 }
 
+function Section({ title, children, note }: { title: string; children: ReactNode; note?: string }) {
+  return <section className="inspector-section">
+    <h3>{title}</h3>
+    {note && <p className="subtle">{note}</p>}
+    {children}
+  </section>;
+}
+
 function SourceForm({ model, source, guard, onSave, onOpen, onEdge, onAddEdge, onAddClaim, onRemove }: { model: Workspace; source: Source; guard: MutableRefObject<DirtyApi | null>; onSave: Save; onOpen: (id: string) => void; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onAddClaim: (sourceId: string) => void; onRemove: (id: string) => void }) {
-  const { draft, setDraft, persist } = useDraft(source, guard, next => {
+  const draftSource = { ...source, nextCheck: source.nextCheck || '' };
+  const { draft, setDraft, persist } = useDraft(draftSource, guard, next => {
     const copy = clone(model);
     const item = copy.sources.find(record => record.id === source.id);
     if (!item) return false;
     const position = item.position;
-    Object.assign(item, next, { position, label: next.label.trim(), doi: next.doi.trim(), url: next.url.trim() });
+    const bibliographicImport = item.bibliographicImport;
+    Object.assign(item, next, { position, bibliographicImport, label: next.label.trim(), doi: next.doi.trim(), url: next.url.trim(), nextCheck: next.nextCheck || '' });
     return onSave(copy, 'Lähteen tiedot tallennettiin.');
   });
   const patch = <K extends keyof Source>(key: K, value: Source[K]) => setDraft(current => ({ ...current, [key]: value }));
   const claims = model.claims.filter(claim => claim.sourceId === source.id);
+  const versionChildren = model.sources.filter(item => item.versionOf === source.id);
+  const adaptations = model.relationships.filter(link =>
+    link.epistemicStatus === 'adaptation' && (link.source === source.id || link.target === source.id || link.sourceIds.includes(source.id))
+  );
+  const adaptedConstructs = model.constructs.filter(item =>
+    item.epistemicStatus === 'adaptation' && model.relationships.some(link =>
+      link.sourceIds.includes(source.id) && (link.source === item.id || link.target === item.id)
+    )
+  );
   return <>
-    <div className="eyebrow">LÄHDE</div><h2>{source.label}</h2>
-    <p className="subtle">Julkaisun tila, lukemistieto ja yhteenvedon tiedollinen tila ovat erillisiä. Preprint tai kokotekstin saatavuus ei ole laadunarvio.</p>
+    <div className="eyebrow">KIRJALLISUUS JA NÄYTTÖ</div><h2>{source.label}</h2>
+    <p className="subtle">Bibliografinen tietue ei ole kokotekstiarvio. Julkaisun tila, lukemistieto ja väitteen arviointi pidetään erillään.</p>
     <FormShell submit={persist} label="Tallenna muutokset">
-      <TextField label="Nimi" value={draft.label} onChange={value => patch('label', value)} />
-      <TextField label="Viitetieto" value={draft.citation} onChange={value => patch('citation', value)} />
-      <TextField label="Vuosi, jos se on kirjattu erikseen" value={draft.year} onChange={value => patch('year', value)} />
-      <SelectField label="Julkaisun tila" value={draft.publicationStatus} onChange={value => patch('publicationStatus', value as PublicationStatus)} options={option(Object.keys(publicationLabel), publicationLabel)} />
-      <SelectField label="Version suhde toiseen lähteeseen" value={draft.versionOf} onChange={value => patch('versionOf', value)} options={[{ id: '', label: 'Ei versioviitettä' }, ...model.sources.filter(item => item.id !== source.id).map(item => ({ id: item.id, label: item.label }))]} />
-      <TextField label="DOI" value={draft.doi} onChange={value => patch('doi', value)} />
-      <TextField label="Alkuperäislähteen linkki" value={draft.url} onChange={value => patch('url', value)} />
-      <SelectField label="Asiakirjassa raportoitu lukemistieto" value={draft.access} onChange={value => patch('access', value as Access)} options={option(asList(access), accessLabel)} />
-      <TextField label="Lukemistiedon tarkenne" value={draft.accessNote} onChange={value => patch('accessNote', value)} area />
-      <TextField label="Oma pohdinta tai seuraava tarkistus" value={draft.notes} onChange={value => patch('notes', value)} area />
+      <Section title="Bibliografinen identiteetti" note="Nimi, viite ja tunnisteet. Älä täytä DOI:ta, sivunumeroa tai julkaisukanavaa arvauksella.">
+        <TextField label="Nimi" value={draft.label} onChange={value => patch('label', value)} />
+        <TextField label="Koko viite" value={draft.citation} onChange={value => patch('citation', value)} area />
+        <details className="citation-discover">
+          <summary>Näytä tallennettu viite</summary>
+          <p>{draft.citation.trim() || 'Viite on vielä tyhjä.'}</p>
+        </details>
+        <TextField label="Vuosi, jos se on kirjattu erikseen" value={draft.year} onChange={value => patch('year', value)} />
+        <TextField label="DOI" value={draft.doi} onChange={value => patch('doi', value)} />
+        <TextField label="Alkuperäislähteen linkki" value={draft.url} onChange={value => patch('url', value)} />
+      </Section>
+      <Section title="Julkaisu ja versiot" note="Julkaisun tila on bibliografinen päätös. Se ei seuraa DOI:sta, URL:stä eikä lukemistiedosta.">
+        <SelectField label="Julkaisun tila" value={draft.publicationStatus} onChange={value => patch('publicationStatus', value as PublicationStatus)} options={option(Object.keys(publicationLabel), publicationLabel)} />
+        <SelectField label="Version suhde toiseen lähteeseen" value={draft.versionOf} onChange={value => patch('versionOf', value)} options={[{ id: '', label: 'Ei versioviitettä' }, ...model.sources.filter(item => item.id !== source.id).map(item => ({ id: item.id, label: item.label }))]} />
+        {draft.versionOf && <p className="subtle">Tämä tietue on merkitty versiona lähteestä {titleOf(model, draft.versionOf)}.</p>}
+        {versionChildren.length > 0 && <div className="record-list">{versionChildren.map(item => <button type="button" key={item.id} onClick={() => onOpen(item.id)}>Versio: {item.label}</button>)}</div>}
+      </Section>
+      <Section title="Raportoitu lukemistieto" note="Kertoo, mitä suunnitteluasiakirjoissa on raportoitu lukemisesta. Se ei ole menetelmällinen arviointi.">
+        <SelectField label="Asiakirjassa raportoitu lukemistieto" value={draft.access} onChange={value => patch('access', value as Access)} options={option(asList(access), accessLabel)} />
+        <TextField label="Lukemistiedon tarkenne" value={draft.accessNote} onChange={value => patch('accessNote', value)} area />
+      </Section>
+      <Section title="Tutkijan muistiinpanot">
+        <TextField label="Oma pohdinta" value={draft.notes} onChange={value => patch('notes', value)} area />
+        <TextField label="Seuraava tarkistus" value={draft.nextCheck || ''} onChange={value => patch('nextCheck', value)} area />
+      </Section>
     </FormShell>
     {source.url && <p><a href={source.url} target="_blank" rel="noopener noreferrer">Avaa alkuperäislähde ↗</a></p>}
-    <div className="field-title">Lähdeväitteet</div>
-    <div className="record-list">{claims.map(claim => <button type="button" key={claim.id} onClick={() => onOpen(claim.id)}>{claim.statement.slice(0, 90) || claim.id}</button>)}</div>
-    <button type="button" onClick={() => onAddClaim(source.id)}>Lisää tuotu yhteenveto</button>
+    <Section title="Todellinen arviointitila" note="Arviointi kuuluu lähdeväitteille. Bibliografinen tuonti ei muuta näitä arvoja.">
+      {claims.length ? <ul className="plain-list">{claims.map(claim => <li key={claim.id}><button type="button" onClick={() => onOpen(claim.id)}>{claim.statement.slice(0, 80) || claim.id}</button> — {appraisalLabel[claim.appraisal]}; {provenanceLabel[claim.provenance]}</li>)}</ul> : <p className="subtle">Ei lähdeväitteitä. Arviointia ei ole kirjattu.</p>}
+    </Section>
+    <Section title="Lähdeväitteet" note="Väitteet ja lähdekohdat kirjataan erikseen. Automaattinen poiminta DOCX- tai PDF-tiedostosta ei kuulu tähän vaiheeseen.">
+      <div className="record-list">{claims.map(claim => <button type="button" key={claim.id} onClick={() => onOpen(claim.id)}>{claim.statement.slice(0, 90) || claim.id}</button>)}</div>
+      <button type="button" onClick={() => onAddClaim(source.id)}>Lisää lähdeväite käsin</button>
+    </Section>
+    <Section title="Menetelmät, rajaukset ja lähdekohdat">
+      {claims.length ? <dl className="fact-list">{claims.map(claim => <div key={claim.id}>
+        <dt>{claim.statement.slice(0, 60) || claim.id}</dt>
+        <dd>Menetelmä/konteksti: {claim.methodContext.trim() || 'Ei kirjattu.'} Lähdekohta: {claim.locator.trim() || 'Ei kirjattu.'} Rajaus: {claim.limitations.trim() || 'Ei kirjattu.'}</dd>
+      </div>)}</dl> : <p className="subtle">Ei vielä väitteitä, joista menetelmä, rajaus tai lähdekohta voitaisiin näyttää.</p>}
+    </Section>
+    <Section title="Omat sovellukset" note="Oma sovellus on erillinen epistemic-tila. Se ei synny bibliografisesta tuonnista.">
+      {adaptations.length || adaptedConstructs.length ? <>
+        <div className="record-list">{adaptedConstructs.map(item => <button type="button" key={item.id} onClick={() => onOpen(item.id)}>Käsite · {item.label}</button>)}</div>
+        <div className="record-list">{adaptations.map(link => <button type="button" key={link.id} onClick={() => onEdge(link.id)}>{(link.label || '').trim() || meaningLabel[link.meaning]}</button>)}</div>
+      </> : <p className="subtle">Ei kirjattuja omia sovelluksia tähän lähteeseen.</p>}
+    </Section>
+    {source.bibliographicImport && <Section title="Tuonnin alkuperä" note="Alkuperäinen CSL-tietue säilytetään. Liitteet ovat vain metatietoa; sisältöjä ei julkaista eikä lähetetä.">
+      <dl className="fact-list">
+        <div><dt>Tuotu</dt><dd>{source.bibliographicImport.importedAt}</dd></div>
+        <div><dt>Lähde</dt><dd>{source.bibliographicImport.provider}</dd></div>
+        <div><dt>Tunniste</dt><dd>{source.bibliographicImport.itemKey || '—'} {source.bibliographicImport.citationKey ? `(${source.bibliographicImport.citationKey})` : ''}</dd></div>
+        <div><dt>Liitteet</dt><dd>{source.bibliographicImport.attachments.length ? source.bibliographicImport.attachments.map(item => `${item.title || 'liite'}${item.path ? ` · ${item.path}` : ''}`).join('; ') : 'Ei liitetietoa'}</dd></div>
+      </dl>
+      {source.bibliographicImport.flags.length > 0 && <ul className="flag-list">{source.bibliographicImport.flags.map(flag => <li key={flag}>{flag}</li>)}</ul>}
+      <details><summary>Alkuperäinen CSL-JSON</summary><pre className="code-block">{JSON.stringify(source.bibliographicImport.original, null, 2)}</pre></details>
+    </Section>}
     <Links model={model} id={source.id} onEdge={onEdge} onAddEdge={onAddEdge} />
     <Remove id={source.id} onRemove={onRemove} />
   </>;
@@ -159,16 +219,28 @@ function ClaimForm({ model, claimId, guard, onSave, onOpen, onRemove }: { model:
     <span className={`tag ${claim.epistemicStatus}`}>{epistemicLabel[claim.epistemicStatus]}</span> <span className="tag">{reviewLabel[claim.reviewState]}</span>
     <p className="subtle">{claim.provenance === 'primary-inspection' ? 'Väite on merkitty alkuperäislähteestä tarkastetuksi. Merkintä ei synny automaattisesti.' : 'Tämä on tuotu yhteenveto, ei alkuperäislähteestä tehty tarkastus.'}</p>
     <FormShell submit={persist} label="Tallenna muutokset">
-      <TextField label="Mitä lähteen raportoidaan osoittavan" value={draft.statement} onChange={value => patch('statement', value)} area />
-      <TextField label="Menetelmä tai konteksti" value={draft.methodContext} onChange={value => patch('methodContext', value)} area />
-      <TextField label="Lähdekohta" value={draft.locator} onChange={value => patch('locator', value)} />
-      <TextField label="Mitä tästä ei voi päätellä" value={draft.limitations} onChange={value => patch('limitations', value)} area />
-      <SelectField label="Väitteen alkuperä" value={draft.provenance} onChange={value => patch('provenance', value as Provenance)} options={option(asList(provenance), provenanceLabel)} />
-      <SelectField label="Menetelmällinen arviointi" value={draft.appraisal} onChange={value => patch('appraisal', value as Appraisal)} options={option(asList(appraisal), appraisalLabel)} />
-      <SelectField label="Tiedollinen tila" value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
-      <SelectField label="Kirjauksen tila" value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
-      <TextField label="Tulkinnan perustana oleva asiakirja" value={draft.basis} onChange={value => patch('basis', value)} />
-      <TextField label="Väitteen muistiinpanot" value={draft.notes} onChange={value => patch('notes', value)} area />
+      <Section title="Väite">
+        <TextField label="Mitä lähteen raportoidaan osoittavan" value={draft.statement} onChange={value => patch('statement', value)} area />
+      </Section>
+      <Section title="Menetelmä ja konteksti" note="Kirjataan käsin. Tiedostoista ei poimita automaattisesti.">
+        <TextField label="Menetelmä tai konteksti" value={draft.methodContext} onChange={value => patch('methodContext', value)} area />
+      </Section>
+      <Section title="Näytön paikannus">
+        <TextField label="Lähdekohta" value={draft.locator} onChange={value => patch('locator', value)} />
+        <TextField label="Tulkinnan perustana oleva asiakirja" value={draft.basis} onChange={value => patch('basis', value)} />
+      </Section>
+      <Section title="Rajaukset">
+        <TextField label="Mitä tästä ei voi päätellä" value={draft.limitations} onChange={value => patch('limitations', value)} area />
+      </Section>
+      <Section title="Arviointi ja alkuperä" note="Julkaisun tila ja lukemistieto eivät kuulu tähän. Ne ovat lähteen bibliografisia kenttiä.">
+        <SelectField label="Väitteen alkuperä" value={draft.provenance} onChange={value => patch('provenance', value as Provenance)} options={option(asList(provenance), provenanceLabel)} />
+        <SelectField label="Menetelmällinen arviointi" value={draft.appraisal} onChange={value => patch('appraisal', value as Appraisal)} options={option(asList(appraisal), appraisalLabel)} />
+        <SelectField label="Tiedollinen tila" value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
+        <SelectField label="Kirjauksen tila" value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
+      </Section>
+      <Section title="Muistiinpanot">
+        <TextField label="Väitteen muistiinpanot" value={draft.notes} onChange={value => patch('notes', value)} area />
+      </Section>
     </FormShell>
     <p className="subtle">Lähdeviite ei ole tutkimuksellinen yhteys. Uusi yhteys kirjataan lähteeseen, käsitteeseen, kriteeriin tai propositioon.</p>
     <button type="button" onClick={() => onOpen(claim.sourceId)}>Avaa lähde {titleOf(model, claim.sourceId)}</button>
