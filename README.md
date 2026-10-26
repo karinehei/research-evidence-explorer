@@ -18,7 +18,7 @@ npm run dev
 
 `npm run dev` serves the workspace locally. `npm run build` checks the curated seed and writes `dist/` with relative asset paths, so the same build can be hosted under a repository subpath. Open that directory through a static server. Hash routes such as `#graph/sufficiency`, `#map/sufficiency`, `#matrix/ranking`, `#cases/A` and `#questions/p1` restore the view and the selection.
 
-Dependencies are pinned in `package.json` and `package-lock.json`: React 19.2.0, React DOM 19.2.0 and `@xyflow/react` 12.9.3, with Vite 7.3.7 for the build. The Pages workflow installs from the lockfile, runs `npm test` and `npm run build`, and uploads `dist/`.
+Dependencies are pinned in `package.json` and `package-lock.json`: React 19.2.0, React DOM 19.2.0, `@xyflow/react` 12.9.3, Vite 7.3.7 and Playwright 1.64.1. `npm test` checks the data model. `npm run test:smoke` runs the browser suite against the built `dist/`. Pull-request and `main` checks do that work. Publishing to GitHub Pages is a separate, manually started workflow.
 
 ## Four views
 
@@ -34,7 +34,7 @@ The literature and evidence inspector keeps bibliographic identity, publication 
 
 A source summary imported from the planning documents is labelled as an imported summary. Claims and locators are entered by the researcher. Automatic extraction from DOCX or PDF is outside this phase. A relationship created in the workspace stays proposed until it is explicitly marked reviewed. The initial records are provisional mappings; they require source-specific appraisal before manuscript use.
 
-Leaving a form with unsaved edits asks whether to save, discard or stay. A failed check stays on the form. If browser storage throws, the status says the local save failed and JSON export remains available.
+Leaving a form with unsaved edits, including a constructed-case draft, asks whether to save, discard or stay. Save checks the draft and writes it before navigation continues. Discard continues without saving. Cancel keeps the draft and the current location. A failed check stays on the form and does not report a successful save. Reload or closing the tab uses the browser beforeunload prompt while a draft is dirty. If browser storage throws, the message says the changes are only in memory and that local save failed; JSON export remains available. A constructed case stays a constructed analytical example.
 
 ## Research provenance
 
@@ -74,17 +74,35 @@ Graphviz SVG/PDF needs a local `dot` on PATH (`dot -V`). If it is missing, the C
 
 ## GitHub Pages
 
-Create a separate repository, for example `rag-research-explorer`, and place this project's contents at its root, including `.github/`. In **Settings → Pages**, select **GitHub Actions** as the source. Push to `main` or run the workflow manually. Relative asset paths and hash navigation support a repository subpath.
+Create a separate repository and place this project's contents at its root, including `.github/`. In **Settings → Pages**, select **GitHub Actions** as the source. Relative asset paths and hash navigation support a repository subpath such as `/research-evidence-explorer/`.
 
-The included workflow was prepared but was not run in this session. Publishing a static workspace exposes all seed data shipped in `dist/`; browser-local edits remain local until deliberately exported or committed. Choose the repository content accordingly.
+Checks and deployment are separate:
 
-## Checks for this port
+- `.github/workflows/check.yml` runs on pull requests and on pushes to `main`. It uses `contents: read`, installs from the lockfile, and runs `npm test`, `npm run build` and `npm run test:smoke`.
+- `.github/workflows/pages.yml` runs only when started by hand (`workflow_dispatch`). Its permissions are `contents: read`, `pages: write` and `id-token: write`. A push to `main` does not publish.
 
-`npm test` (49) and `npm run build` are the acceptance path. Figure-export tests cover browser SVG parse (no HTML-in-SVG embeds), manifest/selection parity with preserved epistemic status, Graphviz DOT labelling, and Graphviz availability probing without PATH mutation.
+`npm run build` validates `data/research.json` as schema 2, runs Vite with `base: './'`, and writes `dist/published-seed.json` and `dist/published-seed.manifest.json`. That published copy clears `editLog` and `recordRevisions`. The SPA bundle embeds the same curated seed, including basis strings that name the source documents. The build fails if a `.docx` file is present in `dist/` or if the published edit log is non-empty. Browser localStorage and import backups are not copied into the build. The two workspace DOCX files are not part of the published bundle.
 
-CLI acceptance on this machine: `out/justification.svg` (browser-layout, justification preset around `sufficiency`) parses as XML/SVG without HTML-in-SVG embeds; sidecar manifest matched the exported record set (7 nodes / 6 relationships with epistemicStatus preserved) and snapshot content hash; caption draft stated proposed relationships without an auto scientific conclusion; rendered SVG shows labelled edges, Selite legend and scoped caption at ~1446×458 viewBox. Graphviz `dot` was **not** on PATH, so valid DOT was written and SVG/PDF render was correctly not claimed. Browser: **Vie näkymä → Toistettava kuvio → Vie kuvio + manifesti** completed with status “Selainasettelun SVG, manifesti ja kuvateksti ladattu” (download blobs triggered; downloaded file bytes were not re-read from disk because CDP download capture is unavailable in this environment).
+Publishing exposes the curated seed that is already in `dist/`. Browser-local notes stay in the browser until they are deliberately exported.
 
-Not checked here: the GitHub Actions workflow; Graphviz SVG/PDF/PNG rendering (`dot` absent on this PATH); byte-identical SVG across machines/fonts; opening the module build with `file://`.
+## Checks
+
+Commands run on this machine on 26 October 2026:
+
+- `npm test`: 51 passed, 0 failed. The first run in this pass was 49 passed and 1 failed. `tests/journeys.test.ts` expected a criterion id `sufficiency`; sufficiency is a construct. An earlier report of 49 passing tests matches that pass count and did not include the failing journey test.
+- `npm run build`: succeeded with Vite 7.3.7. The published seed log was sources 11, claims 11, constructs 9, criteria 7, propositions 4, relationships 32, cases 3, protocols 4, decisions 1, editLog 0.
+- `npm run test:smoke`: 11 passed. Playwright 1.64.1 served `dist/` at `http://127.0.0.1:4173/research-evidence-explorer/` and checked the core views, reload under that subpath, dialog names and keyboard behaviour, case Save/Discard/Cancel, inspector save and undo, snapshot export and invalid import, SVG download contents, React Flow arrow-key movement, filter announcements, widths 320, 390, 768 and 1366, reduced motion, forced colors, and a storage failure that remains only in memory.
+- `where.exe dot`: Graphviz `dot` is not on PATH. Graphviz SVG, PDF and PNG rendering was not executed. The unit test still checks that a missing `dot` does not claim a PDF.
+
+Not run in this session: GitHub Actions, a Pages deployment, and opening the build from `file://`.
+
+A figure-export check from an earlier session reported a browser-layout SVG around `sufficiency` and said the downloaded file bytes were not re-read because of a CDP limit. That observation is historical. The smoke test in this session saved the quick graph SVG and read the file.
+
+### Manual release
+
+1. On the revision to publish, run `npm test`, `npm run build` and `npm run test:smoke`.
+2. Leave the workspace DOCX files and any browser-local exports unstaged.
+3. In GitHub, start **Deploy GitHub Pages** with `workflow_dispatch` after the checks you care about have passed. This task did not publish.
 
 ## Next research step
 
@@ -97,7 +115,13 @@ Passage-level reconciliation of the two source documents is still open. Names th
 | `data/research.json` | Curated schema 2 workspace |
 | `src/model.ts` | Validation, migration, directed path search, CSV and DOT |
 | `src/` | React workspace, hash routes and React Flow map |
-| `scripts/build.ts` | Seed check and Vite build into `dist/` |
+| `scripts/build.ts` | Schema 2 check, Vite build, and explicit `published-seed.json` |
+| `scripts/preview-subpath.ts` | Serves `dist/` under `/research-evidence-explorer/` for browser tests |
+| `playwright.config.ts` | Playwright smoke configuration |
+| `tests/browser/` | Browser smoke tests |
+| `src/Modal.tsx` | Native `<dialog>` modal used by the workspace dialogs |
+| `.github/workflows/check.yml` | Pull-request and `main` validation |
+| `.github/workflows/pages.yml` | Manual Pages deployment |
 | `scripts/export-graph.ts` | Snapshot-aware figure CLI (browser SVG / Graphviz DOT±render) |
 | `scripts/migrate.ts` | Schema 1 or schema 2 JSON to a checked schema 2 file |
 | `src/matrix.ts` | Criterion/source/argument projections and matrix JSON export |

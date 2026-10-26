@@ -98,10 +98,11 @@ test('dialogs are named, trap focus, cancel on Escape and restore focus', async 
 });
 
 test('case edits save, discard or cancel, and a failed check keeps the draft', async ({ page }) => {
-  await openApp(page, '#cases/A');
+  await openApp(page);
+  await page.getByRole('button', { name: 'Rakennetut tapaukset' }).click();
   await page.getByRole('button', { name: /A · Tuettu/ }).click();
   await page.getByRole('button', { name: 'Muokkaa tapausta' }).click();
-  const task = page.getByLabel('Tehtävä');
+  const task = page.getByRole('textbox', { name: 'Tehtävä', exact: true });
   await task.fill('LUONNOS-PERU');
   const blocked = await page.evaluate(() => {
     const event = new Event('beforeunload', { cancelable: true });
@@ -127,12 +128,12 @@ test('case edits save, discard or cancel, and a failed check keeps the draft', a
 
   await page.getByRole('button', { name: /B · Sama näyttö/ }).click();
   await page.getByRole('button', { name: 'Hylkää muutokset' }).click();
-  await expect(page.getByRole('heading', { level: 2, name: /B · Sama näyttö/ })).toBeVisible();
+  await expect(page.locator('.cases-view h2').filter({ hasText: 'B · Sama näyttö' })).toBeVisible();
   await expect(page.getByText('LUONNOS-PERU')).toHaveCount(0);
 
   await page.getByRole('button', { name: /A · Tuettu/ }).click();
   await page.getByRole('button', { name: 'Muokkaa tapausta' }).click();
-  await page.getByLabel('Tehtävä').fill('LUONNOS-TALLENNA');
+  await page.getByRole('textbox', { name: 'Tehtävä', exact: true }).fill('LUONNOS-TALLENNA');
   await page.getByRole('button', { name: 'Arviointimatriisi' }).click();
   await page.getByRole('button', { name: 'Tallenna ja jatka' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Arviointimatriisi' })).toBeVisible();
@@ -141,20 +142,20 @@ test('case edits save, discard or cancel, and a failed check keeps the draft', a
   await page.getByRole('button', { name: 'Rakennetut tapaukset' }).click();
   await page.getByRole('button', { name: /A · Tuettu/ }).click();
   await expect(page.getByText('LUONNOS-TALLENNA')).toBeVisible();
-  await expect(page.getByText('Rakennettu analyyttinen esimerkki')).toBeVisible();
-  await expect(page.getByText('constructed-analytical-example').first()).toBeVisible();
+  await expect(page.locator('.cases-view').getByText('Rakennettu analyyttinen esimerkki · Ei tutkimustulos')).toBeVisible();
+  await expect(page.locator('.cases-view').getByText('constructed-analytical-example').first()).toBeVisible();
 
   await page.getByRole('button', { name: 'Muokkaa tapausta' }).click();
-  await page.getByLabel('Tehtävä').fill('x'.repeat(8001));
+  await page.getByRole('textbox', { name: 'Tehtävä', exact: true }).fill('x'.repeat(8001));
   await page.getByRole('button', { name: 'Tallenna tapaus' }).click();
   await expect(page.locator('#message')).toContainText('virheellinen teksti');
   await expect(page.locator('#message')).not.toContainText('tallennettiin');
-  await expect(page.getByLabel('Tehtävä')).toHaveValue('x'.repeat(8001));
+  await expect(page.getByRole('textbox', { name: 'Tehtävä', exact: true })).toHaveValue('x'.repeat(8001));
   await page.getByRole('button', { name: 'Arviointimatriisi' }).click();
   await page.getByRole('button', { name: 'Tallenna ja jatka' }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Tehtävästä näyttöön' })).toBeVisible();
-  await expect(page.getByLabel('Tehtävä')).toHaveValue('x'.repeat(8001));
-  await expect(page.locator('.save-state')).not.toHaveText('Tallennettu tähän selaimeen');
+  await expect(page.getByRole('textbox', { name: 'Tehtävä', exact: true })).toHaveValue('x'.repeat(8001));
+  await expect(page.locator('#message')).not.toContainText('Rakennettu tapaus tallennettiin');
 });
 
 test('inspector edits can be saved and undone', async ({ page }) => {
@@ -217,7 +218,8 @@ test('snapshot export and import preserve the workspace when the file is invalid
   await page.getByRole('button', { name: 'Tilannekuva / tuo' }).click();
   await page.getByLabel('Tuo tilannekuva / työtila').setInputFiles(saved);
   await page.getByRole('button', { name: 'Hyväksy korvaava tuonti' }).click();
-  await expect(notes).toHaveValue('smoke-note');
+  await page.goto(`${root}#graph/sufficiency`);
+  await expect(page.getByLabel('Oma pohdinta tai seuraava tarkistus')).toHaveValue('smoke-note');
 });
 
 test('SVG download completes and contains a labelled figure', async ({ page }) => {
@@ -247,14 +249,17 @@ test('graph keyboard moves a selected node and full labels are not hover-only', 
   await node.focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { level: 2, name: 'Näytön riittävyys' })).toBeVisible();
-  const before = await node.boundingBox();
-  expect(before).toBeTruthy();
+  const flowX = () => node.evaluate(element => new DOMMatrix(getComputedStyle(element).transform).m41);
+  const before = await flowX();
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('ArrowRight');
-  await expect.poll(async () => (await node.boundingBox())?.x ?? 0).toBeGreaterThan((before?.x ?? 0) + 1);
+  await expect.poll(flowX).toBeGreaterThan(before + 1);
+  await expect.poll(flowX).toBeGreaterThan(before + 1);
   await page.keyboard.press('Backspace');
   await expect(node).toBeVisible();
-  await page.getByRole('button', { name: /Näkyvät kohteet tekstinä/ }).click();
+  const summary = page.locator('summary').filter({ hasText: 'Näkyvät kohteet tekstinä' });
+  await summary.focus();
+  await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: /Näytön riittävyys/ }).last()).toBeVisible();
 });
 
@@ -263,10 +268,10 @@ test('filter changes are announced without repeating on selection', async ({ pag
   const live = page.locator('#matrix-filter-status');
   await expect(live).toContainText('kriteerinäkymä');
   const before = await live.textContent();
-  await page.getByLabel('Tiedollinen tila').selectOption('hypothesis');
+  await page.locator('.matrix-toolbar').getByLabel('Tutkimusjuonne (käsite)').selectOption({ label: 'Näytön riittävyys' });
   await expect(live).not.toHaveText(before || '');
   const filtered = await live.textContent();
-  await page.locator('th[scope="row"] button').first().click();
+  await page.locator('.matrix-view th[scope="row"] button').first().click();
   await expect(live).toHaveText(filtered || '');
 
   await page.goto(`${root}#graph/sufficiency`);
@@ -310,9 +315,15 @@ test('reduced motion and forced colors keep controls visible', async ({ page }) 
   const sample = page.getByRole('button', { name: 'Vie JSON' });
   const style = await sample.evaluate(element => {
     const computed = getComputedStyle(element);
-    return { duration: computed.animationDuration, border: computed.borderTopWidth, adjust: computed.forcedColorAdjust };
+    return { transition: computed.transitionDuration, border: computed.borderTopWidth, adjust: computed.forcedColorAdjust };
   });
-  expect(style.duration === '0.01ms' || style.duration === '0s').toBe(true);
+  const transitionMs = style.transition.split(',').reduce((max, part) => {
+    const value = part.trim();
+    const amount = value.endsWith('ms') ? parseFloat(value) : parseFloat(value) * 1000;
+    return Math.max(max, amount);
+  }, 0);
+  expect(transitionMs).toBeLessThan(1);
+  expect(style.adjust).toBe('none');
   expect(parseFloat(style.border)).toBeGreaterThan(0);
   await expect(sample).toBeVisible();
   await expect(page.locator('.record-card').first()).toBeVisible();

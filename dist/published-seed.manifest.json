@@ -1,0 +1,9 @@
+{
+  "exportType": "research-published-seed",
+  "schemaVersion": 2,
+  "source": "data/research.json",
+  "builtAt": "2026-10-26T13:52:09.812Z",
+  "contentHash": "sha256:9b898d668b9fc24024f7ea6bf4a4ca378deed453d13438548b0eaca7c527d636",
+  "contentNote": "This file is the curated schema 2 seed shipped with the static Pages build. It is not a researcher localStorage workspace, not a private attachment store, and not an automatic dump of unpublished notes.",
+  "runtimeNote": "The SPA embeds the same curated seed for first load. Browser-local edits stay in this browser until deliberately exported. Attachments are metadata-only when imported via CSL."
+}

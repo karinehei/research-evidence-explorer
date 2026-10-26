@@ -1,8 +1,42 @@
-# Baseline audit — 26 October 2026
+# Baseline — 26 October 2026
 
-This is the checked state of the dependency-free prototype before the schema 2 migration. Schema 2 is now implemented; its rules and remaining appraisal gaps are in `docs/schema.md`. The browser workspace is now the React application in `src/`. The observations below describe the schema 1 baseline and are not restated as the current stored shape or the current interface. There is no `AGENTS.md`. `architecture-explorer` was not opened, copied or modified; the interaction pattern already in this workspace was enough for the audit.
+The current application is a React 19.2.0 and TypeScript 5.9.3 workspace built with Vite 7.3.7. The map uses `@xyflow/react` 12.9.3. The interface is Finnish. Record ids stay in English. Hash routes such as `#graph/sufficiency`, `#matrix`, `#cases/A`, `#questions` and `#history` select the view. Browser edits use `localStorage` key `research-evidence-explorer-v1`. There is no `AGENTS.md`.
 
-## Canonical data and entry points
+## Current data model
+
+`data/research.json` is the curated schema 2 workspace. `npm run build` loads it through `src/model.ts` and refuses anything that is not schema 2. A schema 1 file still imports through the migration in `src/model.ts`. Rules that still need appraisal are in `docs/schema.md`.
+
+The seed checked by the build on 26 October 2026 contains 11 sources, 11 claims, 9 constructs, 7 criteria, 4 propositions, 32 relationships, 3 constructed cases, 4 protocols and 1 decision. Its edit log is empty. `sufficiency` is a construct labelled “Näytön riittävyys”, not a criterion. Constructed cases stay `kind: "constructed"` with analytic label `constructed-analytical-example`.
+
+## Current build
+
+`npm run build` runs Vite with `base: './'` and writes `dist/`. It also writes `dist/published-seed.json` and `dist/published-seed.manifest.json`. The published JSON is the curated seed with `editLog` and `recordRevisions` cleared. The SPA bundle embeds that same curated seed, including basis strings that name the source documents. The build throws if `dist/` contains a `.docx` file or if the published edit log is non-empty. Browser localStorage, import backups and the two untracked DOCX files are not copied into the build.
+
+`npm test` runs the data and model tests in `tests/*.test.ts`. `npm run test:smoke` runs Playwright 1.64.1 against the built files served at `http://127.0.0.1:4173/research-evidence-explorer/`.
+
+## What this session ran
+
+| Command | Result |
+|---|---|
+| `npm test` at the start of the pass | 49 passed, 1 failed. The failure was `tests/journeys.test.ts` treating `sufficiency` as a criterion id. |
+| `npm test` after that assertion and the case-draft regression | 51 passed, 0 failed |
+| `npm run build` | Succeeded. Vite 7.3.7. Published counts as listed above, `editLog` 0. |
+| `npm run test:smoke` | 11 passed against the subpath preview of `dist/` |
+| `where.exe dot` | Graphviz `dot` is not on PATH. Graphviz SVG, PDF and PNG rendering was not run. |
+
+An earlier note that 49 tests passed matches the pass count above and did not include the failing journey test. An earlier browser note that SVG download bytes were not re-read is historical. This session’s smoke test saved the quick graph SVG and checked the file.
+
+GitHub Actions and Pages were not run. Nothing was published or pushed.
+
+## Release split
+
+`.github/workflows/check.yml` runs on pull requests and pushes to `main` with `contents: read`. `.github/workflows/pages.yml` deploys only on `workflow_dispatch`, with `contents: read`, `pages: write` and `id-token: write`.
+
+## Historical observation — schema 1 static prototype
+
+The rest of this file is the audit of the dependency-free prototype before the schema 2 migration and before the React application. It is not the current stored shape, the current interface, or the current build. Schema 2 rules are in `docs/schema.md`. `architecture-explorer` was not opened, copied or modified.
+
+## Historical canonical data and entry points
 
 `data/research.json` is the only curated source. `npm run build` validates it and writes `dist/`. The build copies `web/index.html`, `web/app.js`, `web/model.js` and `web/styles.css`, then generates `dist/seed.js` as `window.RESEARCH_SEED`. Editing `dist/` does not change the source. `web/index.html` references `./seed.js`, which exists only after the build, so the browser entry is `dist/index.html`.
 

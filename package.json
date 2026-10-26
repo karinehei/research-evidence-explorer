@@ -9,7 +9,6 @@
     "build": "node --experimental-strip-types scripts/build.ts",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "test:smoke": "playwright test",
-    "test:smoke": "node tests/smoke.mjs",
     "migrate": "node --experimental-strip-types scripts/migrate.ts",
     "export-graph": "node --experimental-strip-types scripts/export-graph.ts"
   },
@@ -22,6 +21,7 @@
     "react-dom": "19.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
     "@vitejs/plugin-react": "5.1.0",
