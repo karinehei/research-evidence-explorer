@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { contentKey } from './edit.ts';
 
 export interface DirtyApi {
@@ -9,7 +9,7 @@ export interface DirtyApi {
 
 export function useDraft<T>(
   saved: T,
-  guard: MutableRefObject<DirtyApi | null>,
+  guard: RefObject<DirtyApi | null>,
   save: (draft: T) => boolean,
   options?: { active?: boolean; onReset?: () => void }
 ) {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type MutableRefObject } from 'react';
+import { useEffect, useMemo, useState, type RefObject } from 'react';
 import type { AriaLabelConfig } from '@xyflow/system';
 import {
   Background, BaseEdge, EdgeLabelRenderer, Handle, MarkerType, Position, ReactFlow,
@@ -48,7 +48,7 @@ const edgeTypes = { epistemic: EpistemicEdge };
 
 export function FlowMap({ model, ids, selectedId, selectedEdge, trace, fitToken, guardTick, api, onSelectNode, onSelectEdge, onMove }: {
   model: Workspace; ids: Set<string>; selectedId: string; selectedEdge: string; trace: { nodes: string[] } | null;
-  fitToken: number; guardTick: number; api: MutableRefObject<FlowApi | null>;
+  fitToken: number; guardTick: number; api: RefObject<FlowApi | null>;
   onSelectNode: (id: string) => void; onSelectEdge: (id: string) => void; onMove: (id: string, position: { x: number; y: number }) => void;
 }) {
   const visibleKey = [...ids].sort().join('|');
@@ -107,7 +107,7 @@ export function FlowMap({ model, ids, selectedId, selectedEdge, trace, fitToken,
   </ReactFlow>{nodes.length ? null : <p className="empty-map">Ei hakua tai suodatusta vastaavia kohteita.</p>}</div>;
 }
 
-function FlowBridge({ fitToken, api }: { fitToken: number; api: MutableRefObject<FlowApi | null> }) {
+function FlowBridge({ fitToken, api }: { fitToken: number; api: RefObject<FlowApi | null> }) {
   const flow = useReactFlow();
   useEffect(() => {
     api.current = {

@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type MutableRefObject, type ReactNode } from 'react';
+import { useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
 import { access, appraisal, epistemic, locate, provenance, relations, reviewStates } from './model.ts';
 import { accessLabel, appraisalLabel, epistemicLabel, meaningLabel, provenanceLabel, publicationLabel, researchRoleLabel, reviewLabel } from './labels.ts';
 import { clone, newId, requireConnection } from './edit.ts';
@@ -42,7 +42,7 @@ function Remove({ id, onRemove }: { id: string; onRemove: (id: string) => void }
 }
 
 export function Inspector({ model, selectedId, edgeId, mode, guard, onSave, onMessage, onOpen, onEdge, onAddEdge, onAddClaim, onRemove, caseDraftPaused = false }: {
-  model: Workspace; selectedId: string; edgeId: string; mode: Mode; guard: MutableRefObject<DirtyApi | null>;
+  model: Workspace; selectedId: string; edgeId: string; mode: Mode; guard: RefObject<DirtyApi | null>;
   onSave: Save; onMessage: (text: string) => void; onOpen: (id: string) => void; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onAddClaim: (sourceId: string) => void; onRemove: (id: string) => void;
   caseDraftPaused?: boolean;
 }) {
@@ -70,7 +70,7 @@ function Membership({ model, edgeId, onOpen }: { model: Workspace; edgeId: strin
   return <aside className="inspector" aria-label="Valitun kohteen tiedot"><div className="eyebrow">LÄHDEVIITE</div><h2>Lähdeviite, ei kausaalinuoli</h2><p>Viiva liittää lähdeväitteen lähteeseensä. Se ei ole tyypitetty tutkimuksellinen yhteys eikä syy-seurausnuoli.</p>{claim && <button type="button" onClick={() => onOpen(claim.sourceId)}>Avaa lähde</button>}</aside>;
 }
 
-function RelationshipForm({ model, edgeId, guard, onSave, onRemove }: { model: Workspace; edgeId: string; guard: MutableRefObject<DirtyApi | null>; onSave: Save; onRemove: (id: string) => void }) {
+function RelationshipForm({ model, edgeId, guard, onSave, onRemove }: { model: Workspace; edgeId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onRemove: (id: string) => void }) {
   const edge = model.relationships.find(item => item.id === edgeId);
   const saved: Relationship = edge || { id: edgeId, meaning: 'motivates', source: '', target: '', label: '', rationale: '', locator: '', claimIds: [], sourceIds: [], epistemicStatus: 'adaptation', reviewState: 'proposed', reviewNote: '' };
   const { draft, setDraft, persist } = useDraft(saved, guard, next => {
@@ -119,7 +119,7 @@ function Section({ title, children, note }: { title: string; children: ReactNode
   </section>;
 }
 
-function SourceForm({ model, source, guard, onSave, onOpen, onEdge, onAddEdge, onAddClaim, onRemove }: { model: Workspace; source: Source; guard: MutableRefObject<DirtyApi | null>; onSave: Save; onOpen: (id: string) => void; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onAddClaim: (sourceId: string) => void; onRemove: (id: string) => void }) {
+function SourceForm({ model, source, guard, onSave, onOpen, onEdge, onAddEdge, onAddClaim, onRemove }: { model: Workspace; source: Source; guard: RefObject<DirtyApi | null>; onSave: Save; onOpen: (id: string) => void; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onAddClaim: (sourceId: string) => void; onRemove: (id: string) => void }) {
   const draftSource = { ...source, nextCheck: source.nextCheck || '', researchRole: source.researchRole || 'not-recorded' };
   const { draft, setDraft, persist } = useDraft(draftSource, guard, next => {
     const copy = clone(model);
@@ -208,7 +208,7 @@ function SourceForm({ model, source, guard, onSave, onOpen, onEdge, onAddEdge, o
   </>;
 }
 
-function ClaimForm({ model, claimId, guard, onSave, onOpen, onRemove }: { model: Workspace; claimId: string; guard: MutableRefObject<DirtyApi | null>; onSave: Save; onOpen: (id: string) => void; onRemove: (id: string) => void }) {
+function ClaimForm({ model, claimId, guard, onSave, onOpen, onRemove }: { model: Workspace; claimId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onOpen: (id: string) => void; onRemove: (id: string) => void }) {
   const claim = model.claims.find(item => item.id === claimId)!;
   const { draft, setDraft, persist } = useDraft(claim, guard, next => {
     const copy = clone(model);
@@ -254,7 +254,7 @@ function ClaimForm({ model, claimId, guard, onSave, onOpen, onRemove }: { model:
   </>;
 }
 
-function ConstructForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRemove }: { model: Workspace; recordId: string; guard: MutableRefObject<DirtyApi | null>; onSave: Save; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onRemove: (id: string) => void }) {
+function ConstructForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRemove }: { model: Workspace; recordId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onRemove: (id: string) => void }) {
   const record = model.constructs.find(item => item.id === recordId)!;
   const { draft, setDraft, persist } = useDraft(record, guard, next => {
     const copy = clone(model);
@@ -287,7 +287,7 @@ function ConstructForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
   </>;
 }
 
-function CriterionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRemove }: { model: Workspace; recordId: string; guard: MutableRefObject<DirtyApi | null>; onSave: Save; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onRemove: (id: string) => void }) {
+function CriterionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRemove }: { model: Workspace; recordId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onRemove: (id: string) => void }) {
   const record = model.criteria.find(item => item.id === recordId)!;
   const { draft, setDraft, persist } = useDraft(record, guard, next => {
     const copy = clone(model);
@@ -321,7 +321,7 @@ function CriterionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
   </>;
 }
 
-function PropositionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRemove, onOpen }: { model: Workspace; recordId: string; guard: MutableRefObject<DirtyApi | null>; onSave: Save; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onRemove: (id: string) => void; onOpen: (id: string) => void }) {
+function PropositionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRemove, onOpen }: { model: Workspace; recordId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onRemove: (id: string) => void; onOpen: (id: string) => void }) {
   const record = model.propositions.find(item => item.id === recordId)!;
   const [statementRationale, setStatementRationale] = useState('');
   const { draft, setDraft, persist } = useDraft({ ...record, statementRationale: '' }, guard, next => {
@@ -405,7 +405,7 @@ function ProtocolForm({ model, recordId, onOpen }: { model: Workspace; recordId:
   </>;
 }
 
-function CaseForm({ model, recordId, guard, onSave, paused }: { model: Workspace; recordId: string; guard: MutableRefObject<DirtyApi | null>; onSave: Save; paused: boolean }) {
+function CaseForm({ model, recordId, guard, onSave, paused }: { model: Workspace; recordId: string; guard: RefObject<DirtyApi | null>; onSave: Save; paused: boolean }) {
   const record = model.cases.find(item => item.id === recordId)!;
   const saved = { propositionIds: record.propositionIds, criterionIds: record.criterionIds, decisionIds: record.decisionIds };
   const idleGuard = useRef<DirtyApi | null>(null);
@@ -432,7 +432,7 @@ function CaseForm({ model, recordId, guard, onSave, paused }: { model: Workspace
   </>;
 }
 
-function DecisionForm({ model, recordId, guard, onSave, onRemove }: { model: Workspace; recordId: string; guard: MutableRefObject<DirtyApi | null>; onSave: Save; onRemove: (id: string) => void }) {
+function DecisionForm({ model, recordId, guard, onSave, onRemove }: { model: Workspace; recordId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onRemove: (id: string) => void }) {
   const record = model.decisions.find(item => item.id === recordId)!;
   const { draft, setDraft, persist } = useDraft(record, guard, next => {
     const copy = clone(model);
@@ -457,7 +457,7 @@ function DecisionForm({ model, recordId, guard, onSave, onRemove }: { model: Wor
   </>;
 }
 
-function AddNode({ model, guard, onSave, onMessage, onOpen }: { model: Workspace; guard: MutableRefObject<DirtyApi | null>; onSave: Save; onMessage: (text: string) => void; onOpen: (id: string) => void }) {
+function AddNode({ model, guard, onSave, onMessage, onOpen }: { model: Workspace; guard: RefObject<DirtyApi | null>; onSave: Save; onMessage: (text: string) => void; onOpen: (id: string) => void }) {
   const blank = { kind: 'construct', label: '', text: '', sourceId: '', constructId: '' };
   const created = { id: '' };
   const { draft, setDraft, persist } = useDraft(blank, guard, next => {
@@ -492,7 +492,7 @@ function AddNode({ model, guard, onSave, onMessage, onOpen }: { model: Workspace
   </aside>;
 }
 
-function AddEdge({ model, sourceId, guard, onSave, onMessage, onEdge }: { model: Workspace; sourceId: string; guard: MutableRefObject<DirtyApi | null>; onSave: Save; onMessage: (text: string) => void; onEdge: (id: string) => void }) {
+function AddEdge({ model, sourceId, guard, onSave, onMessage, onEdge }: { model: Workspace; sourceId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onMessage: (text: string) => void; onEdge: (id: string) => void }) {
   const blank = { target: '', meaning: '', epistemicStatus: 'adaptation', reviewState: 'proposed', rationale: '' };
   const targets = [...model.sources, ...model.constructs, ...model.criteria, ...model.propositions].filter(record => record.id !== sourceId).map(record => ({ id: record.id, label: record.label }));
   const created = { id: '' };
