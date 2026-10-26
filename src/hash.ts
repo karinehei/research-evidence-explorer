@@ -1,4 +1,4 @@
-export const views = ['graph', 'matrix', 'cases', 'questions'] as const;
+export const views = ['graph', 'matrix', 'cases', 'questions', 'history'] as const;
 export type View = typeof views[number];
 export type Scope = 'focus' | 'map';
 export interface Route { view: View; scope: Scope; id: string }
@@ -14,7 +14,7 @@ export function parseHash(hash: string): Route {
     if (parts[1] === 'focus') return { view: 'graph', scope: 'focus', id: parts[2] || '' };
     return { view: 'graph', scope: 'focus', id: parts[1] || '' };
   }
-  if (head === 'matrix' || head === 'cases' || head === 'questions') return { view: head, scope: 'focus', id: parts[1] || '' };
+  if (head === 'matrix' || head === 'cases' || head === 'questions' || head === 'history') return { view: head, scope: 'focus', id: parts[1] || '' };
   return { view: 'graph', scope: 'focus', id: '' };
 }
 

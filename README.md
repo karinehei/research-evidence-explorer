@@ -2,7 +2,7 @@
 
 An initial research workspace for developing the conceptual model of Finnish healthcare RAG evaluation. It adapts the exploration pattern of [architecture-explorer](https://github.com/karinehei/architecture-explorer) to sources, source claims, constructs, criteria and open propositions. Its implementation is independent; no original repository files were modified.
 
-The interface is Finnish. The curated seed is a **selected starting model**, not a complete conversion of the literature matrix or a completed review. It contains 11 sources, 11 imported source claims, 9 constructs, 7 criteria, 32 relationships, 4 open propositions, 4 provisional assessment protocols and 3 constructed cases. The stored workspace is schema 2. A schema 1 export still imports through the migration in `src/model.ts`. The record types, migration rules and fields that still need appraisal are documented in [docs/schema.md](docs/schema.md).
+The interface is Finnish. The curated seed is a **selected starting model**, not a complete conversion of the literature matrix or a completed review. It contains 11 sources, 11 imported source claims, 9 constructs, 7 criteria, 32 relationships, 4 open propositions, 4 provisional assessment protocols and 3 constructed cases. The stored workspace is schema 2. A schema 1 export still imports through the migration in `src/model.ts`. The record types, migration rules and fields that still need appraisal are documented in [docs/schema.md](docs/schema.md). Portable snapshots, content hashes and the local decision log are documented in [docs/snapshots.md](docs/snapshots.md).
 
 ## Run the workspace
 
@@ -26,6 +26,7 @@ Dependencies are pinned in `package.json` and `package-lock.json`: React 19.2.0,
 2. **Arviointimatriisi**: criterion-oriented and source-oriented projections of the same canonical records as the graph, plus a focused argument view for a selected research decision. Criterion rows show construct and definition, supporting or motivating claims, the researcher's adaptation, evidence/assessor/unit, decision rule, permitted inference and validation need. Source rows distinguish conceptual, technical, empirical and tool/workflow roles without ranking them. Filters cover research strand (construct), epistemic status, appraisal and (on the source view) research role. Multi-step source→construct→criterion paths are labelled conceptual ancestry, not direct empirical support. Competing definitions stay visible. Blank cells mean “not recorded” / “not assessed” / “requires checking”, not a research gap, and no coverage or quality scores colour the matrix. Cell and claim selection opens the shared inspector; matrix JSON export keeps stable ids, filters, selection, claims and relationships.
 3. **Rakennetut tapaukset**: task-to-evidence view and editor for constructed analytical cases A–C. The task reference records required facets, essential qualifications, temporal scope and acceptable source versions. Collection coverage, supplied-context sufficiency and answer coverage are shown separately; claim support and displayed citation are linked audits, not interchangeable stages. Facet states are full, partial, absent, conflicting or unresolved, with evidence refs and a reason; missing essential facets are listed prominently. Descriptive coverage ratios use an explicit denominator and never hide an essential omission behind an average. No clinical safety score is computed. Case records hold source snapshots, passages, saved context, answer variants, claim annotations, display conditions and interpretation boundaries, all labelled constructed-analytical-example on screen and in export. Cross-references stay in the inspector. Expert ratings and verification outcomes remain `not-measured`.
 4. **Oletukset ja kysymykset**: future propositions with linked provisional assessment protocols and research decisions, separate from reported findings. P1 is a planned association (context coverage × expert-rated sufficiency), P2 a controlled presentation comparison with answer/evidence held constant, and P3 paired meaning-equivalent coverage changes — none are stored as established positive effects. The five expert dimensions stay separate; correctness and successful verification are separate audits; exports carry no invented observations or composite trust score.
+5. **Historia ja tilannekuvat**: append-only local decision log (what changed, before/after, timestamp, linked records, reason, optional researcher-entered actor label) and versioned snapshot export/import with content vs layout hashes. Undo records a reversal event instead of silently rewriting history. Browser-local JSON is not a tamper-proof audit trail; explicit export is the portable copy and nothing is uploaded automatically.
 
 One inspector edits the selected record. Long labels stay clamped on the canvas; the full text, rationale and limitations are in the selection. A relationship shows its meaning, rationale, evidence references, epistemic status and limitation. Adding a connection requires an explicit relationship type and can record a rationale. An arrow without that choice is not stored and does not imply a cause. Reported, adaptation and hypothesis links use text, line style and colour together. A claim’s link to its source is labelled as a source reference and has no causal arrowhead.
 
@@ -58,21 +59,18 @@ Constructed cases are edited in the cases view (facets, source versions, variant
 
 ## Figure and data exports
 
-- **JSON**: complete workspace, including evidence notes and positions.
-- **SVG**: visible graph, including current filters and layout. Uses native SVG text; no `foreignObject`, remote icons or embedded web content. The description states that the styles are epistemic, not causal.
-- **DOT**: visible graph for Graphviz; automatic Graphviz layout differs from the browser layout. The command is available only after the map has been opened, because the export uses that visible scope.
-- **CSV**: the research records, including notes and source locators. Relationships remain in JSON and DOT.
-- **Print**: current view; use the browser's PDF destination if desired. For the graph, SVG or DOT is preferable to printing a large map.
-
-Generate reproducible figures from an exported JSON snapshot:
+- **JSON / tilannekuva**: complete workspace or versioned snapshot with content hash.
+- **Toistettava kuvio**: focused presets (justification, evaluation model, one constructed case) with browser-layout SVG or Graphviz DOT, plus a sidecar manifest and caption draft. See [docs/figures.md](docs/figures.md).
+- **Pikainen SVG/DOT**: current visible graph (after the map has been opened for DOT scope).
+- **CSV / print**: records or the current view.
 
 ```sh
-node --experimental-strip-types scripts/export-graph.ts research-workspace.json research-map.dot
-node --experimental-strip-types scripts/export-graph.ts research-workspace.json research-map.svg
-node --experimental-strip-types scripts/export-graph.ts research-workspace.json research-map.pdf
+node --experimental-strip-types scripts/export-graph.ts data/research.json out/justification.dot --preset=justification
+node --experimental-strip-types scripts/export-graph.ts data/research.json out/justification.svg --preset=justification --mode=browser-layout
+node --experimental-strip-types scripts/export-graph.ts research-snapshot.json out/eval.pdf --preset=evaluation-model --format=pdf
 ```
 
-Only the last two commands need the Graphviz application (`dot`). On Windows, verify `dot -V` after installation. Review figure labels, selection boundaries and the caption for each manuscript. The renderer represents the model; it does not validate its conceptual claims. If `dot` is missing, the script stops with: “Graphviz dot is required for SVG/PDF/PNG. DOT export needs only Node.js.”
+Graphviz SVG/PDF needs a local `dot` on PATH (`dot -V`). If it is missing, the CLI still writes valid DOT and the manifest; it does **not** claim a PDF was rendered and does not alter PATH. Reported / adaptation / hypothesis remain visible through labels, line styles and colour. Caption drafts state scope and proposed links; they do not invent a scientific conclusion. Byte-identical rendering across unpinned environments is not promised.
 
 ## GitHub Pages
 
@@ -82,11 +80,11 @@ The included workflow was prepared but was not run in this session. Publishing a
 
 ## Checks for this port
 
-`npm test` passed 38 tests after the assessment-protocol work (P1–P3 design distinctions, five provisional expert dimensions, empty observations / `not-computed` composite trust score, anchor revision with rationale, protocol export provenance, plus earlier case, matrix, CSL and schema checks). `npm run build` with Vite 7.3.7 wrote `dist/` using relative `./assets` paths.
+`npm test` (49) and `npm run build` are the acceptance path. Figure-export tests cover browser SVG parse (no HTML-in-SVG embeds), manifest/selection parity with preserved epistemic status, Graphviz DOT labelling, and Graphviz availability probing without PATH mutation.
 
-In the browser against `dist/` on a local static server (`#questions/p1`), P1 showed linked criteria (expert, facets, ranking), association design (not a controlled causal test), and `proto_p1` with five separate dimensions, `observations: []` and `compositeTrustScore: not-computed`. Revising the trustworthiness anchor with a recorded rationale updated the provisional rubric and enabled undo; localStorage kept the rationale without inventing observations. P2 remains labelled controlled-comparison with B answer/display targets in the seed.
+CLI acceptance on this machine: `out/justification.svg` (browser-layout, justification preset around `sufficiency`) parses as XML/SVG without HTML-in-SVG embeds; sidecar manifest matched the exported record set (7 nodes / 6 relationships with epistemicStatus preserved) and snapshot content hash; caption draft stated proposed relationships without an auto scientific conclusion; rendered SVG shows labelled edges, Selite legend and scoped caption at ~1446×458 viewBox. Graphviz `dot` was **not** on PATH, so valid DOT was written and SVG/PDF render was correctly not claimed. Browser: **Vie näkymä → Toistettava kuvio → Vie kuvio + manifesti** completed with status “Selainasettelun SVG, manifesti ja kuvateksti ladattu” (download blobs triggered; downloaded file bytes were not re-read from disk because CDP download capture is unavailable in this environment).
 
-Not checked here: the GitHub Actions workflow, Graphviz SVG/PDF/PNG rendering when `dot` is absent, and opening the module build with `file://`.
+Not checked here: the GitHub Actions workflow; Graphviz SVG/PDF/PNG rendering (`dot` absent on this PATH); byte-identical SVG across machines/fonts; opening the module build with `file://`.
 
 ## Next research step
 
@@ -100,13 +98,17 @@ Passage-level reconciliation of the two source documents is still open. Names th
 | `src/model.ts` | Validation, migration, directed path search, CSV and DOT |
 | `src/` | React workspace, hash routes and React Flow map |
 | `scripts/build.ts` | Seed check and Vite build into `dist/` |
-| `scripts/export-graph.ts` | CLI DOT, or SVG/PDF/PNG when Graphviz `dot` is installed |
+| `scripts/export-graph.ts` | Snapshot-aware figure CLI (browser SVG / Graphviz DOT±render) |
 | `scripts/migrate.ts` | Schema 1 or schema 2 JSON to a checked schema 2 file |
 | `src/matrix.ts` | Criterion/source/argument projections and matrix JSON export |
 | `src/cases.ts` | Constructed-case hydration, coverage layers and case export |
 | `src/protocols.ts` | Proposition/protocol hydration, anchor revision and protocol export |
+| `src/snapshots.ts` | Edit log, canonical content/layout hashes, snapshot export/import/compare |
+| `src/figures.ts` | Focused figure presets, browser SVG, Graphviz DOT, manifest and caption |
+| `docs/snapshots.md` | Canonicalisation procedure and audit disclaimers |
+| `docs/figures.md` | Reproducible figure modes, presets and CLI |
 | `scripts/seed-protocols.ts` | Seed P1–P3 protocols without inventing observations |
-| `tests/` | Model integrity, migration, matrix/cases/protocols provenance, hash routes and trace wording |
+| `tests/` | Model integrity, migration, matrix/cases/protocols/snapshots provenance, hash routes and trace wording |
 | `dist/` | Built deployment, served by a static server or Pages |
 
 ## License

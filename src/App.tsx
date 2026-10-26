@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import seed from '../data/research.json';
-import { applyImport, csv, dot, graphNodes, load, locate, path, planRemoval, validate } from './model.ts';
+import { csv, graphNodes, load, locate, path, planRemoval, validate } from './model.ts';
+import { figureGraphvizDot } from './figures.ts';
 import { formatHash, parseHash, type Route, type View } from './hash.ts';
 import { visibleIds } from './graph.ts';
 import { formatTrace, traceLimitation } from './trace.ts';
@@ -10,15 +11,21 @@ import { FlowMap, type FlowApi } from './FlowMap.tsx';
 import { Inspector } from './Inspector.tsx';
 import { CslImportDialog } from './CslImportDialog.tsx';
 import { CasesView, MatrixView, QuestionsView } from './views.tsx';
+import { HistoryView } from './HistoryView.tsx';
+import { SnapshotDialog } from './SnapshotDialog.tsx';
+import { FigureExportDialog } from './FigureExportDialog.tsx';
+import { AUDIT_DISCLAIMER, LOCAL_SAVE_DISCLAIMER, prepareCommit, prepareUndo } from './snapshots.ts';
 import type { DirtyApi } from './draft.ts';
-import type { Workspace } from './types.ts';
+import type { EditEventKind, Workspace } from './types.ts';
 
 const KEY = 'research-evidence-explorer-v1';
+const ACTOR_KEY = 'research-evidence-explorer-actor-label-v1';
 const descriptions: Record<View, [string, string]> = {
   graph: ['Lähteistä arviointikriteereihin', 'Tutki, mihin käsitteet ja omat menetelmävalinnat perustuvat.'],
   matrix: ['Arviointimatriisi', 'Käsitteet, kriteerit, näyttö ja päätelmien rajat samassa näkymässä.'],
   cases: ['Tehtävästä näyttöön', 'Rakennetut tapaukset A–C erottavat kattavuuden, väitetuen ja näytön. Näkymä ei ole validoitu kausaalimalli.'],
-  questions: ['Oletukset ja avoimet kysymykset', 'Propositiot ja alustavat arviointiprotokollat ilman inventoituja havaintoja tai yhdistelmäpistettä.']
+  questions: ['Oletukset ja avoimet kysymykset', 'Propositiot ja alustavat arviointiprotokollat ilman inventoituja havaintoja tai yhdistelmäpistettä.'],
+  history: ['Muokkaushistoria ja tilannekuvat', 'Liitettävä paikallinen päätösloki ja siirrettävät tilannekuvat. Ei peukaloinnin kestävä auditointi.']
 };
 
 function here(hash: string): string {
@@ -82,6 +89,12 @@ export function App() {
   const [exportOpen, setExportOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [cslOpen, setCslOpen] = useState(false);
+  const [snapshotOpen, setSnapshotOpen] = useState(false);
+  const [figureOpen, setFigureOpen] = useState(false);
+  const [actorLabel, setActorLabel] = useState(() => {
+    try { return localStorage.getItem(ACTOR_KEY) || ''; }
+    catch { return ''; }
+  });
   const [removal, setRemoval] = useState<Removal | null>(null);
   const modelRef = useRef(model);
   const undoRef = useRef<Workspace[]>([]);
@@ -93,7 +106,6 @@ export function App() {
   const graphReady = useRef(false);
   const visibleRef = useRef<Set<string>>(new Set());
   const flowApi = useRef<FlowApi | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   modelRef.current = model;
   routeRef.current = route;
   const selectedId = resolveId(route, model);
@@ -104,9 +116,17 @@ export function App() {
   if (route.view === 'graph') { graphReady.current = true; visibleRef.current = ids; }
   const records = [...model.sources, ...model.constructs, ...model.criteria, ...model.propositions];
 
-  function commit(next: Workspace, success = ''): boolean {
+  function commit(next: Workspace, success = '', options: { reason?: string; actorLabel?: string; kind?: EditEventKind; skipAutoLog?: boolean; summary?: string } = {}): boolean {
     try {
-      const clean = validate(next) as Workspace;
+      const logged = options.skipAutoLog
+        ? next
+        : prepareCommit(modelRef.current, next, {
+          reason: options.reason || success || '',
+          actorLabel: options.actorLabel ?? actorLabel,
+          kind: options.kind,
+          summary: options.summary
+        });
+      const clean = validate(logged) as Workspace;
       if (JSON.stringify(clean) === JSON.stringify(modelRef.current)) {
         if (success) setMessage({ text: success, error: false });
         return true;
@@ -176,22 +196,34 @@ export function App() {
     if (!previous) return;
     undoRef.current = undoRef.current.slice(0, -1);
     setUndoCount(undoRef.current.length);
-    modelRef.current = previous;
-    setModel(previous);
+    let restored: Workspace;
+    try {
+      restored = validate(prepareUndo(modelRef.current, previous, {
+        actorLabel,
+        reason: 'Käyttöliittymän Kumoa — historiaa ei kirjoiteta uudelleen.'
+      })) as Workspace;
+    } catch (error) {
+      setMessage({ text: error instanceof Error ? error.message : 'Kumoaminen hylättiin; nykyinen työtila säilyi.', error: true });
+      undoRef.current = [...undoRef.current, previous];
+      setUndoCount(undoRef.current.length);
+      return;
+    }
+    modelRef.current = restored;
+    setModel(restored);
     setEdgeId('');
     setMode({ type: 'record' });
     setTrace(null);
     try {
-      localStorage.setItem(KEY, JSON.stringify(previous));
+      localStorage.setItem(KEY, JSON.stringify(restored));
       storedRef.current = true;
       setSaveState('Tallennettu tähän selaimeen');
-      setMessage({ text: 'Edellinen muutos kumottiin.', error: false });
+      setMessage({ text: 'Edellinen muutos kumottiin. Kumoustapahtuma jäi historiaan.', error: false });
     } catch {
       storedRef.current = false;
       setSaveState('Paikallinen tallennus ei onnistunut');
       setMessage({ text: 'Edellinen muutos kumottiin. Paikallinen tallennus ei onnistunut. Vie JSON säilyttääksesi työtilan.', error: true });
     }
-    if (route.id && !locate(previous, route.id)) location.hash = formatHash(route.view, resolveId({ ...route, id: '' }, previous), route.scope);
+    if (route.id && !locate(restored, route.id)) location.hash = formatHash(route.view, resolveId({ ...route, id: '' }, restored), route.scope);
   }
 
   function guarded(action: () => void) {
@@ -255,30 +287,34 @@ export function App() {
     });
   }
 
-  async function importFile(file: File) {
-    if (file.size > 2 * 1024 * 1024) { setMessage({ text: 'Tiedosto ylittää 2 Mt:n tuontirajan.', error: true }); return; }
-    let parsed: unknown;
-    try { parsed = JSON.parse(await file.text()); }
-    catch (error) { setMessage({ text: `Tuonti hylättiin; nykyinen työtila säilyi. ${error instanceof Error ? error.message : 'Tiedosto ei ole JSONia.'}`, error: true }); return; }
-    const apply = () => {
-      const result = applyImport(modelRef.current, parsed);
-      if (!result.ok) { setMessage({ text: `Tuonti hylättiin; nykyinen työtila säilyi. ${result.error}`, error: true }); return; }
-      const before = undoRef.current.length;
-      if (!commit(result.model as Workspace)) return;
-      if (!storedRef.current) return;
-      setMessage({ text: undoRef.current.length === before ? 'Tuonti vastasi nykyistä työtilaa. Muutoksia ei tehty.' : 'Työtila tuotiin ja tarkastettiin. Edellisen työtilan voi palauttaa Kumoa-toiminnolla.', error: false });
-      setEdgeId('');
-      setMode({ type: 'record' });
-      const first = (graphNodes(modelRef.current)[0]?.id as string) || 'sufficiency';
-      assignHash(formatHash('graph', first, 'map'));
-    };
-    guarded(apply);
+  function replaceFromSnapshot(next: Workspace, text: string, _backup: Workspace, options: { skipAutoLog?: boolean } = {}): boolean {
+    const before = undoRef.current.length;
+    const ok = commit(next, text, {
+      skipAutoLog: options.skipAutoLog !== false,
+      kind: 'import',
+      reason: text,
+      actorLabel
+    });
+    if (!ok) return false;
+    if (!storedRef.current) return true;
+    if (undoRef.current.length === before) setMessage({ text: 'Tuonti vastasi nykyistä työtilaa. Muutoksia ei tehty.', error: false });
+    setEdgeId('');
+    setMode({ type: 'record' });
+    const first = (graphNodes(modelRef.current)[0]?.id as string) || 'sufficiency';
+    assignHash(formatHash('graph', first, 'map'));
+    return true;
+  }
+
+  function updateActorLabel(value: string) {
+    setActorLabel(value);
+    try { localStorage.setItem(ACTOR_KEY, value); }
+    catch { /* optional label only */ }
   }
 
   function exportDot() {
     if (!graphReady.current) { setMessage({ text: 'DOT-vienti käyttää graafissa näkyvää rajausta. Avaa kartta ja vie uudelleen.', error: true }); return; }
     if (route.view !== 'graph') setMessage({ text: 'DOT-vienti käyttää graafin viimeksi näkyvissä ollutta rajausta.', error: false });
-    download((dot as (workspace: Workspace, selected?: Set<string>) => string)(model, visibleRef.current), 'research-map.dot', 'text/vnd.graphviz');
+    download(figureGraphvizDot(model, visibleRef.current), 'research-map.dot', 'text/vnd.graphviz');
   }
 
   function exportSvg() {
@@ -289,8 +325,8 @@ export function App() {
   const [title, description] = descriptions[route.view];
   return <><a className="skip" href="#workspace">Siirry sisältöön</a>
     <header className="topbar"><div className="identity"><span className="mark" aria-hidden="true">R</span><div><strong>Research Evidence Explorer</strong><span>Finnish healthcare RAG · Käsitteellisen mallin työtila</span></div></div>
-      <div className="top-actions"><span role="status">{saveState}</span><button type="button" disabled={!undoCount} onClick={() => { if (guard.current?.isDirty()) { setDirtyKind('undo'); setDirtyOpen(true); setGuardTick(value => value + 1); } else performUndo(); }}>Kumoa</button><button type="button" className="primary" onClick={() => download(JSON.stringify(model, null, 2), 'research-workspace.json', 'application/json')}>Vie JSON</button><button type="button" onClick={() => fileRef.current?.click()}>Tuo JSON</button><button type="button" onClick={() => guarded(() => setCslOpen(true))}>Tuo Zotero CSL</button><input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void importFile(file); }} /></div></header>
-    <div className="shell"><aside className="sidebar"><div className="section-label">TUTKIMUSTYÖTILA</div><nav aria-label="Näkymät">{([['graph', '01', 'Lähteistä kriteereihin'], ['matrix', '02', 'Arviointimatriisi'], ['cases', '03', 'Rakennetut tapaukset'], ['questions', '04', 'Oletukset ja kysymykset']] as const).map(([view, number, label]) => <button type="button" key={view} className={route.view === view ? 'nav active' : 'nav'} aria-current={route.view === view ? 'page' : undefined} onClick={() => assignHash(formatHash(view, selectedId, view === 'graph' ? route.scope : 'focus'))}>{number} <span>{label}</span></button>)}</nav>
+      <div className="top-actions"><span role="status">{saveState}</span><button type="button" disabled={!undoCount} onClick={() => { if (guard.current?.isDirty()) { setDirtyKind('undo'); setDirtyOpen(true); setGuardTick(value => value + 1); } else performUndo(); }}>Kumoa</button><button type="button" className="primary" onClick={() => download(JSON.stringify(model, null, 2), 'research-workspace.json', 'application/json')}>Vie JSON</button><button type="button" onClick={() => guarded(() => setSnapshotOpen(true))}>Tilannekuva / tuo</button><button type="button" onClick={() => guarded(() => setCslOpen(true))}>Tuo Zotero CSL</button></div></header>
+    <div className="shell"><aside className="sidebar"><div className="section-label">TUTKIMUSTYÖTILA</div><nav aria-label="Näkymät">{([['graph', '01', 'Lähteistä kriteereihin'], ['matrix', '02', 'Arviointimatriisi'], ['cases', '03', 'Rakennetut tapaukset'], ['questions', '04', 'Oletukset ja kysymykset'], ['history', '05', 'Historia ja tilannekuvat']] as const).map(([view, number, label]) => <button type="button" key={view} className={route.view === view ? 'nav active' : 'nav'} aria-current={route.view === view ? 'page' : undefined} onClick={() => assignHash(formatHash(view, selectedId, view === 'graph' ? route.scope : 'focus'))}>{number} <span>{label}</span></button>)}</nav>
       <div className="sidebar-bottom"><div className="section-label">TUTKIMUKSEN VAIHE</div><strong>Käsitteellinen kehittäminen</strong><p>Omat sovellukset ja testaamattomat oletukset on erotettu kirjallisuuden sisällöstä.</p><button type="button" className="quiet" onClick={() => setAboutOpen(true)}>Tietomallista ja käytöstä</button></div></aside>
       <main id="workspace"><div className="page-head"><div><div className="eyebrow">VUODEN 1 ARTIKKELI</div><h1>{title}</h1><p>{description}</p></div><button type="button" onClick={() => setExportOpen(true)}>Vie näkymä</button></div>
         <div id="message" role="status" aria-live="polite" className={message.error ? 'error' : ''}>{message.text}</div>
@@ -303,15 +339,18 @@ export function App() {
           {route.view === 'matrix' && <MatrixView model={model} selectedId={selectedId} onSelect={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onCsv={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')} />}
           {route.view === 'cases' && <CasesView model={model} selectedId={selectedId} onSelect={selectRecord} onSave={commit} />}
           {route.view === 'questions' && <QuestionsView model={model} selectedId={selectedId} onSelect={selectRecord} onTrace={id => assignHash(formatHash('graph', id, 'focus'))} onAddDecision={addDecision} onSave={commit} />}
-          <Inspector model={model} selectedId={selectedId} edgeId={edgeId} mode={mode} guard={guard} onSave={commit} onMessage={text => setMessage({ text, error: true })} onOpen={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onAddEdge={sourceId => guarded(() => { setEdgeId(''); setMode({ type: 'add-edge', sourceId }); })} onAddClaim={addClaim} onRemove={requestRemove} />
+          {route.view === 'history' && <HistoryView model={model} actorLabel={actorLabel} onActorLabel={updateActorLabel} />}
+          {route.view !== 'history' && <Inspector model={model} selectedId={selectedId} edgeId={edgeId} mode={mode} guard={guard} onSave={commit} onMessage={text => setMessage({ text, error: true })} onOpen={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onAddEdge={sourceId => guarded(() => { setEdgeId(''); setMode({ type: 'add-edge', sourceId }); })} onAddClaim={addClaim} onRemove={requestRemove} />}
         </div>
         {route.view === 'graph' && <details className="trace"><summary>Jäljitä perusteluketju</summary><p>{traceLimitation}</p><div className="trace-controls"><label>Lähtökohta<select value={traceStart} onChange={event => setTraceStart(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{record.label}</option>)}</select></label><label>Päätepiste<select value={traceEnd} onChange={event => setTraceEnd(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{record.label}</option>)}</select></label><button type="button" onClick={() => { setQuery(''); setStatus('all'); setFitToken(value => value + 1); const result = path(model, traceStart, traceEnd) as { nodes: string[]; edges: string[] } | null; setTrace(result); setTraceText(formatTrace(model, result)); if (route.scope !== 'map') assignHash(formatHash('graph', selectedId, 'map')); }}>Näytä ketju</button><button type="button" onClick={() => { setTrace(null); setTraceText('Ketju seuraa suunnattuja yhteyksiä; se ei vahvista perustelujen pätevyyttä.'); }}>Tyhjennä valinta</button></div><p aria-live="polite">{traceText}</p></details>}
         <footer>Työversio · Lähtöaineisto: käyttäjän kirjallisuusmatriisi ja artikkelisuunnitelma 26.10.2026 · Ei alkuperäislähteiden uutta kokotekstiarviointia</footer>
       </main></div>
     {dirtyOpen && <dialog open className="modal"><h2>{dirtyKind === 'undo' ? 'Kumoaminen hylkää lomakkeen muutokset' : 'Tallentamattomia muutoksia'}</h2><p>{dirtyKind === 'undo' ? 'Lomakkeessa on muutoksia, joita ei ole tallennettu. Kumoaminen hylkää ne.' : 'Lomakkeessa on muutoksia, joita ei ole tallennettu. Siirtyminen hylkää ne, jos et tallenna.'}</p><div className="actions">{dirtyKind === 'navigate' && <button type="button" className="primary" onClick={() => { const ok = guard.current?.save() ?? false; if (!ok) { setDirtyOpen(false); return; } setDirtyOpen(false); finishPending(); }}>Tallenna ja jatka</button>}<button type="button" onClick={() => { guard.current?.reset(); setDirtyOpen(false); if (dirtyKind === 'undo') performUndo(); else finishPending(); }}>{dirtyKind === 'undo' ? 'Hylkää ja kumoa' : 'Hylkää muutokset'}</button><button type="button" onClick={() => { pending.current = null; attempted.current = ''; setDirtyOpen(false); }}>Peruuta</button></div></dialog>}
-    {exportOpen && <dialog open><div className="dialog-head"><h2>Vie nykyinen työ</h2><button type="button" aria-label="Sulje" onClick={() => setExportOpen(false)}>×</button></div><p>JSON säilyttää muokkaukset. Kuvaviennit kuvaavat nykyistä näkyvää graafia.</p><div className="export-options"><button type="button" onClick={() => download(JSON.stringify(model, null, 2), 'research-workspace.json', 'application/json')}>Työtila JSON</button><button type="button" onClick={exportSvg}>Graafi SVG</button><button type="button" onClick={exportDot}>Graafi Graphviz DOT</button><button type="button" onClick={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')}>Kohteet CSV</button><button type="button" onClick={() => { setExportOpen(false); window.print(); }}>Tulosta nykyinen näkymä</button></div></dialog>}
-    {aboutOpen && <dialog open><div className="dialog-head"><h2>Jäljitettävä tutkimustyötila</h2><button type="button" aria-label="Sulje" onClick={() => setAboutOpen(false)}>×</button></div><p>Tämä aloitusmalli sisältää valikoituja, käsin jäsennettyjä yhteyksiä kahdesta toimittamastasi asiakirjasta. Se ei ole koko kirjallisuusmatriisin automaattinen muunnos eikä valmis katsaus.</p><p>Schema 2 erottaa lähteen, tuodun yhteenvedon ja tutkijan päätöksen. Kirjallisuusmerkintä ei ole itsenäinen varmennus. Preprint- tai kokotekstitieto ei ole laadunarvio.</p><p>Lukemistieto tarkoittaa asiakirjoissa raportoitua tarkastelutasoa. Alkuperäisiä tutkimuksia ei ole arvioitu uudelleen tätä työtilaa varten. Tyhjä yhteys ei osoita tutkimusaukkoa.</p><p>Zotero CSL-JSON -tuonti on tutkijan käynnistämä ja esikatsellaan ennen hyväksyntää. Se voi luoda lähteitä, mutta ei keksi väitteitä, menetelmiä tai lukemistilaa. Liitteet säilytetään vain metatietona. Ulkoista tekoälypalvelua ei käytetä, eikä yksityisiä muistiinpanoja lähetetä.</p><p>Kehitysversio käynnistyy paikallisella palvelimella komennolla npm run dev. Julkaistu versio on Vite-koonti, jota palvelee paikallinen palvelin tai GitHub Pages. Selain ei avaa moduulikoontia suoraan tiedostona.</p><p>Muokkaukset tallentuvat tämän selaimen paikalliseen muistiin. Jos tallennus epäonnistuu, Vie JSON säilyttää työn. Tiedoston tuonti korvaa työtilan vasta tarkastuksen jälkeen.</p><p>Lisää kohteita ja yhteyksiä graafissa. Yhteydelle valitaan merkitys erikseen. Matriisi muodostuu samoista tiedoista. Tapaukset A–C ovat rakennettuja esimerkkejä; asiantuntija-arvioita tai tutkimustuloksia ei ole keksitty.</p><button type="button" className="primary" onClick={() => setAboutOpen(false)}>Sulje</button></dialog>}
-    {cslOpen && <CslImportDialog model={model} onClose={() => setCslOpen(false)} onApply={(next, text) => { commit(next, text); }} />}
+    {exportOpen && <dialog open><div className="dialog-head"><h2>Vie nykyinen työ</h2><button type="button" aria-label="Sulje" onClick={() => setExportOpen(false)}>×</button></div><p>JSON säilyttää muokkaukset. Siirrettävä tilannekuva sisältää tiivisteet ja historian. Toistettavat kuviot käyttävät rajattuja esiasetuksia ja sivumanifestia.</p><div className="export-options"><button type="button" onClick={() => download(JSON.stringify(model, null, 2), 'research-workspace.json', 'application/json')}>Työtila JSON</button><button type="button" onClick={() => { setExportOpen(false); setSnapshotOpen(true); }}>Tilannekuva (tiivisteet)</button><button type="button" onClick={() => { setExportOpen(false); setFigureOpen(true); }}>Toistettava kuvio</button><button type="button" onClick={exportSvg}>Pikainen graafi-SVG</button><button type="button" onClick={exportDot}>Pikainen Graphviz DOT</button><button type="button" onClick={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')}>Kohteet CSV</button><button type="button" onClick={() => { setExportOpen(false); window.print(); }}>Tulosta nykyinen näkymä</button></div></dialog>}
+    {aboutOpen && <dialog open><div className="dialog-head"><h2>Jäljitettävä tutkimustyötila</h2><button type="button" aria-label="Sulje" onClick={() => setAboutOpen(false)}>×</button></div><p>Tämä aloitusmalli sisältää valikoituja, käsin jäsennettyjä yhteyksiä kahdesta toimittamastasi asiakirjasta. Se ei ole koko kirjallisuusmatriisin automaattinen muunnos eikä valmis katsaus.</p><p>Schema 2 erottaa lähteen, tuodun yhteenvedon ja tutkijan päätöksen. Kirjallisuusmerkintä ei ole itsenäinen varmennus. Preprint- tai kokotekstitieto ei ole laadunarvio.</p><p>Lukemistieto tarkoittaa asiakirjoissa raportoitua tarkastelutasoa. Alkuperäisiä tutkimuksia ei ole arvioitu uudelleen tätä työtilaa varten. Tyhjä yhteys ei osoita tutkimusaukkoa.</p><p>Zotero CSL-JSON -tuonti on tutkijan käynnistämä ja esikatsellaan ennen hyväksyntää. Se voi luoda lähteitä, mutta ei keksi väitteitä, menetelmiä tai lukemistilaa. Liitteet säilytetään vain metatietona. Ulkoista tekoälypalvelua ei käytetä, eikä yksityisiä muistiinpanoja lähetetä.</p><p>Kehitysversio käynnistyy paikallisella palvelimella komennolla npm run dev. Julkaistu versio on Vite-koonti, jota palvelee paikallinen palvelin tai GitHub Pages. Selain ei avaa moduulikoontia suoraan tiedostona.</p><p>{LOCAL_SAVE_DISCLAIMER}</p><p>{AUDIT_DISCLAIMER}</p><p>Muokkausajankohdat erotetaan bibliografisista julkaisutiedoista. Kumoa kirjaa peruutuksen uutena tapahtumana. Tilannekuvan sisältötiiviste tunnistaa kanonisen sisällön; se ei validoi tutkimusta.</p><p>Lisää kohteita ja yhteyksiä graafissa. Yhteydelle valitaan merkitys erikseen. Matriisi muodostuu samoista tiedoista. Tapaukset A–C ovat rakennettuja esimerkkejä; asiantuntija-arvioita tai tutkimustuloksia ei ole keksitty.</p><button type="button" className="primary" onClick={() => setAboutOpen(false)}>Sulje</button></dialog>}
+    {cslOpen && <CslImportDialog model={model} onClose={() => setCslOpen(false)} onApply={(next, text) => { commit(next, text, { kind: 'csl-import', reason: text, actorLabel }); }} />}
+    {snapshotOpen && <SnapshotDialog model={model} open={snapshotOpen} onClose={() => setSnapshotOpen(false)} onReplace={replaceFromSnapshot} actorLabel={actorLabel} />}
+    {figureOpen && <FigureExportDialog model={model} open={figureOpen} onClose={() => setFigureOpen(false)} visibleIds={ids} selectedId={selectedId} focusId={selectedId} />}
     {removal && <dialog open><div className="dialog-head"><h2>Poisto irrottaa viitteet</h2><button type="button" aria-label="Sulje" onClick={() => setRemoval(null)}>×</button></div><p>Poisto ja viitteiden irrotus tehdään yhtenä kumottavana toiminnona. Peruuta, jos nykyinen työtila säilytetään.</p><ul>{removal.effects.map(effect => <li key={`${effect.id}-${effect.reason}`}>{(effect.label || effect.id)} — {effect.reason}</li>)}</ul><div className="actions"><button type="button" onClick={() => setRemoval(null)}>Peruuta</button><button type="button" className="primary" onClick={confirmRemoval}>Poista ja irrota viitteet</button></div></dialog>}
   </>;
 }

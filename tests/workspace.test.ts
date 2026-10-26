@@ -34,6 +34,8 @@ test('hash routes keep the view, the full map and the selection', () => {
   assert.deepEqual(parseHash('#matrix/ranking'), { view: 'matrix', scope: 'focus', id: 'ranking' });
   assert.deepEqual(parseHash('#cases/A'), { view: 'cases', scope: 'focus', id: 'A' });
   assert.deepEqual(parseHash('#questions/p1'), { view: 'questions', scope: 'focus', id: 'p1' });
+  assert.deepEqual(parseHash('#history'), { view: 'history', scope: 'focus', id: '' });
+  assert.equal(formatHash('history'), '#history');
   assert.deepEqual(parseHash('#unknown'), { view: 'graph', scope: 'focus', id: '' });
   assert.equal(formatHash('graph', 'sufficiency', 'focus'), '#graph/sufficiency');
   assert.equal(formatHash('graph', 'sufficiency', 'map'), '#map/sufficiency');

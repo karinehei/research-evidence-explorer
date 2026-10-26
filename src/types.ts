@@ -151,6 +151,26 @@ export interface Decision {
   id: string; label: string; statement: string; scope: string; rationale: string; epistemicStatus: EpistemicStatus;
   reviewState: ReviewState; recordIds: string[];
 }
+export type EditEventKind =
+  | 'create' | 'update' | 'delete' | 'undo' | 'import' | 'csl-import' | 'layout' | 'other';
+/** Local editing history entry. Timestamps are edit times, not bibliographic publication dates. Actor label is optional and researcher-entered — not authenticated attribution. */
+export interface EditLogEntry {
+  id: string;
+  at: string;
+  kind: EditEventKind;
+  summary: string;
+  reason: string;
+  actorLabel: string;
+  recordIds: string[];
+  before: unknown;
+  after: unknown;
+  reversesEventId: string;
+  note: string;
+}
+export interface RecordRevision {
+  recordId: string;
+  revision: number;
+}
 export interface Workspace {
   schemaVersion: 2;
   project: { name: string; description: string };
@@ -163,6 +183,8 @@ export interface Workspace {
   protocols: AssessmentProtocol[];
   cases: ConstructedCase[];
   decisions: Decision[];
+  recordRevisions: RecordRevision[];
+  editLog: EditLogEntry[];
   legacy?: { schemaVersion: 1; preservedBeforeReplacement: true; document: unknown };
 }
 export type RecordKind = 'source' | 'claim' | 'construct' | 'criterion' | 'proposition' | 'relationship' | 'case' | 'decision' | 'protocol';

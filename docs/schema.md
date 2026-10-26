@@ -72,6 +72,10 @@ A case may also store `propositionIds`, `criterionIds` and `decisionIds`. Those 
 
 A research decision has `statement`, `scope`, `rationale`, `epistemicStatus`, `reviewState` and `recordIds`. The migration decision `decision_schema1_import` documents the import. Its `recordIds` list is empty: the preserved schema 1 document is `legacy.document`, not a live index that would have to change on every deletion.
 
+### Edit log and record revisions
+
+`editLog` is an append-only local decision history (capped at 500). `recordRevisions` stores per-record revision counters. Missing arrays hydrate to empty on load. Editing timestamps in the log are not bibliographic publication dates. Optional `actorLabel` is researcher-entered and never invented. Portable snapshot export/import, content/layout hashes and comparison are documented in [snapshots.md](snapshots.md).
+
 ## Three independent statuses
 
 Epistemic status describes the claim being made: `reported`, `adaptation` or `hypothesis`. It is not a quality grade. There is no `verified` value.

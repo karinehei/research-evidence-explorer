@@ -144,6 +144,7 @@ const SCHEMA = 2;
       schemaVersion: 2,
       project: clone(legacy.project),
       sources, claims, constructs, criteria, relationships, propositions, protocols: [], cases, decisions,
+      recordRevisions: [], editLog: [],
       legacy: { schemaVersion: 1, preservedBeforeReplacement: true, document: legacy }
     });
   }
@@ -170,13 +171,17 @@ const SCHEMA = 2;
     };
     if (!isObj(value) || value.schemaVersion !== 2) fail('Tuettu schemaVersion on 2.');
     if (!Array.isArray(value.protocols)) value = { ...value, protocols: [] };
-    keys(value, ['schemaVersion', 'project', 'sources', 'claims', 'constructs', 'criteria', 'relationships', 'propositions', 'protocols', 'cases', 'decisions', 'legacy'], 'Työtila');
+    if (!Array.isArray(value.recordRevisions)) value = { ...value, recordRevisions: [] };
+    if (!Array.isArray(value.editLog)) value = { ...value, editLog: [] };
+    keys(value, ['schemaVersion', 'project', 'sources', 'claims', 'constructs', 'criteria', 'relationships', 'propositions', 'protocols', 'cases', 'decisions', 'recordRevisions', 'editLog', 'legacy'], 'Työtila');
     keys(value.project, ['name', 'description'], 'Projekti');
     str(value.project.name, 'Projektin nimi', 120, true);
     str(value.project.description, 'Projektin kuvaus');
     for (const [key, max] of [['sources', 400], ['claims', 400], ['constructs', 400], ['criteria', 400], ['relationships', 1200], ['propositions', 400], ['protocols', 40], ['cases', 20], ['decisions', 40]]) {
       if (!Array.isArray(value[key]) || value[key].length > max) fail('Kokoelman ' + key + ' määrä on virheellinen.');
     }
+    if (!Array.isArray(value.recordRevisions) || value.recordRevisions.length > 2000) fail('Versiolaskurin määrä on virheellinen.');
+    if (!Array.isArray(value.editLog) || value.editLog.length > 500) fail('Muokkaushistorian määrä on virheellinen.');
     const graphCount = value.sources.length + value.constructs.length + value.criteria.length + value.propositions.length;
     if (graphCount < 1 || graphCount > 400) fail('Tarvitaan 1–400 lähdettä, käsitettä, kriteeriä tai propositiota.');
     const ids = new Set();
@@ -447,6 +452,31 @@ const SCHEMA = 2;
       idList(c.decisionIds, 'Esimerkin päätös', decisionIds);
     }
     for (const d of value.decisions) idList(d.recordIds, 'Päätöksen viite', ids);
+    const revisionSeen = new Set();
+    for (const rev of value.recordRevisions) {
+      keys(rev, ['recordId', 'revision'], 'Versiolaskuri');
+      str(rev.recordId, 'Versiolaskurin tietue', 120, true);
+      if (revisionSeen.has(rev.recordId)) fail('Versiolaskurin tunniste toistuu.');
+      revisionSeen.add(rev.recordId);
+      if (!Number.isInteger(rev.revision) || rev.revision < 0 || rev.revision > 1000000) fail('Versiolaskurin arvo on virheellinen.');
+    }
+    const editKinds = ['create', 'update', 'delete', 'undo', 'import', 'csl-import', 'layout', 'other'];
+    const editIds = new Set();
+    for (const entry of value.editLog) {
+      keys(entry, ['id', 'at', 'kind', 'summary', 'reason', 'actorLabel', 'recordIds', 'before', 'after', 'reversesEventId', 'note'], 'Muokkaustapahtuma');
+      if (typeof entry.id !== 'string' || !idPattern.test(entry.id) || editIds.has(entry.id) || ids.has(entry.id)) fail('Muokkaustapahtuman tunniste on virheellinen tai toistuu.');
+      editIds.add(entry.id);
+      oneOf(entry.kind, editKinds, 'Muokkaustapahtuman tyyppi');
+      str(entry.at, 'Muokkausajankohta', 80, true);
+      str(entry.summary, 'Muokkauksen yhteenveto');
+      str(entry.reason, 'Muokkauksen syy');
+      str(entry.actorLabel, 'Tutkijan nimiö');
+      str(entry.reversesEventId, 'Kumottu tapahtuma', 120);
+      str(entry.note, 'Muokkauksen huomio');
+      if (!Array.isArray(entry.recordIds) || entry.recordIds.length > 400) fail('Muokkaustapahtuman viitelista on virheellinen.');
+      entry.recordIds.forEach(id => str(id, 'Muokkauksen tietueviite', 120));
+      if (entry.reversesEventId && entry.kind !== 'undo') fail('Vain kumoustapahtuma voi viitata kumottuun tapahtumaan.');
+    }
     if (value.legacy !== undefined) {
       keys(value.legacy, ['schemaVersion', 'preservedBeforeReplacement', 'document'], 'Alkuperäinen tuonti');
       if (value.legacy.schemaVersion !== 1 || value.legacy.preservedBeforeReplacement !== true) fail('Alkuperäinen tuonti on virheellinen.');
@@ -456,6 +486,8 @@ const SCHEMA = 2;
     next.propositions = propositions;
     next.protocols = protocols;
     next.cases = cases;
+    next.recordRevisions = value.recordRevisions;
+    next.editLog = value.editLog;
     return next;
   }
 
@@ -493,7 +525,9 @@ const SCHEMA = 2;
   }
 
   function allIds(model) {
-    return ['sources', 'claims', 'constructs', 'criteria', 'relationships', 'propositions', 'protocols', 'cases', 'decisions'].flatMap(key => (model[key] || []).map(r => r.id));
+    const recordIds = ['sources', 'claims', 'constructs', 'criteria', 'relationships', 'propositions', 'protocols', 'cases', 'decisions'].flatMap(key => (model[key] || []).map(r => r.id));
+    const editIds = (model.editLog || []).map(entry => entry.id);
+    return recordIds.concat(editIds);
   }
 
   function relationshipDraft(fields = {}) {

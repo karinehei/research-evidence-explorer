@@ -1347,8 +1347,13 @@
       "interpretation": "Kokoelman kattavuus 3/3; kontekstin ja vastauksen kattavuus 1/3. Vastauksen ainoa tarkistettava väite on tuettu (S). Ensimmäinen havaittu menetys on kokoelman ja kontekstin välissä.",
       "boundary": "Puuttumisen syytä ei päätellä: tarkista järjestetty hakulista ja kontekstin muodostaminen. Asiantuntija-arvioita ei ole kerätty.",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case A",
-      "propositionIds": [],
-      "criterionIds": [],
+      "propositionIds": [
+        "p1"
+      ],
+      "criterionIds": [
+        "facets",
+        "expert"
+      ],
       "decisionIds": []
     },
     {
@@ -1527,8 +1532,13 @@
       "interpretation": "Ero koskee lähdenäytön tarkkuutta. Dokumenttiviitettä ei luokitella virheelliseksi, jos dokumentti sisältää tuen. P2 ehdottaa myöhempää koetun tarkistettavuuden vertailua.",
       "boundary": "Paikantimen puuttuminen ei osoita, ettei tarkistaminen voisi onnistua esimerkiksi dokumenttihaulla.",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case B",
-      "propositionIds": [],
-      "criterionIds": [],
+      "propositionIds": [
+        "p2"
+      ],
+      "criterionIds": [
+        "display",
+        "expert"
+      ],
       "decisionIds": []
     },
     {
@@ -1723,8 +1733,14 @@
       "interpretation": "Historiallinen väite voi olla tuettu ja tosiasiallisesti oikea mutta nykyhetken tehtävään riittämätön. Nykyisyysväite vaatii erillisen ajallisen tuen. Riippumattoman nykyviitteen ristiriita kirjataan erikseen kontekstituesta.",
       "boundary": "Älä käytä yleisluokitusta ”täysin lähteisiin ankkuroitu mutta väärä” tutkimatta väitteen sanamuotoa ja ajallista rajausta. Ei päätelmää kliinisestä turvallisuudesta.",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case C",
-      "propositionIds": [],
-      "criterionIds": [],
+      "propositionIds": [
+        "p1"
+      ],
+      "criterionIds": [
+        "currency",
+        "support",
+        "facets"
+      ],
       "decisionIds": []
     }
   ],
@@ -3870,5 +3886,7 @@
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Remaining validation needs",
       "notes": "Linkittää validointikysymykset konkreettisiin tarkistuksiin ilman inventoituja tuloksia."
     }
-  ]
+  ],
+  "recordRevisions": [],
+  "editLog": []
 }
