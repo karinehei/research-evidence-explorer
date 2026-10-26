@@ -2,8 +2,26 @@
   "exportType": "research-published-seed",
   "schemaVersion": 2,
   "source": "data/research.json",
-  "builtAt": "2026-10-26T13:52:09.812Z",
+  "builtAt": "2026-10-26T14:14:56.760Z",
   "contentHash": "sha256:9b898d668b9fc24024f7ea6bf4a4ca378deed453d13438548b0eaca7c527d636",
-  "contentNote": "This file is the curated schema 2 seed shipped with the static Pages build. It is not a researcher localStorage workspace, not a private attachment store, and not an automatic dump of unpublished notes.",
-  "runtimeNote": "The SPA embeds the same curated seed for first load. Browser-local edits stay in this browser until deliberately exported. Attachments are metadata-only when imported via CSL."
+  "clearedFields": [
+    "editLog",
+    "recordRevisions"
+  ],
+  "retainedForReview": [
+    "All curated sources, claims, constructs, criteria, relationships, propositions, protocols and constructed cases",
+    "The single decision record (currently decision_schema1_import) and its rationale",
+    "Nested legacy.document when present (schema 1 import preserved for provenance)",
+    "basis and locator strings that may name source DOCX files without embedding their bytes",
+    "Empty or researcher-authored notes fields on curated records"
+  ],
+  "excludedAutomatically": [
+    "browser localStorage workspace (research-evidence-explorer-v1)",
+    "actor labels entered only in the browser",
+    "pre-import backups (research-evidence-explorer-pre-import-v1)",
+    "non-empty editLog / recordRevisions from a researcher session",
+    "DOCX or other attachment bytes"
+  ],
+  "contentNote": "Explicit publication projection of the curated schema 2 seed. Completeness of the working dataset is preserved in data/research.json; this file clears only editLog and recordRevisions. It is not a browser localStorage dump.",
+  "runtimeNote": "The SPA embeds data/research.json for first load (same curated records). Browser-local edits, actor labels and import backups stay in this browser until deliberately exported. DOCX bytes are never copied into dist/."
 }

@@ -2,21 +2,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { build } from 'vite';
 import { load } from '../src/model.ts';
+import { projectPublishedSeed } from '../src/publish.ts';
 import { contentHash } from '../src/snapshots.ts';
+import type { Workspace } from '../src/types.ts';
 
 const root = path.resolve(import.meta.dirname, '..');
 const seedPath = path.join(root, 'data/research.json');
 const raw = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
-const data = load(raw);
+const data = load(raw) as Workspace;
 if (data.schemaVersion !== 2) throw new Error('The curated seed did not validate as schema 2.');
 
 await build({ configFile: path.join(root, 'vite.config.ts') });
 
 const dist = path.join(root, 'dist');
-const published = structuredClone(data);
-// Explicit published export: curated model only — strip local decision history if present.
-published.editLog = [];
-published.recordRevisions = [];
+const projection = projectPublishedSeed(data);
+const published = projection.workspace;
 fs.writeFileSync(path.join(dist, 'published-seed.json'), `${JSON.stringify(published, null, 2)}\n`);
 const hash = await contentHash(data);
 const manifest = {
@@ -25,10 +25,13 @@ const manifest = {
   source: 'data/research.json',
   builtAt: new Date().toISOString(),
   contentHash: hash,
+  clearedFields: projection.clearedFields,
+  retainedForReview: projection.retainedForReview,
+  excludedAutomatically: projection.excludedAutomatically,
   contentNote:
-    'This file is the curated schema 2 seed shipped with the static Pages build. It is not a researcher localStorage workspace, not a private attachment store, and not an automatic dump of unpublished notes.',
+    'Explicit publication projection of the curated schema 2 seed. Completeness of the working dataset is preserved in data/research.json; this file clears only editLog and recordRevisions. It is not a browser localStorage dump.',
   runtimeNote:
-    'The SPA embeds the same curated seed for first load. Browser-local edits stay in this browser until deliberately exported. Attachments are metadata-only when imported via CSL.'
+    'The SPA embeds data/research.json for first load (same curated records). Browser-local edits, actor labels and import backups stay in this browser until deliberately exported. DOCX bytes are never copied into dist/.'
 };
 fs.writeFileSync(path.join(dist, 'published-seed.manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 

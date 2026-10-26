@@ -113,12 +113,24 @@ export function stripLayout<T>(value: T): T {
   return stripKey(value, 'position') as T;
 }
 
-export function scientificContent(model: Workspace): unknown {
-  const copy = stripLayout(clone(model)) as Record<string, unknown>;
-  delete copy.editLog;
-  delete copy.recordRevisions;
-  delete copy.legacy;
-  return copy;
+/** Scientific identity for hashing: curated records without layout, edit history or nested legacy import. */
+export type ScientificContent = Omit<Workspace, 'editLog' | 'recordRevisions' | 'legacy'>;
+
+export function scientificContent(model: Workspace): ScientificContent {
+  const copy = stripLayout(clone(model));
+  return {
+    schemaVersion: copy.schemaVersion,
+    project: copy.project,
+    sources: copy.sources,
+    claims: copy.claims,
+    constructs: copy.constructs,
+    criteria: copy.criteria,
+    relationships: copy.relationships,
+    propositions: copy.propositions,
+    protocols: copy.protocols,
+    cases: copy.cases,
+    decisions: copy.decisions
+  };
 }
 
 export function layoutMap(model: Workspace): Record<string, { x: number; y: number }> {

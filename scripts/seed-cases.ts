@@ -330,6 +330,7 @@ const C = hydrateConstructedCase({
   decisionIds: []
 });
 
-data.cases = [A, B, C];
+const cases = [A, B, C];
+data.cases = cases;
 fs.writeFileSync(dataPath, JSON.stringify(data, null, 2) + '\n');
-console.log(JSON.stringify(data.cases.map(item => ({ id: item.id, facets: item.facets.length, answers: item.answerVariants.length }))));
+console.log(JSON.stringify(cases.map(item => ({ id: item.id, facets: item.facets.length, answers: item.answerVariants.length }))));

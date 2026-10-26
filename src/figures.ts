@@ -82,6 +82,13 @@ const GRAPHVIZ_HINT =
 const REPRO_NOTE =
   'Työkalu- ja fonttiversiot kirjataan toistettavuutta varten. Binääritason identtistä renderöintiä eri ympäristöjen välillä ei luvata, jos Graphviz/fontit eivät ole kiinnitettyjä.';
 
+/** Browser builds stay free of Node types; Node export tooling still records its runtime when present. */
+function figureRuntimeLabel(): string {
+  const runtime = globalThis as { process?: { versions?: { node?: string } } };
+  const version = runtime.process?.versions?.node;
+  return version ? `node ${version}` : 'browser';
+}
+
 function escapeXml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -395,7 +402,7 @@ export async function buildFigureBundle(
   const layoutSettings = options.mode === 'browser-layout'
     ? { kind: 'browser-saved-positions', manuscriptWidthPx: MANUSCRIPT_WIDTH_PX, foreignObject: false, ...(options.layoutSettings || {}) }
     : { ...DEFAULT_GRAPHVIZ_SETTINGS, ...(options.layoutSettings || {}) };
-  const nodeVersion = typeof process !== 'undefined' && process.versions?.node ? `node ${process.versions.node}` : 'browser';
+  const nodeVersion = figureRuntimeLabel();
   const manifest: FigureManifest = {
     exportType: 'research-figure-manifest',
     generatorVersion: FIGURE_GENERATOR_VERSION,

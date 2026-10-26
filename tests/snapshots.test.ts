@@ -7,15 +7,18 @@ import { load, migrate, validate } from '../src/model.ts';
 import { clone } from '../src/edit.ts';
 import {
   CANONICALISATION_PROCEDURE, HASH_DISCLAIMER, applySnapshotImport, compareSnapshots,
-  contentHash, createSnapshot, layoutHash, prepareCommit, prepareUndo, previewImport
+  contentHash, createSnapshot, layoutHash, prepareCommit, prepareUndo, previewImport,
+  scientificContent
 } from '../src/snapshots.ts';
+import { projectPublishedSeed } from '../src/publish.ts';
+import type { Workspace } from '../src/types.ts';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const seed = load(JSON.parse(fs.readFileSync(path.join(root, '../data/research.json'), 'utf8')));
+const seed = load(JSON.parse(fs.readFileSync(path.join(root, '../data/research.json'), 'utf8'))) as Workspace;
 const schema1 = JSON.parse(fs.readFileSync(path.join(root, 'fixtures/schema1-seed.json'), 'utf8'));
 
 test('content hash is stable, layout-independent and documented as non-validating', async () => {
-  const a = validate(clone(seed));
+  const a = validate(clone(seed)) as Workspace;
   const b = clone(a);
   b.sources[0].position = { x: 1234, y: 5678 };
   assert.equal(await contentHash(a), await contentHash(b));
@@ -24,6 +27,59 @@ test('content hash is stable, layout-independent and documented as non-validatin
   assert.match(again, /^sha256:[a-f0-9]{64}$/);
   assert.match(CANONICALISATION_PROCEDURE, /SHA-256/);
   assert.match(HASH_DISCLAIMER, /ei validoi tutkimusta/i);
+});
+
+test('scientific content keeps decisions and omits history, revisions and legacy', async () => {
+  const withHistory = validate(clone(seed)) as Workspace;
+  withHistory.editLog = [{
+    id: 'evt_test',
+    at: '2026-10-26T00:00:00.000Z',
+    kind: 'update',
+    summary: 'test',
+    reason: 'test',
+    actorLabel: 'local-actor',
+    recordIds: ['sufficiency'],
+    before: null,
+    after: null,
+    reversesEventId: '',
+    note: 'browser-local'
+  }];
+  withHistory.recordRevisions = [{ recordId: 'sufficiency', revision: 3 }];
+  assert.ok(withHistory.legacy || withHistory.decisions.length >= 1);
+  const scientific = scientificContent(withHistory);
+  assert.equal('editLog' in scientific, false);
+  assert.equal('recordRevisions' in scientific, false);
+  assert.equal('legacy' in scientific, false);
+  assert.ok(Array.isArray(scientific.decisions));
+  assert.equal(scientific.decisions.length, withHistory.decisions.length);
+  assert.equal(scientific.sources.length, withHistory.sources.length);
+  assert.equal(await contentHash(withHistory), await contentHash(seed));
+});
+
+test('published-seed projection clears history and keeps the decision record', () => {
+  const withHistory = validate(clone(seed)) as Workspace;
+  withHistory.editLog = [{
+    id: 'evt_publish',
+    at: '2026-10-26T00:00:00.000Z',
+    kind: 'update',
+    summary: 'local',
+    reason: 'local',
+    actorLabel: 'must-not-publish',
+    recordIds: [],
+    before: null,
+    after: null,
+    reversesEventId: '',
+    note: ''
+  }];
+  withHistory.recordRevisions = [{ recordId: 'sufficiency', revision: 9 }];
+  const projection = projectPublishedSeed(withHistory);
+  assert.deepEqual(projection.workspace.editLog, []);
+  assert.deepEqual(projection.workspace.recordRevisions, []);
+  assert.equal(projection.workspace.decisions.length, withHistory.decisions.length);
+  assert.ok(projection.workspace.decisions.some(item => item.id === 'decision_schema1_import'));
+  assert.equal(withHistory.editLog.length, 1);
+  assert.ok(projection.excludedAutomatically.some(item => /localStorage/i.test(item)));
+  assert.ok(projection.retainedForReview.some(item => /decision/i.test(item)));
 });
 
 test('snapshot export/import round-trips without loss of relationships', async () => {

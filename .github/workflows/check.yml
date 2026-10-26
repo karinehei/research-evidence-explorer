@@ -18,13 +18,17 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - run: npm run typecheck
       - run: npm test
       - run: npm run build
       - name: Confirm published seed is explicit
         run: |
           test -f dist/published-seed.json
           test -f dist/published-seed.manifest.json
-          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('dist/published-seed.manifest.json','utf8')); if(m.source!=='data/research.json') process.exit(1); if(!m.contentNote) process.exit(1);"
+          node -e "const fs=require('fs'); const m=JSON.parse(fs.readFileSync('dist/published-seed.manifest.json','utf8')); if(m.source!=='data/research.json') process.exit(1); if(!m.contentNote) process.exit(1); if(!Array.isArray(m.clearedFields)||!m.clearedFields.includes('editLog')) process.exit(1); if(!Array.isArray(m.excludedAutomatically)||!m.excludedAutomatically.length) process.exit(1);"
+      - name: Confirm browser bundle has no Node-only Graphviz module
+        run: |
+          node -e "const fs=require('fs'); const path=require('path'); const assets=fs.readdirSync('dist/assets'); const js=assets.filter(f=>f.endsWith('.js')).map(f=>fs.readFileSync(path.join('dist/assets',f),'utf8')).join('\n'); if(js.includes('node:child_process')||js.includes('spawnSync')) { console.error('Browser bundle must not include Node Graphviz tooling'); process.exit(1);} "
       - name: Install Playwright Chromium
         run: npx playwright install chromium --with-deps
       - run: npm run test:smoke

@@ -10,27 +10,31 @@ The seed checked by the build on 26 October 2026 contains 11 sources, 11 claims,
 
 ## Current build
 
-`npm run build` runs Vite with `base: './'` and writes `dist/`. It also writes `dist/published-seed.json` and `dist/published-seed.manifest.json`. The published JSON is the curated seed with `editLog` and `recordRevisions` cleared. The SPA bundle embeds that same curated seed, including basis strings that name the source documents. The build throws if `dist/` contains a `.docx` file or if the published edit log is non-empty. Browser localStorage, import backups and the two untracked DOCX files are not copied into the build.
+Supported hosting is HTTP or GitHub Pages with `base: './'`. `npm run build` runs Vite and writes `dist/`, plus `dist/published-seed.json` and `dist/published-seed.manifest.json` from `projectPublishedSeed`. That projection clears `editLog` and `recordRevisions` and retains curated records (including the decision record and nested `legacy` when present). Selection rules and review items are in `docs/published-seed.md`. The SPA imports `data/research.json` for first load. Browser localStorage, actor labels, import backups and DOCX bytes are not copied into `dist/`.
 
-`npm test` runs the data and model tests in `tests/*.test.ts`. `npm run test:smoke` runs Playwright 1.64.1 against the built files served at `http://127.0.0.1:4173/research-evidence-explorer/`.
+TypeScript is split: `tsconfig.json` typechecks the browser app and excludes `src/figures-graphviz.ts`. `tsconfig.node.json` typechecks Node scripts and Graphviz tooling with `@types/node`. `npm run typecheck` runs both. The browser bundle must not embed `node:child_process`.
 
-## What this session ran
+Graphviz SVG/PDF/PNG remains an optional CLI path (`src/figures-graphviz.ts`, `npm run export-graph`) until `dot` is present and exercised on the release machine.
+
+## What was verified (release-hardening pass)
+
+Base commit: `6926223`. Uncommitted changes from this hardening pass were present in the working tree during the commands below. GitHub Actions was not executed.
 
 | Command | Result |
 |---|---|
-| `npm test` at the start of the pass | 49 passed, 1 failed. The failure was `tests/journeys.test.ts` treating `sufficiency` as a criterion id. |
-| `npm test` after that assertion and the case-draft regression | 51 passed, 0 failed |
-| `npm run build` | Succeeded. Vite 7.3.7. Published counts as listed above, `editLog` 0. |
+| `npm run typecheck` | exit 0 |
+| `npm test` | 53 passed, 0 failed |
+| `npm run build` | Succeeded. Vite 7.3.7. Published counts as listed above, `editLog` 0. Bundle had no Node Graphviz spawn. |
 | `npm run test:smoke` | 11 passed against the subpath preview of `dist/` |
-| `where.exe dot` | Graphviz `dot` is not on PATH. Graphviz SVG, PDF and PNG rendering was not run. |
+| `where.exe dot` | Graphviz `dot` is not on PATH. Graphviz render was not run. |
 
-An earlier note that 49 tests passed matches the pass count above and did not include the failing journey test. An earlier browser note that SVG download bytes were not re-read is historical. This session’s smoke test saved the quick graph SVG and checked the file.
+Earlier in the same day: a release-readiness pass reported 51 unit tests after fixing a journey assertion that treated `sufficiency` as a criterion, plus 11 smoke tests. Those results are historical relative to the 53-test count above (two new snapshot/publish regressions).
 
-GitHub Actions and Pages were not run. Nothing was published or pushed.
+Nothing was published or pushed.
 
 ## Release split
 
-`.github/workflows/check.yml` runs on pull requests and pushes to `main` with `contents: read`. `.github/workflows/pages.yml` deploys only on `workflow_dispatch`, with `contents: read`, `pages: write` and `id-token: write`.
+`.github/workflows/check.yml` runs on pull requests and pushes to `main` with `contents: read`, and requires typecheck, tests, build and smoke. `.github/workflows/pages.yml` deploys only on `workflow_dispatch`, re-runs those checks on the exact revision, then uploads `dist/` (`contents: read`, `pages: write`, `id-token: write`).
 
 ## Historical observation — schema 1 static prototype
 

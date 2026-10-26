@@ -12,13 +12,16 @@ Install Node.js 22 or newer, then:
 
 ```sh
 npm install
+npm run typecheck
 npm test
+npm run build
+npm run test:smoke
 npm run dev
 ```
 
-`npm run dev` serves the workspace locally. `npm run build` checks the curated seed and writes `dist/` with relative asset paths, so the same build can be hosted under a repository subpath. Open that directory through a static server. Hash routes such as `#graph/sufficiency`, `#map/sufficiency`, `#matrix/ranking`, `#cases/A` and `#questions/p1` restore the view and the selection.
+`npm run dev` serves the workspace locally. Supported deployment is **HTTP** (local static server or GitHub Pages) with relative asset paths under a repository subpath. The module build is not supported from a `file://` address. Hash routes such as `#graph/sufficiency`, `#map/sufficiency`, `#matrix/ranking`, `#cases/A` and `#questions/p1` restore the view and the selection.
 
-Dependencies are pinned in `package.json` and `package-lock.json`: React 19.2.0, React DOM 19.2.0, `@xyflow/react` 12.9.3, Vite 7.3.7 and Playwright 1.64.1. `npm test` checks the data model. `npm run test:smoke` runs the browser suite against the built `dist/`. Pull-request and `main` checks do that work. Publishing to GitHub Pages is a separate, manually started workflow.
+Dependencies are pinned in `package.json` and `package-lock.json`: React 19.2.0, React DOM 19.2.0, `@xyflow/react` 12.9.3, Vite 7.3.7, Playwright 1.64.1 and `@types/node` 24.5.2 (Node tooling only). `npm run typecheck` checks the browser app and the Node tooling projects separately. `npm test` checks the data model. `npm run test:smoke` runs the browser suite against the built `dist/`. Graphviz SVG/PDF/PNG rendering is an optional CLI capability (`dot` on PATH); it is documented separately and is not part of the browser acceptance path until exercised on a machine that has Graphviz.
 
 ## Four views
 
@@ -78,31 +81,28 @@ Create a separate repository and place this project's contents at its root, incl
 
 Checks and deployment are separate:
 
-- `.github/workflows/check.yml` runs on pull requests and on pushes to `main`. It uses `contents: read`, installs from the lockfile, and runs `npm test`, `npm run build` and `npm run test:smoke`.
-- `.github/workflows/pages.yml` runs only when started by hand (`workflow_dispatch`). Its permissions are `contents: read`, `pages: write` and `id-token: write`. A push to `main` does not publish.
+- `.github/workflows/check.yml` runs on pull requests and on pushes to `main`. It uses `contents: read`, installs from the lockfile, and runs `npm run typecheck`, `npm test`, `npm run build` and `npm run test:smoke`.
+- `.github/workflows/pages.yml` runs only when started by hand (`workflow_dispatch`). It re-runs the same required checks on the exact checked-out revision, then uploads `dist/`. Permissions are `contents: read`, `pages: write` and `id-token: write`. A push to `main` does not publish. A successful check on an earlier commit is not used as a substitute.
 
-`npm run build` validates `data/research.json` as schema 2, runs Vite with `base: './'`, and writes `dist/published-seed.json` and `dist/published-seed.manifest.json`. That published copy clears `editLog` and `recordRevisions`. The SPA bundle embeds the same curated seed, including basis strings that name the source documents. The build fails if a `.docx` file is present in `dist/` or if the published edit log is non-empty. Browser localStorage and import backups are not copied into the build. The two workspace DOCX files are not part of the published bundle.
-
-Publishing exposes the curated seed that is already in `dist/`. Browser-local notes stay in the browser until they are deliberately exported.
+`npm run build` validates `data/research.json` as schema 2, runs Vite with `base: './'`, and writes an explicit publication projection to `dist/published-seed.json` plus `dist/published-seed.manifest.json` (see [docs/published-seed.md](docs/published-seed.md)). The projection clears `editLog` and `recordRevisions` and keeps curated records, including the decision record and nested legacy import. Basis strings may name DOCX files; DOCX bytes, browser localStorage, actor labels and import backups are never copied into `dist/`. The browser bundle must not contain `node:child_process` / Graphviz spawn tooling.
 
 ## Checks
 
-Commands run on this machine on 26 October 2026:
+Verified locally on 26 October 2026 against git commit `6926223` **with uncommitted hardening changes** present in the working tree (this pass). GitHub Actions was not run.
 
-- `npm test`: 51 passed, 0 failed. The first run in this pass was 49 passed and 1 failed. `tests/journeys.test.ts` expected a criterion id `sufficiency`; sufficiency is a construct. An earlier report of 49 passing tests matches that pass count and did not include the failing journey test.
-- `npm run build`: succeeded with Vite 7.3.7. The published seed log was sources 11, claims 11, constructs 9, criteria 7, propositions 4, relationships 32, cases 3, protocols 4, decisions 1, editLog 0.
-- `npm run test:smoke`: 11 passed. Playwright 1.64.1 served `dist/` at `http://127.0.0.1:4173/research-evidence-explorer/` and checked the core views, reload under that subpath, dialog names and keyboard behaviour, case Save/Discard/Cancel, inspector save and undo, snapshot export and invalid import, SVG download contents, React Flow arrow-key movement, filter announcements, widths 320, 390, 768 and 1366, reduced motion, forced colors, and a storage failure that remains only in memory.
-- `where.exe dot`: Graphviz `dot` is not on PATH. Graphviz SVG, PDF and PNG rendering was not executed. The unit test still checks that a missing `dot` does not claim a PDF.
+- `npm run typecheck`: exit 0 (`tsconfig.json` browser app; `tsconfig.node.json` for `figures-graphviz` and scripts).
+- `npm test`: 53 passed, 0 failed.
+- `npm run build`: succeeded with Vite 7.3.7. Published counts: sources 11, claims 11, constructs 9, criteria 7, propositions 4, relationships 32, cases 3, protocols 4, decisions 1, editLog 0. Browser JS bundle contained no `node:child_process` / `spawnSync`.
+- `npm run test:smoke`: 11 passed against `http://127.0.0.1:4173/research-evidence-explorer/`.
+- `where.exe dot`: Graphviz `dot` is not on PATH. Graphviz SVG/PDF/PNG rendering remains unverified on this machine.
 
-Not run in this session: GitHub Actions, a Pages deployment, and opening the build from `file://`.
-
-A figure-export check from an earlier session reported a browser-layout SVG around `sufficiency` and said the downloaded file bytes were not re-read because of a CDP limit. That observation is historical. The smoke test in this session saved the quick graph SVG and read the file.
+Not run: GitHub Actions workflows, Pages deployment, `file://` opening of the build.
 
 ### Manual release
 
-1. On the revision to publish, run `npm test`, `npm run build` and `npm run test:smoke`.
-2. Leave the workspace DOCX files and any browser-local exports unstaged.
-3. In GitHub, start **Deploy GitHub Pages** with `workflow_dispatch` after the checks you care about have passed. This task did not publish.
+1. Commit the intended revision. Leave the workspace DOCX files unstaged.
+2. Confirm `npm run typecheck`, `npm test`, `npm run build` and `npm run test:smoke` on that revision.
+3. In GitHub, start **Deploy GitHub Pages** (`workflow_dispatch`). The workflow re-runs those checks on the deployed SHA before upload. This task did not publish.
 
 ## Next research step
 
@@ -116,6 +116,10 @@ Passage-level reconciliation of the two source documents is still open. Names th
 | `src/model.ts` | Validation, migration, directed path search, CSV and DOT |
 | `src/` | React workspace, hash routes and React Flow map |
 | `scripts/build.ts` | Schema 2 check, Vite build, and explicit `published-seed.json` |
+| `src/publish.ts` | Publication projection rules for the Pages seed |
+| `docs/published-seed.md` | Public-seed selection rules and review checklist |
+| `tsconfig.json` / `tsconfig.node.json` | Browser app vs Node tooling typecheck |
+| `src/figures-graphviz.ts` | Optional Node-only Graphviz detect/render (excluded from browser project) |
 | `scripts/preview-subpath.ts` | Serves `dist/` under `/research-evidence-explorer/` for browser tests |
 | `playwright.config.ts` | Playwright smoke configuration |
 | `tests/browser/` | Browser smoke tests |

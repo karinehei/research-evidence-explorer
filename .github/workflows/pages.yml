@@ -1,5 +1,6 @@
 # Deploys the static research explorer to GitHub Pages.
 # Manual only — ordinary push/PR checks must not publish unpublished notes.
+# Required checks run again on this exact revision before upload.
 name: Deploy GitHub Pages
 on:
   workflow_dispatch:
@@ -23,12 +24,18 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - run: npm test
-      - run: npm run build
-      - name: Confirm published seed is curated only
+      - name: Required checks for this revision
+        run: |
+          npm run typecheck
+          npm test
+          npm run build
+      - name: Confirm published seed is curated projection
         run: |
           test -f dist/published-seed.json
-          node -e "const fs=require('fs'); const seed=JSON.parse(fs.readFileSync('dist/published-seed.json','utf8')); if(seed.schemaVersion!==2) process.exit(1); if(Array.isArray(seed.editLog)&&seed.editLog.length) { console.error('Published seed must not carry a private editLog'); process.exit(1);} "
+          node -e "const fs=require('fs'); const seed=JSON.parse(fs.readFileSync('dist/published-seed.json','utf8')); const m=JSON.parse(fs.readFileSync('dist/published-seed.manifest.json','utf8')); if(seed.schemaVersion!==2) process.exit(1); if(Array.isArray(seed.editLog)&&seed.editLog.length) { console.error('Published seed must not carry a private editLog'); process.exit(1);} if(!Array.isArray(m.clearedFields)||!m.clearedFields.includes('editLog')) process.exit(1);"
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+      - run: npm run test:smoke
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
