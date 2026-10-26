@@ -17,7 +17,7 @@ const KEY = 'research-evidence-explorer-v1';
 const descriptions: Record<View, [string, string]> = {
   graph: ['Lähteistä arviointikriteereihin', 'Tutki, mihin käsitteet ja omat menetelmävalinnat perustuvat.'],
   matrix: ['Arviointimatriisi', 'Käsitteet, kriteerit, näyttö ja päätelmien rajat samassa näkymässä.'],
-  cases: ['Mitä erottelu auttaa huomaamaan?', 'Kolme rakennettua tapausta havainnollistaa mallin käyttötapaa.'],
+  cases: ['Tehtävästä näyttöön', 'Rakennetut tapaukset A–C erottavat kattavuuden, väitetuen ja näytön. Näkymä ei ole validoitu kausaalimalli.'],
   questions: ['Oletukset ja avoimet kysymykset', 'Säilytä ehdotetut suhteet erillään jo osoitetuista tuloksista.']
 };
 
@@ -300,8 +300,8 @@ export function App() {
             <FlowMap model={model} ids={ids} selectedId={edgeId ? '' : selectedId} selectedEdge={edgeId} trace={trace} fitToken={fitToken} guardTick={guardTick} api={flowApi} onSelectNode={selectRecord} onSelectEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onMove={(id, position) => { const copy = clone(modelRef.current); const found = locate(copy, id) as { record?: { position?: { x: number; y: number } } } | null; if (found?.record) found.record.position = position; commit(copy); }} />
             <div className="legend"><span><i className="line solid" />Raportoitu, ei varmennettu</span><span><i className="line dashed" />Oma sovellus</span><span><i className="line dotted" />Testaamaton oletus</span><span><i className="line membership" />Lähdeviite, ei kausaalinuoli</span></div>
             <div className="graph-foot">Yhteydet kuvaavat perusteluja ja ehdotuksia. Viivatyyppi, väri ja teksti kertovat tiedollisen tilan. Graafi ei osoita syy-seuraussuhteita.</div></section>}
-          {route.view === 'matrix' && <MatrixView model={model} selectedId={selectedId} onSelect={selectRecord} onCsv={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')} />}
-          {route.view === 'cases' && <CasesView model={model} selectedId={selectedId} onSelect={selectRecord} />}
+          {route.view === 'matrix' && <MatrixView model={model} selectedId={selectedId} onSelect={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onCsv={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')} />}
+          {route.view === 'cases' && <CasesView model={model} selectedId={selectedId} onSelect={selectRecord} onSave={commit} />}
           {route.view === 'questions' && <QuestionsView model={model} selectedId={selectedId} onSelect={selectRecord} onTrace={id => assignHash(formatHash('graph', id, 'focus'))} onAddDecision={addDecision} />}
           <Inspector model={model} selectedId={selectedId} edgeId={edgeId} mode={mode} guard={guard} onSave={commit} onMessage={text => setMessage({ text, error: true })} onOpen={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onAddEdge={sourceId => guarded(() => { setEdgeId(''); setMode({ type: 'add-edge', sourceId }); })} onAddClaim={addClaim} onRemove={requestRemove} />
         </div>

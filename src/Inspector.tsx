@@ -1,10 +1,10 @@
 import type { FormEvent, MutableRefObject, ReactNode } from 'react';
 import { access, appraisal, epistemic, locate, provenance, relations, reviewStates } from './model.ts';
-import { accessLabel, appraisalLabel, epistemicLabel, meaningLabel, provenanceLabel, publicationLabel, reviewLabel } from './labels.ts';
+import { accessLabel, appraisalLabel, epistemicLabel, meaningLabel, provenanceLabel, publicationLabel, researchRoleLabel, reviewLabel } from './labels.ts';
 import { clone, newId, requireConnection } from './edit.ts';
 import { useDraft, type DirtyApi } from './draft.ts';
 import { Checks, SelectField, TextField } from './fields.tsx';
-import type { Access, Appraisal, ConstructedCase, Criterion, Decision, EpistemicStatus, Meaning, Provenance, PublicationStatus, Relationship, ReviewState, Source, Workspace } from './types.ts';
+import type { Access, Appraisal, ConstructedCase, Criterion, Decision, EpistemicStatus, Meaning, Provenance, PublicationStatus, Relationship, ResearchRole, ReviewState, Source, Workspace } from './types.ts';
 
 type Mode = { type: 'record' } | { type: 'add-node' } | { type: 'add-edge'; sourceId: string };
 type Save = (next: Workspace, message: string) => boolean;
@@ -117,14 +117,14 @@ function Section({ title, children, note }: { title: string; children: ReactNode
 }
 
 function SourceForm({ model, source, guard, onSave, onOpen, onEdge, onAddEdge, onAddClaim, onRemove }: { model: Workspace; source: Source; guard: MutableRefObject<DirtyApi | null>; onSave: Save; onOpen: (id: string) => void; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onAddClaim: (sourceId: string) => void; onRemove: (id: string) => void }) {
-  const draftSource = { ...source, nextCheck: source.nextCheck || '' };
+  const draftSource = { ...source, nextCheck: source.nextCheck || '', researchRole: source.researchRole || 'not-recorded' };
   const { draft, setDraft, persist } = useDraft(draftSource, guard, next => {
     const copy = clone(model);
     const item = copy.sources.find(record => record.id === source.id);
     if (!item) return false;
     const position = item.position;
     const bibliographicImport = item.bibliographicImport;
-    Object.assign(item, next, { position, bibliographicImport, label: next.label.trim(), doi: next.doi.trim(), url: next.url.trim(), nextCheck: next.nextCheck || '' });
+    Object.assign(item, next, { position, bibliographicImport, label: next.label.trim(), doi: next.doi.trim(), url: next.url.trim(), nextCheck: next.nextCheck || '', researchRole: next.researchRole || 'not-recorded' });
     return onSave(copy, 'Lähteen tiedot tallennettiin.');
   });
   const patch = <K extends keyof Source>(key: K, value: Source[K]) => setDraft(current => ({ ...current, [key]: value }));
@@ -156,6 +156,8 @@ function SourceForm({ model, source, guard, onSave, onOpen, onEdge, onAddEdge, o
       <Section title="Julkaisu ja versiot" note="Julkaisun tila on bibliografinen päätös. Se ei seuraa DOI:sta, URL:stä eikä lukemistiedosta.">
         <SelectField label="Julkaisun tila" value={draft.publicationStatus} onChange={value => patch('publicationStatus', value as PublicationStatus)} options={option(Object.keys(publicationLabel), publicationLabel)} />
         <SelectField label="Version suhde toiseen lähteeseen" value={draft.versionOf} onChange={value => patch('versionOf', value)} options={[{ id: '', label: 'Ei versioviitettä' }, ...model.sources.filter(item => item.id !== source.id).map(item => ({ id: item.id, label: item.label }))]} />
+        <SelectField label="Lähteen rooli tutkimuksessa" value={draft.researchRole || 'not-recorded'} onChange={value => patch('researchRole', value as ResearchRole)} options={option(Object.keys(researchRoleLabel), researchRoleLabel)} />
+        <p className="subtle">Roolit (käsitteellinen, tekninen, empiirinen, työkalu/työnkulku) eivät ole keskenään vaihdettavia viitekehyksiä eivätkä ranking-sijoituksia.</p>
         {draft.versionOf && <p className="subtle">Tämä tietue on merkitty versiona lähteestä {titleOf(model, draft.versionOf)}.</p>}
         {versionChildren.length > 0 && <div className="record-list">{versionChildren.map(item => <button type="button" key={item.id} onClick={() => onOpen(item.id)}>Versio: {item.label}</button>)}</div>}
       </Section>
@@ -359,7 +361,9 @@ function CaseForm({ model, recordId, guard, onSave }: { model: Workspace; record
   });
   return <>
     <div className="eyebrow">RAKENNETTU TAPAUS</div><h2>{record.title}</h2>
-    <p className="subtle">Esimerkin teksti on luettavissa näkymässä. Tähän kirjataan vain erilliset viitteet. Niitä ei päätelty tekstistä.</p>
+    <span className="tag hypothesis">Rakennettu analyyttinen esimerkki</span>
+    <p className="subtle">Tehtävä–näyttö-muokkaus on tapausten näkymässä. Tähän kirjataan vain erilliset viitteet. Niitä ei päätelty tekstistä. Empiirinen tapaus vaatisi erillisen tietuetyypin.</p>
+    <p className="subtle">analyticLabel: {record.analyticLabel}</p>
     <FormShell submit={persist} label="Tallenna esimerkin viitteet">
       <Checks title="Propositioviitteet" records={model.propositions.map(item => ({ id: item.id, label: item.label }))} selected={draft.propositionIds} onChange={ids => setDraft(current => ({ ...current, propositionIds: ids }))} />
       <Checks title="Kriteeriviitteet" records={model.criteria.map(item => ({ id: item.id, label: item.label }))} selected={draft.criterionIds} onChange={ids => setDraft(current => ({ ...current, criterionIds: ids }))} />

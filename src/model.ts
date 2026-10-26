@@ -1,6 +1,13 @@
 // @ts-nocheck
 // Runtime schema checks are the contract for both the browser and the command line.
+import { hydrateConstructedCase } from './cases.ts';
 const SCHEMA = 2;
+  const facetStates = ['full', 'partial', 'absent', 'conflicting', 'unresolved'];
+  const caseKeys = [
+    'id', 'kind', 'analyticLabel', 'title', 'task', 'taskReference', 'facets', 'sourceSnapshots', 'passages',
+    'savedContexts', 'answerVariants', 'claimAnnotations', 'displayConditions', 'unmeasured',
+    'columns', 'rows', 'interpretation', 'boundary', 'basis', 'propositionIds', 'criterionIds', 'decisionIds'
+  ];
   const legacyKinds = ['source', 'concept', 'criterion', 'question'];
   const legacyStatuses = ['literature', 'adaptation', 'hypothesis'];
   const access = ['reported-full-text', 'reported-abstract', 'not-recorded', 'not-applicable'];
@@ -11,6 +18,7 @@ const SCHEMA = 2;
   const publication = ['not-recorded', 'preprint', 'published', 'in-press', 'manuscript', 'not-applicable'];
   const provenance = ['imported-summary', 'primary-inspection'];
   const appraisal = ['not-appraised', 'appraised'];
+  const researchRoles = ['not-recorded', 'conceptual', 'technical', 'empirical', 'tool-workflow'];
   const legacyId = /^[a-zA-Z0-9_-]{1,80}$/;
   const idPattern = /^[a-zA-Z0-9_-]{1,120}$/;
   const isObj = x => x && typeof x === 'object' && !Array.isArray(x);
@@ -108,7 +116,7 @@ const SCHEMA = 2;
         claimIds: sourceIds.map(id => 'claim_' + id).sort(), sourceIds, epistemicStatus: epistemicFrom(e.status), reviewState: 'imported', reviewNote: ''
       };
     });
-    const cases = legacy.cases.map(c => ({ ...clone(c), propositionIds: [], criterionIds: [], decisionIds: [] }));
+    const cases = legacy.cases.map(c => hydrateConstructedCase({ ...clone(c), propositionIds: [], criterionIds: [], decisionIds: [] }));
     const decisions = [{
       id: 'decision_schema1_import',
       label: 'Schema 1 -tuonti',
@@ -184,10 +192,11 @@ const SCHEMA = 2;
       for (const flag of bib.flags) str(flag, label + ' (tuonnin lippu)', 400, true);
     };
     for (const s of value.sources) {
-      keys(s, ['id', 'label', 'citation', 'year', 'publicationStatus', 'versionOf', 'doi', 'url', 'access', 'accessNote', 'notes', 'nextCheck', 'bibliographicImport', 'position'], 'Lähde');
+      keys(s, ['id', 'label', 'citation', 'year', 'publicationStatus', 'versionOf', 'doi', 'url', 'access', 'accessNote', 'notes', 'nextCheck', 'researchRole', 'bibliographicImport', 'position'], 'Lähde');
       take(s.id, 'Lähde');
       str(s.label, 'Lähteen nimi', 160, true); str(s.citation, 'Viite', 8000); str(s.year, 'Vuosi', 40); str(s.versionOf, 'Versio', 120); str(s.doi, 'DOI', 200); str(s.url, 'URL'); str(s.accessNote, 'Lukemistiedon tarkenne'); str(s.notes, 'Muistiinpanot');
       if (s.nextCheck !== undefined) str(s.nextCheck, 'Seuraava tarkistus');
+      if (s.researchRole !== undefined) oneOf(s.researchRole, researchRoles, 'Lähteen rooli');
       oneOf(s.publicationStatus, publication, 'Julkaisun tila'); oneOf(s.access, access, 'Lukemistieto');
       if (s.url && !/^https?:\/\//i.test(s.url)) fail('Lähdelinkin tulee alkaa http:// tai https://.');
       if (s.doi && !/^10\.\d{4,9}\/\S+$/.test(s.doi)) fail('DOI on virheellinen.');
@@ -249,14 +258,96 @@ const SCHEMA = 2;
       idList(r.claimIds, 'Väiteviite', claimIds); idList(r.sourceIds, 'Lähdeviite', sourceIds);
       oneOf(r.epistemicStatus, epistemic, 'Tiedollinen tila'); oneOf(r.reviewState, reviewStates, 'Arvioinnin tila');
     }
-    for (const c of value.cases) {
-      keys(c, ['id', 'kind', 'title', 'task', 'columns', 'rows', 'interpretation', 'boundary', 'basis', 'propositionIds', 'criterionIds', 'decisionIds'], 'Esimerkki');
+    for (const raw of value.cases) {
+      if (!isObj(raw) || raw.kind !== 'constructed') fail('Esimerkin on oltava merkitty rakennetuksi. Empiirinen tapaus vaatii erillisen tietuetyypin ja ajon provenienssin.');
+    }
+    const cases = value.cases.map(c => hydrateConstructedCase(c));
+    for (const c of cases) {
+      keys(c, caseKeys, 'Esimerkki');
       take(c.id, 'Esimerkki');
-      if (c.kind !== 'constructed') fail('Esimerkin on oltava merkitty rakennetuksi.');
+      if (c.kind !== 'constructed') fail('Esimerkin on oltava merkitty rakennetuksi. Empiirinen tapaus vaatii erillisen tietuetyypin ja ajon provenienssin.');
+      if (c.analyticLabel !== 'constructed-analytical-example') fail('Esimerkin on säilytettävä merkintä constructed-analytical-example.');
       for (const f of ['title', 'task', 'interpretation', 'boundary', 'basis']) str(c[f], f);
       if (!Array.isArray(c.columns) || !c.columns.length || c.columns.length > 5 || !Array.isArray(c.rows) || c.rows.length > 20) fail('Virheellinen esimerkkitaulukko.');
       c.columns.forEach(x => str(x, 'Sarake', 160));
       c.rows.forEach(row => { if (!Array.isArray(row) || row.length !== c.columns.length) fail('Esimerkkirivin sarakemäärä ei täsmää.'); row.forEach(x => str(x, 'Solu')); });
+      keys(c.taskReference, ['statement', 'essentialQualifications', 'temporalScope', 'acceptableSourceVersionIds'], 'Tehtäväviite');
+      str(c.taskReference.statement, 'Tehtäväviite'); str(c.taskReference.essentialQualifications, 'Olennaiset rajaukset'); str(c.taskReference.temporalScope, 'Ajallinen ala');
+      if (!Array.isArray(c.taskReference.acceptableSourceVersionIds) || c.taskReference.acceptableSourceVersionIds.length > 40) fail('Hyväksyttävät lähdeversiot ovat virheellisiä.');
+      if (!Array.isArray(c.facets) || c.facets.length > 40) fail('Tietoasialista on virheellinen.');
+      const facetIds = new Set();
+      for (const facet of c.facets) {
+        keys(facet, ['id', 'label', 'essential', 'collection', 'context', 'answer', 'evidenceRefs', 'reason'], 'Tietoasia');
+        if (!idPattern.test(facet.id) || facetIds.has(facet.id)) fail('Tietoasian tunniste on virheellinen.');
+        facetIds.add(facet.id);
+        str(facet.label, 'Tietoasian nimi', 160, true); str(facet.reason, 'Tietoasian perustelu');
+        if (typeof facet.essential !== 'boolean') fail('Tietoasian olennaisuus on virheellinen.');
+        oneOf(facet.collection, facetStates, 'Kokoelman tila'); oneOf(facet.context, facetStates, 'Kontekstin tila'); oneOf(facet.answer, facetStates, 'Vastauksen tila');
+        if (!Array.isArray(facet.evidenceRefs) || facet.evidenceRefs.length > 40) fail('Tietoasian näyttöviitteet ovat virheellisiä.');
+        facet.evidenceRefs.forEach(ref => str(ref, 'Näyttöviite', 200));
+      }
+      if (!Array.isArray(c.sourceSnapshots) || c.sourceSnapshots.length > 40) fail('Lähdevedokset ovat virheellisiä.');
+      const snapshotIds = new Set();
+      for (const snap of c.sourceSnapshots) {
+        keys(snap, ['id', 'label', 'version', 'note'], 'Lähdevedos');
+        if (!idPattern.test(snap.id) || snapshotIds.has(snap.id)) fail('Lähdevedoksen tunniste on virheellinen.');
+        snapshotIds.add(snap.id);
+        str(snap.label, 'Lähdevedoksen nimi', 160, true); str(snap.version, 'Lähdeversio', 160); str(snap.note, 'Lähdevedoksen huomio');
+      }
+      c.taskReference.acceptableSourceVersionIds.forEach(id => { if (!snapshotIds.has(id)) fail('Hyväksyttävä lähdeversio puuttuu vedoksista.'); });
+      if (!Array.isArray(c.passages) || c.passages.length > 80) fail('Katkelmat ovat virheellisiä.');
+      const passageIds = new Set();
+      for (const passage of c.passages) {
+        keys(passage, ['id', 'sourceSnapshotId', 'locator', 'text'], 'Katkelma');
+        if (!idPattern.test(passage.id) || passageIds.has(passage.id)) fail('Katkelman tunniste on virheellinen.');
+        passageIds.add(passage.id);
+        if (passage.sourceSnapshotId && !snapshotIds.has(passage.sourceSnapshotId)) fail('Katkelman lähdevedos puuttuu.');
+        str(passage.locator, 'Katkelman paikannin', 400); str(passage.text, 'Katkelman teksti');
+      }
+      if (!Array.isArray(c.savedContexts) || c.savedContexts.length > 40) fail('Tallennetut kontekstit ovat virheellisiä.');
+      for (const ctx of c.savedContexts) {
+        keys(ctx, ['id', 'label', 'passageIds', 'note'], 'Tallennettu konteksti');
+        if (!idPattern.test(ctx.id)) fail('Kontekstin tunniste on virheellinen.');
+        str(ctx.label, 'Kontekstin nimi', 160, true); str(ctx.note, 'Kontekstin huomio');
+        idList(ctx.passageIds, 'Kontekstin katkelma', passageIds);
+      }
+      if (!Array.isArray(c.displayConditions) || c.displayConditions.length > 20) fail('Näyttöehdot ovat virheellisiä.');
+      const displayIds = new Set();
+      for (const display of c.displayConditions) {
+        keys(display, ['id', 'label', 'citationVisible', 'passageLocatorVisible', 'note'], 'Näyttöehto');
+        if (!idPattern.test(display.id) || displayIds.has(display.id)) fail('Näyttöehdon tunniste on virheellinen.');
+        displayIds.add(display.id);
+        str(display.label, 'Näyttöehdon nimi', 160, true); str(display.note, 'Näyttöehdon huomio');
+        if (typeof display.citationVisible !== 'boolean' || typeof display.passageLocatorVisible !== 'boolean') fail('Näyttöehdon näkyvyys on virheellinen.');
+      }
+      if (!Array.isArray(c.answerVariants) || c.answerVariants.length > 20) fail('Vastausvariantit ovat virheellisiä.');
+      const answerIds = new Set();
+      for (const answer of c.answerVariants) {
+        keys(answer, ['id', 'label', 'text', 'displayConditionId', 'claimAnnotationIds', 'note'], 'Vastausvariantti');
+        if (!idPattern.test(answer.id) || answerIds.has(answer.id)) fail('Vastausvariantin tunniste on virheellinen.');
+        answerIds.add(answer.id);
+        str(answer.label, 'Vastausvariantin nimi', 160, true); str(answer.text, 'Vastausvariantin teksti'); str(answer.note, 'Vastausvariantin huomio');
+        if (answer.displayConditionId && !displayIds.has(answer.displayConditionId)) fail('Vastausvariantin näyttöehto puuttuu.');
+        if (!Array.isArray(answer.claimAnnotationIds) || answer.claimAnnotationIds.length > 40) fail('Vastausvariantin väiteviitteet ovat virheellisiä.');
+      }
+      if (!Array.isArray(c.claimAnnotations) || c.claimAnnotations.length > 40) fail('Väiteannotaatiot ovat virheellisiä.');
+      const claimAnnIds = new Set();
+      for (const ann of c.claimAnnotations) {
+        keys(ann, ['id', 'label', 'statement', 'support', 'evidenceRefs', 'reason', 'answerVariantIds', 'displayConditionIds'], 'Väiteannotaatio');
+        if (!idPattern.test(ann.id) || claimAnnIds.has(ann.id)) fail('Väiteannotaation tunniste on virheellinen.');
+        claimAnnIds.add(ann.id);
+        str(ann.label, 'Väiteannotaation nimi', 160, true); str(ann.statement, 'Väiteannotaation teksti'); str(ann.reason, 'Väiteannotaation perustelu');
+        oneOf(ann.support, facetStates, 'Väitetuki');
+        if (!Array.isArray(ann.evidenceRefs) || ann.evidenceRefs.length > 40) fail('Väiteannotaation näyttöviitteet ovat virheellisiä.');
+        ann.evidenceRefs.forEach(ref => str(ref, 'Näyttöviite', 200));
+        idList(ann.answerVariantIds, 'Väiteannotaation vastaus', answerIds);
+        idList(ann.displayConditionIds, 'Väiteannotaation näyttö', displayIds);
+      }
+      for (const answer of c.answerVariants) idList(answer.claimAnnotationIds, 'Vastausvariantin väite', claimAnnIds);
+      keys(c.unmeasured, ['verificationSuccess', 'verificationTime', 'expertRatings'], 'Mittaamattomat');
+      for (const key of ['verificationSuccess', 'verificationTime', 'expertRatings']) {
+        if (c.unmeasured[key] !== 'not-measured') fail('Asiantuntija-arvoja tai tarkistusmittareita ei saa keksiä; merkitse not-measured.');
+      }
     }
     const propositionIds = new Set(value.propositions.map(p => p.id));
     for (const d of value.decisions) {
@@ -266,7 +357,7 @@ const SCHEMA = 2;
       oneOf(d.epistemicStatus, epistemic, 'Tiedollinen tila'); oneOf(d.reviewState, reviewStates, 'Arvioinnin tila');
     }
     const decisionIds = new Set(value.decisions.map(d => d.id));
-    for (const c of value.cases) {
+    for (const c of cases) {
       idList(c.propositionIds, 'Esimerkin propositio', propositionIds);
       idList(c.criterionIds, 'Esimerkin kriteeri', criterionIds);
       idList(c.decisionIds, 'Esimerkin päätös', decisionIds);
@@ -277,7 +368,9 @@ const SCHEMA = 2;
       if (value.legacy.schemaVersion !== 1 || value.legacy.preservedBeforeReplacement !== true) fail('Alkuperäinen tuonti on virheellinen.');
       validateLegacy(value.legacy.document);
     }
-    return clone(value);
+    const next = clone(value);
+    next.cases = cases;
+    return next;
   }
 
   function load(value) {
@@ -405,15 +498,15 @@ const SCHEMA = 2;
 
   const csvCell = x => { let s = String(x ?? ''); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replaceAll('"', '""') + '"'; };
   function csv(model) {
-    const columns = ['recordType', 'id', 'label', 'epistemicStatus', 'reviewState', 'publicationStatus', 'access', 'provenance', 'appraisal', 'links', 'unit', 'text', 'boundary', 'basis', 'locator', 'doi', 'url', 'notes'];
+    const columns = ['recordType', 'id', 'label', 'epistemicStatus', 'reviewState', 'publicationStatus', 'access', 'provenance', 'appraisal', 'meaning', 'claimIds', 'sourceIds', 'links', 'unit', 'text', 'boundary', 'basis', 'locator', 'doi', 'url', 'notes', 'researchRole'];
     const row = fields => columns.map(key => fields[key] || '');
     const rows = [columns];
-    for (const s of model.sources) rows.push(row({ recordType: 'source', id: s.id, label: s.label, publicationStatus: s.publicationStatus, access: s.access, links: s.versionOf, text: s.citation, doi: s.doi, url: s.url, notes: s.notes }));
+    for (const s of model.sources) rows.push(row({ recordType: 'source', id: s.id, label: s.label, publicationStatus: s.publicationStatus, access: s.access, links: s.versionOf, text: s.citation, doi: s.doi, url: s.url, notes: s.notes, researchRole: s.researchRole || 'not-recorded' }));
     for (const c of model.claims) rows.push(row({ recordType: 'claim', id: c.id, label: c.id, epistemicStatus: c.epistemicStatus, reviewState: c.reviewState, provenance: c.provenance, appraisal: c.appraisal, links: c.sourceId, text: c.statement, boundary: c.limitations, basis: c.basis, locator: c.locator, notes: c.notes }));
     for (const c of model.constructs) rows.push(row({ recordType: 'construct', id: c.id, label: c.label, epistemicStatus: c.epistemicStatus, reviewState: c.reviewState, unit: c.unit, text: c.definition, boundary: c.boundary, basis: c.basis, locator: c.locator, notes: c.notes }));
     for (const c of model.criteria) rows.push(row({ recordType: 'criterion', id: c.id, label: c.label, epistemicStatus: c.epistemicStatus, reviewState: c.reviewState, links: c.constructIds.join(' '), unit: c.unit, text: c.evidenceRequirements, boundary: c.permittedInference, basis: c.basis, locator: c.locator, notes: c.notes }));
     for (const p of model.propositions) rows.push(row({ recordType: 'proposition', id: p.id, label: p.label, epistemicStatus: p.epistemicStatus, reviewState: p.reviewState, links: p.criterionIds.join(' '), unit: p.unit, text: p.statement, boundary: p.boundary, basis: p.basis, locator: p.locator, notes: p.notes }));
-    for (const r of model.relationships) rows.push(row({ recordType: 'relationship', id: r.id, label: r.label, epistemicStatus: r.epistemicStatus, reviewState: r.reviewState, links: r.source + ' ' + r.target, text: r.rationale, boundary: r.reviewNote, locator: r.locator }));
+    for (const r of model.relationships) rows.push(row({ recordType: 'relationship', id: r.id, label: r.label, epistemicStatus: r.epistemicStatus, reviewState: r.reviewState, meaning: r.meaning, claimIds: (r.claimIds || []).join(' '), sourceIds: (r.sourceIds || []).join(' '), links: r.source + ' ' + r.target, text: r.rationale, boundary: r.reviewNote, locator: r.locator }));
     for (const c of model.cases) rows.push(row({ recordType: 'case', id: c.id, label: c.title, links: [...c.propositionIds, ...c.criterionIds, ...c.decisionIds].join(' '), text: c.task, boundary: c.boundary, basis: c.basis }));
     for (const d of model.decisions) rows.push(row({ recordType: 'decision', id: d.id, label: d.label, epistemicStatus: d.epistemicStatus, reviewState: d.reviewState, links: d.recordIds.join(' '), text: d.statement, boundary: d.scope, basis: d.rationale }));
     return '\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
@@ -432,7 +525,7 @@ const SCHEMA = 2;
 
 
 export {
-  SCHEMA, kinds, epistemic, reviewStates, publication, access, provenance, appraisal, relations,
+  SCHEMA, kinds, epistemic, reviewStates, publication, access, provenance, appraisal, researchRoles, relations,
   validateLegacy, migrate, validate, load, applyImport, graphNodes, locate, allIds, relationshipDraft, planRemoval,
   neighbourhood, path, csv, dot
 };

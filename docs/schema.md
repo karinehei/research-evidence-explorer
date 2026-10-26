@@ -16,6 +16,8 @@ Bibliographic identity: `id`, `label`, `citation`, `year`, `publicationStatus`, 
 
 Reported access: `access`, `accessNote`. Researcher note fields: `notes` and optional `nextCheck`. Optional layout: `position`.
 
+Optional `researchRole` records how the source is used in this workspace: `not-recorded`, `conceptual`, `technical`, `empirical` or `tool-workflow`. Roles are descriptive and are not ranked as interchangeable frameworks. A missing or `not-recorded` value means the role was not written down; it is not a quality score. Seed sources leave the field unset so the matrix shows “Ei kirjattu” until a researcher sets it.
+
 Optional `bibliographicImport` stores a Zotero CSL-JSON import provenance without changing `schemaVersion`. It records `importedAt`, `provider` (`zotero-csl-json`), `itemKey`, `citationKey`, the sanitized `original` CSL object, `attachments` as metadata only (`title`, `path`, `linkMode`, `contentType`), and `flags` for review (for example a malformed author string). Attachment file contents are not stored. A missing `nextCheck` or `bibliographicImport` remains valid, as with claim `position`.
 
 `publicationStatus` is `not-recorded`, `preprint`, `published`, `in-press`, `manuscript` or `not-applicable`. `access` remains `reported-full-text`, `reported-abstract`, `not-recorded` or `not-applicable`. `versionOf` is empty or the id of another source, and the chain cannot cycle.
@@ -52,7 +54,19 @@ The seed criterion `expert` is still one criterion, “Viisi erillistä asiantun
 
 ### Proposition, constructed case and research decision
 
-A proposition has `statement`, `boundary`, `unit` and `criterionIds`. A case stays `kind: "constructed"`. `empirical` is rejected. A case may also store `propositionIds`, `criterionIds` and `decisionIds`. Those lists are not inferred from the case prose.
+A proposition has `statement`, `boundary`, `unit` and `criterionIds`.
+
+A case stays `kind: "constructed"` with fixed `analyticLabel: "constructed-analytical-example"`. `empirical` is rejected: a future empirical case needs a distinct record type and explicit run provenance. Beside the summary `columns`/`rows` table, a case stores a task-to-evidence structure:
+
+- `taskReference`: statement, essential qualifications, temporal scope, acceptable source-version ids
+- `facets`: per-facet `collection` / `context` / `answer` states (`full`, `partial`, `absent`, `conflicting`, `unresolved`), essential flag, evidence refs, reason
+- `sourceSnapshots`, `passages`, `savedContexts`
+- `answerVariants`, `claimAnnotations`, `displayConditions` (claim support and citation display are separate audits)
+- `unmeasured`: verification success/time and expert ratings stay `not-measured` (values are not invented)
+
+Schema 1 cases and older flat schema 2 cases hydrate empty structured lists on load. Case edits go through the same validate/commit/undo path as other workspace records. Constructed-case JSON export repeats the analytic label and disclaimer.
+
+A case may also store `propositionIds`, `criterionIds` and `decisionIds`. Those lists are not inferred from the case prose.
 
 A research decision has `statement`, `scope`, `rationale`, `epistemicStatus`, `reviewState` and `recordIds`. The migration decision `decision_schema1_import` documents the import. Its `recordIds` list is empty: the preserved schema 1 document is `legacy.document`, not a live index that would have to change on every deletion.
 
@@ -101,6 +115,14 @@ Positions are copied when present and omitted otherwise. The representative expo
 `planRemoval(model, id)` returns a new model. The input is not changed. Endpoints, claim references, source references, construct references, criterion references, case references, decision references and `versionOf` are updated in that same result. A source deletion also removes that source's claims. A relationship that ended on a removed graph record is removed. A criterion that loses its last construct keeps the criterion and receives the note `Käsiteviite poistettiin; viite on täsmennettävä.` when that note is not already present.
 
 The result names every affected record. The workspace asks for confirmation when the change removes a claim or detaches a reference. Removing only the selected record, or only the relationships that ended on it, is one undoable step without that extra dialog. The last source, construct, criterion or proposition cannot be removed. Undo uses the existing session stack of 30 entries.
+
+## Matrix projection
+
+The assessment matrix (`src/matrix.ts`, Arviointimatriisi) does not store a second copy of the model. Criterion-oriented and source-oriented rows are projections of the same schema 2 collections used by the graph and inspector. Selecting a criterion, construct, claim, source or relationship opens that shared record. Edits in the inspector update both views.
+
+A multi-step path `source → construct → criterion` is labelled conceptual ancestry. It is not treated as direct empirical support for the criterion. Adaptation and `operationalises` links stay visible as the researcher's own step. Competing construct definitions are listed separately and are not collapsed into a favourable summary. Blank cells and Finnish empty-state copy use explicit wording such as “Ei kirjattu”, “Ei arvioitu” and “tarkistettava”. An empty cell is not a research gap and is not coloured by invented coverage or quality scores.
+
+Matrix JSON export (`exportType: research-matrix`) includes stable record ids, the active orientation, filters, selection, related claims and relationships for provenance. Node-only CSV is not the provenance path; relationship rows keep `meaning`, `claimIds` and `sourceIds`.
 
 ## Fields that still need researcher appraisal
 

@@ -5,6 +5,7 @@ export type Access = 'reported-full-text' | 'reported-abstract' | 'not-recorded'
 export type Provenance = 'imported-summary' | 'primary-inspection';
 export type Appraisal = 'not-appraised' | 'appraised';
 export type Meaning = 'motivates' | 'operationalises' | 'complements' | 'questions' | 'proposes';
+export type ResearchRole = 'not-recorded' | 'conceptual' | 'technical' | 'empirical' | 'tool-workflow';
 export type Position = { x: number; y: number };
 
 export interface AttachmentMeta {
@@ -27,7 +28,7 @@ export interface BibliographicImport {
 export interface Source {
   id: string; label: string; citation: string; year: string; publicationStatus: PublicationStatus;
   versionOf: string; doi: string; url: string; access: Access; accessNote: string; notes: string;
-  nextCheck?: string; bibliographicImport?: BibliographicImport; position?: Position;
+  nextCheck?: string; researchRole?: ResearchRole; bibliographicImport?: BibliographicImport; position?: Position;
 }
 export interface Claim {
   id: string; sourceId: string; statement: string; methodContext: string; locator: string; limitations: string;
@@ -52,9 +53,50 @@ export interface Proposition {
   id: string; label: string; statement: string; boundary: string; unit: string; criterionIds: string[];
   epistemicStatus: EpistemicStatus; reviewState: ReviewState; basis: string; locator: string; notes: string; position?: Position;
 }
+export type FacetState = 'full' | 'partial' | 'absent' | 'conflicting' | 'unresolved';
+export type UnmeasuredMarker = 'not-measured';
+export type AnalyticCaseLabel = 'constructed-analytical-example';
+
+export interface CaseTaskReference {
+  statement: string;
+  essentialQualifications: string;
+  temporalScope: string;
+  acceptableSourceVersionIds: string[];
+}
+export interface CaseFacet {
+  id: string; label: string; essential: boolean;
+  collection: FacetState; context: FacetState; answer: FacetState;
+  evidenceRefs: string[]; reason: string;
+}
+export interface CaseSourceSnapshot {
+  id: string; label: string; version: string; note: string;
+}
+export interface CasePassage {
+  id: string; sourceSnapshotId: string; locator: string; text: string;
+}
+export interface CaseSavedContext {
+  id: string; label: string; passageIds: string[]; note: string;
+}
+export interface CaseClaimAnnotation {
+  id: string; label: string; statement: string; support: FacetState;
+  evidenceRefs: string[]; reason: string; answerVariantIds: string[]; displayConditionIds: string[];
+}
+export interface CaseDisplayCondition {
+  id: string; label: string; citationVisible: boolean; passageLocatorVisible: boolean; note: string;
+}
+export interface CaseAnswerVariant {
+  id: string; label: string; text: string; displayConditionId: string; claimAnnotationIds: string[]; note: string;
+}
+export interface CaseUnmeasured {
+  verificationSuccess: UnmeasuredMarker; verificationTime: UnmeasuredMarker; expertRatings: UnmeasuredMarker;
+}
 export interface ConstructedCase {
-  id: string; kind: 'constructed'; title: string; task: string; columns: string[]; rows: string[][];
-  interpretation: string; boundary: string; basis: string; propositionIds: string[]; criterionIds: string[]; decisionIds: string[];
+  id: string; kind: 'constructed'; analyticLabel: AnalyticCaseLabel; title: string; task: string;
+  taskReference: CaseTaskReference; facets: CaseFacet[]; sourceSnapshots: CaseSourceSnapshot[];
+  passages: CasePassage[]; savedContexts: CaseSavedContext[]; answerVariants: CaseAnswerVariant[];
+  claimAnnotations: CaseClaimAnnotation[]; displayConditions: CaseDisplayCondition[]; unmeasured: CaseUnmeasured;
+  columns: string[]; rows: string[][]; interpretation: string; boundary: string; basis: string;
+  propositionIds: string[]; criterionIds: string[]; decisionIds: string[];
 }
 export interface Decision {
   id: string; label: string; statement: string; scope: string; rationale: string; epistemicStatus: EpistemicStatus;

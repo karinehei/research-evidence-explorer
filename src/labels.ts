@@ -1,4 +1,4 @@
-import type { Access, EpistemicStatus, Meaning, PublicationStatus, RecordKind, ReviewState } from './types.ts';
+import type { Access, EpistemicStatus, Meaning, PublicationStatus, RecordKind, ResearchRole, ReviewState } from './types.ts';
 
 export const kindLabel: Record<RecordKind, string> = {
   source: 'Lähde', claim: 'Lähdeväite', construct: 'Käsite', criterion: 'Kriteeri', proposition: 'Propositio',
@@ -23,5 +23,19 @@ export const publicationLabel: Record<PublicationStatus, string> = {
 };
 export const provenanceLabel = { 'imported-summary': 'Tuotu yhteenveto', 'primary-inspection': 'Alkuperäislähteestä tarkastettu' };
 export const appraisalLabel = { 'not-appraised': 'Ei arvioitu', appraised: 'Arvioitu' };
+export const researchRoleLabel: Record<ResearchRole, string> = {
+  'not-recorded': 'Ei kirjattu',
+  conceptual: 'Käsitteellinen',
+  technical: 'Tekninen',
+  empirical: 'Empiirinen',
+  'tool-workflow': 'Työkalu / työnkulku'
+};
+export const chainKindLabel = {
+  'conceptual-ancestry': 'Käsitteellinen esivanhemmuus — ei suora empiirinen tuki',
+  'recorded-link': 'Kirjattu yhteys — ei automaattisesti empiirinen tuki',
+  'adaptation-step': 'Oma sovellus / operationalisointi',
+  counterevidence: 'Ristiriita tai kyseenalaistus',
+  missing: 'Puuttuva viite — tarkistettava'
+} as const;
 
 export const traceLimitation = 'Näytetty ketju on topologinen polku tallennettujen yhteyksien suunnassa. Se ei ole näytöllisesti perusteltu argumentti. Tuki ei siirry automaattisesti jokaisen edeltäjän kautta, eikä polku vahvista päätepisteen pätevyyttä.';
