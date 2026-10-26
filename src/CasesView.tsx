@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState, type MutableRefObject } from 'react';
 import {
-  ANALYTIC_CASE_LABEL, CASE_VIEW_DISCLAIMER, CONSTRUCTED_CASE_TAG, coverageLayerLabel,
-  exportConstructedCase, facetStateLabel, layerCoverage, missingEssentialFacets, type CoverageLayer
+  ANALYTIC_CASE_LABEL, CASE_VIEW_DISCLAIMER, CONSTRUCTED_CASE_TAG, applyConstructedCaseDraft,
+  coverageLayerLabel, exportConstructedCase, facetStateLabel, layerCoverage, missingEssentialFacets, type CoverageLayer
 } from './cases.ts';
-import { contentKey } from './edit.ts';
-import type { DirtyApi } from './draft.ts';
+import { useDraft, type DirtyApi } from './draft.ts';
 import type { ConstructedCase, FacetState, Workspace } from './types.ts';
 
 const facetOptions = Object.entries(facetStateLabel).map(([id, label]) => ({ id, label }));
@@ -22,74 +21,50 @@ function cloneCase(record: ConstructedCase): ConstructedCase {
   return JSON.parse(JSON.stringify(record));
 }
 
-export function CasesView({ model, selectedId, onSelect, onSave, guard, onEditModeChange }: {
+export function CasesView({ model, selectedId, onSelect, onSave, guard, onEditModeChange, onLeave }: {
   model: Workspace;
   selectedId: string;
   onSelect: (id: string) => void;
   onSave: (next: Workspace, message: string) => boolean;
   guard: MutableRefObject<DirtyApi | null>;
   onEditModeChange?: (editing: boolean) => void;
+  onLeave: (action: () => void) => void;
 }) {
   const selected = model.cases.find(item => item.id === selectedId) || model.cases[0];
-  const [draft, setDraft] = useState<ConstructedCase | null>(selected ? cloneCase(selected) : null);
+  if (!selected) return <p>Ei rakennettuja tapauksia.</p>;
+  return <CaseEditor model={model} selected={selected} onSelect={onSelect} onSave={onSave} guard={guard} onEditModeChange={onEditModeChange} onLeave={onLeave} />;
+}
+
+function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange, onLeave }: {
+  model: Workspace;
+  selected: ConstructedCase;
+  onSelect: (id: string) => void;
+  onSave: (next: Workspace, message: string) => boolean;
+  guard: MutableRefObject<DirtyApi | null>;
+  onEditModeChange?: (editing: boolean) => void;
+  onLeave: (action: () => void) => void;
+}) {
   const [leftVariantId, setLeftVariantId] = useState('');
   const [rightVariantId, setRightVariantId] = useState('');
   const [editMode, setEditMode] = useState(false);
-  const savedKey = selected ? contentKey(selected) : '';
+  const { draft, setDraft, persist } = useDraft(selected, guard, next => {
+    let copy: Workspace;
+    try { copy = applyConstructedCaseDraft(model, next); }
+    catch { return false; }
+    const ok = onSave(copy, 'Rakennettu tapaus tallennettiin. Esimerkki pysyy rakennettuna analyyttisenä esimerkkinä.');
+    if (ok) setEditMode(false);
+    return ok;
+  }, { active: editMode, onReset: () => setEditMode(false) });
 
   useEffect(() => {
-    const record = model.cases.find(item => item.id === selectedId) || model.cases[0] || null;
-    if (!record) {
-      setDraft(null);
-      return;
-    }
-    setDraft(cloneCase(record));
-    setEditMode(false);
-    onEditModeChange?.(false);
-    const answers = record.answerVariants;
-    setLeftVariantId(answers[0]?.id || '');
-    setRightVariantId(answers[1]?.id || answers[0]?.id || '');
-  }, [selectedId, model, onEditModeChange]);
+    const answers = selected.answerVariants;
+    setLeftVariantId(current => answers.some(item => item.id === current) ? current : (answers[0]?.id || ''));
+    setRightVariantId(current => answers.some(item => item.id === current) ? current : (answers[1]?.id || answers[0]?.id || ''));
+  }, [selected]);
 
   useEffect(() => {
     onEditModeChange?.(editMode);
   }, [editMode, onEditModeChange]);
-
-  useEffect(() => {
-    if (!editMode || !draft || !selected) {
-      return;
-    }
-    const persist = () => {
-      const copy = JSON.parse(JSON.stringify(model)) as Workspace;
-      const index = copy.cases.findIndex(item => item.id === draft.id);
-      if (index < 0) return false;
-      copy.cases[index] = {
-        ...draft,
-        kind: 'constructed',
-        analyticLabel: ANALYTIC_CASE_LABEL,
-        task: draft.taskReference.statement || draft.task,
-        unmeasured: {
-          verificationSuccess: 'not-measured',
-          verificationTime: 'not-measured',
-          expertRatings: 'not-measured'
-        }
-      };
-      const ok = onSave(copy, 'Rakennettu tapaus tallennettiin. Esimerkki pysyy rakennettuna analyyttisenä esimerkkinä.');
-      if (ok) setEditMode(false);
-      return ok;
-    };
-    guard.current = {
-      isDirty: () => contentKey(draft) !== savedKey,
-      save: persist,
-      reset: () => {
-        setDraft(cloneCase(selected));
-        setEditMode(false);
-      }
-    };
-    return () => {
-      if (guard.current?.save === persist) guard.current = null;
-    };
-  }, [editMode, draft, selected, savedKey, model, onSave, guard]);
 
   const layers = useMemo(() => {
     if (!draft) return [];
@@ -102,31 +77,12 @@ export function CasesView({ model, selectedId, onSelect, onSave, guard, onEditMo
   const leftDisplay = draft?.displayConditions.find(item => item.id === left?.displayConditionId);
   const rightDisplay = draft?.displayConditions.find(item => item.id === right?.displayConditionId);
 
-  if (!selected || !draft) return <p>Ei rakennettuja tapauksia.</p>;
-
   function patchDraft(updater: (current: ConstructedCase) => ConstructedCase) {
-    setDraft(current => current ? updater(cloneCase(current)) : current);
+    setDraft(current => updater(cloneCase(current)));
   }
 
   function saveCase() {
-    if (!draft) return;
-    const copy = JSON.parse(JSON.stringify(model)) as Workspace;
-    const index = copy.cases.findIndex(item => item.id === draft.id);
-    if (index < 0) return;
-    copy.cases[index] = {
-      ...draft,
-      kind: 'constructed',
-      analyticLabel: ANALYTIC_CASE_LABEL,
-      task: draft.taskReference.statement || draft.task,
-      unmeasured: {
-        verificationSuccess: 'not-measured',
-        verificationTime: 'not-measured',
-        expertRatings: 'not-measured'
-      }
-    };
-    if (onSave(copy, 'Rakennettu tapaus tallennettiin. Esimerkki pysyy rakennettuna analyyttisenä esimerkkinä.')) {
-      setEditMode(false);
-    }
+    persist();
   }
 
   function exportCase() {
@@ -152,7 +108,7 @@ export function CasesView({ model, selectedId, onSelect, onSave, guard, onEditMo
         <p>{CASE_VIEW_DISCLAIMER}</p>
       </div>
       <div className="matrix-export-actions">
-        <button type="button" onClick={() => setEditMode(value => !value)}>{editMode ? 'Sulje muokkaus' : 'Muokkaa tapausta'}</button>
+        <button type="button" onClick={() => onLeave(() => setEditMode(!editMode))}>{editMode ? 'Sulje muokkaus' : 'Muokkaa tapausta'}</button>
         {editMode && <button type="button" className="primary" onClick={saveCase}>Tallenna tapaus</button>}
         <button type="button" onClick={exportCase}>Vie rakennettu tapaus JSON</button>
       </div>
@@ -235,12 +191,13 @@ export function CasesView({ model, selectedId, onSelect, onSave, guard, onEditMo
 
     <section className="case-section">
       <h3>Tietoasiat</h3>
-      <div className="table-wrap"><table>
+      <div className="table-wrap" tabIndex={0}><table>
+        <caption>Tietoasiat ja kattavuuden tila kerroksittain. Rakennettu esimerkki, ei empiirinen tulos. Leveä taulukko vierii kehyksessään.</caption>
         <thead><tr>
           {['Tietoasia', 'Olennainen', 'Kokoelma', 'Konteksti', 'Vastaus', 'Näyttöviitteet', 'Perustelu'].map(column => <th key={column} scope="col">{column}</th>)}
         </tr></thead>
         <tbody>{draft.facets.map(facet => <tr key={facet.id}>
-          <td>{facet.label}<p className="subtle">id: {facet.id}</p></td>
+          <th scope="row">{facet.label}<p className="subtle">id: {facet.id}</p></th>
           <td>{facet.essential ? 'Kyllä' : 'Ei'}</td>
           {(['collection', 'context', 'answer'] as const).map(layer => <td key={layer}>
             {editMode
@@ -312,10 +269,11 @@ export function CasesView({ model, selectedId, onSelect, onSave, guard, onEditMo
         <p>{ctx.note || 'Huomiota ei kirjattu.'}</p>
         <p className="subtle">Katkelmat: {ctx.passageIds.join(', ') || 'ei kirjattu'}</p>
       </article>)}
-      <div className="table-wrap"><table>
-        <thead><tr>{['Katkelma', 'Lähdevedos', 'Paikannin', 'Teksti'].map(column => <th key={column}>{column}</th>)}</tr></thead>
+      <div className="table-wrap" tabIndex={0}><table>
+        <caption>Tallennetut katkelmat rakennetussa esimerkissä. Leveä taulukko vierii kehyksessään.</caption>
+        <thead><tr>{['Katkelma', 'Lähdevedos', 'Paikannin', 'Teksti'].map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
         <tbody>{draft.passages.map(passage => <tr key={passage.id}>
-          <td>{passage.id}</td>
+          <th scope="row">{passage.id}</th>
           <td>{passage.sourceSnapshotId}</td>
           <td>{passage.locator || 'Ei kirjattu'}</td>
           <td>{passage.text || 'Ei kirjattu'}</td>
@@ -325,9 +283,10 @@ export function CasesView({ model, selectedId, onSelect, onSave, guard, onEditMo
 
     <section className="case-section">
       <h3>Yhteenvetotaulukko (lähtöaineisto)</h3>
-      <div className="table-wrap"><table>
+      <div className="table-wrap" tabIndex={0}><table>
+        <caption>Yhteenvetotaulukko lähtöaineistosta. Rakennettu esimerkki, ei mittaustulos. Leveä taulukko vierii kehyksessään.</caption>
         <thead><tr>{draft.columns.map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
-        <tbody>{draft.rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody>
+        <tbody>{draft.rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => cellIndex === 0 ? <th key={cellIndex} scope="row">{cell}</th> : <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody>
       </table></div>
     </section>
 

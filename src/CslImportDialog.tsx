@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { StagedItem, StageAction } from './cslImport.ts';
 import { applyCslImport, stageCslImport, suggestVersionLinks } from './cslImport.ts';
 import { Modal } from './Modal.tsx';
@@ -17,14 +17,22 @@ const matchLabel = {
   'title-year': 'Mahdollinen kaksoiskappale (otsikko/vuosi)'
 } as const;
 
-export function CslImportDialog({ model, onClose, onApply }: {
+export function CslImportDialog({ open, model, onClose, onApply }: {
+  open: boolean;
   model: Workspace;
   onClose: () => void;
-  onApply: (next: Workspace, message: string) => void;
+  onApply: (next: Workspace, message: string) => boolean;
 }) {
   const [stage, setStage] = useState<StagedItem[] | null>(null);
   const [error, setError] = useState('');
   const [fileName, setFileName] = useState('');
+
+  useEffect(() => {
+    if (open) return;
+    setStage(null);
+    setError('');
+    setFileName('');
+  }, [open]);
 
   async function onFile(file: File | undefined) {
     if (!file) return;
@@ -60,14 +68,18 @@ export function CslImportDialog({ model, onClose, onApply }: {
       const versionNote = versions.length
         ? ` Tarkista mahdolliset versioyhteydet inspectorissa (${versions.length} ehdotusta otsikon perusteella); niitä ei kirjoitettu automaattisesti.`
         : '';
-      onApply(next, `Zotero CSL-JSON tuotiin esikatselun jälkeen: ${created} uutta, ${linked} linkitettyä, ${skipped} ohitettua. Lukemistilaa, väitteitä tai arviointeja ei keksitty.${versionNote}`);
+      const ok = onApply(next, `Zotero CSL-JSON tuotiin esikatselun jälkeen: ${created} uutta, ${linked} linkitettyä, ${skipped} ohitettua. Lukemistilaa, väitteitä tai arviointeja ei keksitty.${versionNote}`);
+      if (!ok) {
+        setError('Tuontia ei tallennettu. Esikatselu säilyy.');
+        return;
+      }
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Tuontia ei voitu soveltaa.');
     }
   }
 
-  return <Modal open title="Tuo Zotero CSL-JSON" onClose={onClose} className="wide-modal" initialFocus="primary">
+  return <Modal open={open} title="Tuo Zotero CSL-JSON" onClose={onClose} className="wide-modal">
     <p>Tuonti on tutkijan käynnistämä. Esikatselu näyttää osumat ennen tallennusta. Bibliografinen tuonti voi luoda lähteitä, mutta se ei keksi löydöksiä, menetelmiä, väitteitä eikä lukemistilaa. Liitteet säilytetään vain metatietona.</p>
     <label className="file-pick">Valitse CSL-JSON-tiedosto
       <input type="file" accept=".json,application/json" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; void onFile(file); }} />

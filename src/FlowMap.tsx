@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type MutableRefObject } from 'react';
+import type { AriaLabelConfig } from '@xyflow/system';
 import {
   Background, BaseEdge, EdgeLabelRenderer, Handle, MarkerType, Position, ReactFlow,
   applyEdgeChanges, applyNodeChanges, getBezierPath, useReactFlow,
@@ -9,8 +10,22 @@ import type { Workspace } from './types.ts';
 
 export interface FlowApi { zoomIn: () => void; zoomOut: () => void; fit: () => void; home: () => void }
 
+const directionFi: Record<string, string> = { left: 'vasemmalle', right: 'oikealle', up: 'ylös', down: 'alas' };
+const nodeKeys = 'Sarkain kohteeseen. Enter tai välilyönti valitsee. Nuolinäppäimet siirtävät valittua kohdetta; Vaihto pidentää askelta. Escape peruu valinnan. Poisto- tai askelpalautin ei poista kohdetta. Täysi nimi on tarkastelijassa ja näkyvien kohteiden listassa.';
+const flowAria = {
+  'node.a11yDescription.default': nodeKeys,
+  'node.a11yDescription.keyboardDisabled': nodeKeys,
+  'node.a11yDescription.ariaLiveMessage': ({ direction, x, y }: { direction: string; x: number; y: number }) =>
+    `Valittua kohdetta siirrettiin ${directionFi[direction] || direction}. Sijainti x ${x}, y ${y}.`,
+  'edge.a11yDescription.default': 'Enter tai välilyönti valitsee yhteyden. Escape peruu valinnan. Poisto- tai askelpalautin ei poista yhteyttä. Merkitys ja rajaus ovat tarkastelijassa.'
+} satisfies Partial<AriaLabelConfig>;
+
+function motionMs(ms: number) {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms;
+}
+
 function RecordCard({ data }: NodeProps<RecordNode>) {
-  return <div className={`record-card ${data.kind}${data.dim ? ' dim' : ''}`} title={data.label}>
+  return <div className={`record-card ${data.kind}${data.dim ? ' dim' : ''}`}>
     <div className="kind">{data.badge}</div>
     <div className="label">{data.label}</div>
     <Handle type="target" position={Position.Left} isConnectable={false} />
@@ -24,7 +39,7 @@ function EpistemicEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition,
   const color = selected ? '#315cd7' : data?.color || '#7d8da3';
   return <>
     <BaseEdge id={id} path={path} markerEnd={pattern === 'membership' ? undefined : markerEnd} style={{ stroke: color, strokeWidth: selected ? 2.4 : 1.4, strokeDasharray: pattern === 'dotted' ? '2 5' : pattern === 'dashed' ? '6 4' : pattern === 'membership' ? '2 3' : undefined }} />
-    <EdgeLabelRenderer><div className={`edge-chip ${pattern}${selected ? ' selected' : ''}`} style={{ transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)` }} title={data?.aria}>{data?.text}</div></EdgeLabelRenderer>
+    <EdgeLabelRenderer><div className={`edge-chip ${pattern}${selected ? ' selected' : ''}`} style={{ transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)` }}>{data?.text}{data?.aria ? <span className="sr-only">{data.aria}</span> : null}</div></EdgeLabelRenderer>
   </>;
 }
 
@@ -76,11 +91,12 @@ export function FlowMap({ model, ids, selectedId, selectedEdge, trace, fitToken,
     edgesFocusable
     elementsSelectable
     deleteKeyCode={null}
+    ariaLabelConfig={flowAria}
     multiSelectionKeyCode={null}
     panOnScroll={false}
     preventScrolling={false}
     fitView
-    fitViewOptions={{ padding: 0.16 }}
+    fitViewOptions={{ padding: 0.16, duration: motionMs(180) }}
     minZoom={0.2}
     maxZoom={1.75}
     proOptions={{ hideAttribution: false }}
@@ -95,12 +111,12 @@ function FlowBridge({ fitToken, api }: { fitToken: number; api: MutableRefObject
   const flow = useReactFlow();
   useEffect(() => {
     api.current = {
-      zoomIn: () => flow.zoomIn({ duration: 150 }),
-      zoomOut: () => flow.zoomOut({ duration: 150 }),
-      fit: () => flow.fitView({ padding: 0.16, duration: 180 }),
-      home: () => flow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: 180 })
+      zoomIn: () => flow.zoomIn({ duration: motionMs(150) }),
+      zoomOut: () => flow.zoomOut({ duration: motionMs(150) }),
+      fit: () => flow.fitView({ padding: 0.16, duration: motionMs(180) }),
+      home: () => flow.setViewport({ x: 0, y: 0, zoom: 1 }, { duration: motionMs(180) })
     };
   }, [api, flow]);
-  useEffect(() => { if (fitToken) void flow.fitView({ padding: 0.16, duration: 180 }); }, [fitToken, flow]);
+  useEffect(() => { if (fitToken) void flow.fitView({ padding: 0.16, duration: motionMs(180) }); }, [fitToken, flow]);
   return null;
 }

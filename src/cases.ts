@@ -31,6 +31,22 @@ export function emptyUnmeasured(): CaseUnmeasured {
   return { verificationSuccess: 'not-measured', verificationTime: 'not-measured', expertRatings: 'not-measured' };
 }
 
+/** Persist a case editor draft without turning a constructed example into an empirical record. */
+export function applyConstructedCaseDraft(model: Workspace, draft: ConstructedCase): Workspace {
+  const copy = JSON.parse(JSON.stringify(model)) as Workspace;
+  const index = copy.cases.findIndex(item => item.id === draft.id);
+  if (index < 0) throw new Error('Tapausta ei löydy.');
+  const next = JSON.parse(JSON.stringify(draft)) as ConstructedCase;
+  copy.cases[index] = {
+    ...next,
+    kind: 'constructed',
+    analyticLabel: ANALYTIC_CASE_LABEL,
+    task: next.taskReference.statement || next.task,
+    unmeasured: emptyUnmeasured()
+  };
+  return copy;
+}
+
 export function emptyTaskReference(statement = ''): CaseTaskReference {
   return { statement, essentialQualifications: '', temporalScope: '', acceptableSourceVersionIds: [] };
 }

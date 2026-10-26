@@ -21,6 +21,9 @@ import type { EditEventKind, Workspace } from './types.ts';
 
 const KEY = 'research-evidence-explorer-v1';
 const ACTOR_KEY = 'research-evidence-explorer-actor-label-v1';
+const STORED_STATE = 'Tallennettu tähän selaimeen';
+const MEMORY_STATE = 'Muutokset vain muistissa';
+const MEMORY_NOTE = 'Muutokset ovat vain muistissa. Paikallinen tallennus ei onnistunut. Vie JSON säilyttääksesi ne.';
 const descriptions: Record<View, [string, string]> = {
   graph: ['Lähteistä arviointikriteereihin', 'Tutki, mihin käsitteet ja omat menetelmävalinnat perustuvat.'],
   matrix: ['Arviointimatriisi', 'Käsitteet, kriteerit, näyttö ja päätelmien rajat samassa näkymässä.'],
@@ -117,6 +120,11 @@ export function App() {
   const ids = visibleIds(model, !showMap, focusable ? selectedId : 'sufficiency', query, status);
   if (route.view === 'graph') { graphReady.current = true; visibleRef.current = ids; }
   const records = [...model.sources, ...model.constructs, ...model.criteria, ...model.propositions];
+  const [graphFilterNote, setGraphFilterNote] = useState('');
+  useEffect(() => {
+    if (route.view !== 'graph') return;
+    setGraphFilterNote(`Kartan suodatus: ${ids.size} näkyvää kohdetta.`);
+  }, [query, status, route.view]);
 
   function commit(next: Workspace, success = '', options: { reason?: string; actorLabel?: string; kind?: EditEventKind; skipAutoLog?: boolean; summary?: string } = {}): boolean {
     try {
@@ -141,12 +149,12 @@ export function App() {
       try {
         localStorage.setItem(KEY, JSON.stringify(clean));
         storedRef.current = true;
-        setSaveState('Tallennettu tähän selaimeen');
+        setSaveState(STORED_STATE);
         if (success) setMessage({ text: success, error: false });
       } catch {
         storedRef.current = false;
-        setSaveState('Paikallinen tallennus ei onnistunut');
-        setMessage({ text: 'Paikallinen tallennus ei onnistunut. Vie JSON säilyttääksesi muutokset.', error: true });
+        setSaveState(MEMORY_STATE);
+        setMessage({ text: MEMORY_NOTE, error: true });
       }
       return true;
     } catch (error) {
@@ -180,7 +188,16 @@ export function App() {
       applyHash(nextHash);
     };
     window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!guard.current?.isDirty()) return;
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('hashchange', onHash);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
   }, []);
 
   function finishPending() {
@@ -218,12 +235,12 @@ export function App() {
     try {
       localStorage.setItem(KEY, JSON.stringify(restored));
       storedRef.current = true;
-      setSaveState('Tallennettu tähän selaimeen');
+      setSaveState(STORED_STATE);
       setMessage({ text: 'Edellinen muutos kumottiin. Kumoustapahtuma jäi historiaan.', error: false });
     } catch {
       storedRef.current = false;
-      setSaveState('Paikallinen tallennus ei onnistunut');
-      setMessage({ text: 'Edellinen muutos kumottiin. Paikallinen tallennus ei onnistunut. Vie JSON säilyttääksesi työtilan.', error: true });
+      setSaveState(MEMORY_STATE);
+      setMessage({ text: 'Edellinen muutos kumottiin ja on vain muistissa. Paikallinen tallennus ei onnistunut. Vie JSON säilyttääksesi työtilan.', error: true });
     }
     if (route.id && !locate(restored, route.id)) location.hash = formatHash(route.view, resolveId({ ...route, id: '' }, restored), route.scope);
   }
@@ -327,20 +344,21 @@ export function App() {
   const [title, description] = descriptions[route.view];
   return <><a className="skip" href="#workspace">Siirry sisältöön</a>
     <header className="topbar"><div className="identity"><span className="mark" aria-hidden="true">R</span><div><strong>Research Evidence Explorer</strong><span>Finnish healthcare RAG · Käsitteellisen mallin työtila</span></div></div>
-      <div className="top-actions"><span role="status">{saveState}</span><button type="button" disabled={!undoCount} onClick={() => { if (guard.current?.isDirty()) { setDirtyKind('undo'); setDirtyOpen(true); setGuardTick(value => value + 1); } else performUndo(); }}>Kumoa</button><button type="button" className="primary" onClick={() => download(JSON.stringify(model, null, 2), 'research-workspace.json', 'application/json')}>Vie JSON</button><button type="button" onClick={() => guarded(() => setSnapshotOpen(true))}>Tilannekuva / tuo</button><button type="button" onClick={() => guarded(() => setCslOpen(true))}>Tuo Zotero CSL</button></div></header>
+      <div className="top-actions"><span className="save-state" role="status">{saveState}</span><button type="button" disabled={!undoCount} onClick={() => { if (guard.current?.isDirty()) { setDirtyKind('undo'); setDirtyOpen(true); setGuardTick(value => value + 1); } else performUndo(); }}>Kumoa</button><button type="button" className="primary" onClick={() => download(JSON.stringify(model, null, 2), 'research-workspace.json', 'application/json')}>Vie JSON</button><button type="button" onClick={() => guarded(() => setSnapshotOpen(true))}>Tilannekuva / tuo</button><button type="button" onClick={() => guarded(() => setCslOpen(true))}>Tuo Zotero CSL</button></div></header>
     <div className="shell"><aside className="sidebar"><div className="section-label">TUTKIMUSTYÖTILA</div><nav aria-label="Näkymät">{([['graph', '01', 'Lähteistä kriteereihin'], ['matrix', '02', 'Arviointimatriisi'], ['cases', '03', 'Rakennetut tapaukset'], ['questions', '04', 'Oletukset ja kysymykset'], ['history', '05', 'Historia ja tilannekuvat']] as const).map(([view, number, label]) => <button type="button" key={view} className={route.view === view ? 'nav active' : 'nav'} aria-current={route.view === view ? 'page' : undefined} onClick={() => assignHash(formatHash(view, selectedId, view === 'graph' ? route.scope : 'focus'))}>{number} <span>{label}</span></button>)}</nav>
       <div className="sidebar-bottom"><div className="section-label">TUTKIMUKSEN VAIHE</div><strong>Käsitteellinen kehittäminen</strong><p>Omat sovellukset ja testaamattomat oletukset on erotettu kirjallisuuden sisällöstä.</p><button type="button" className="quiet" onClick={() => setAboutOpen(true)}>Tietomallista ja käytöstä</button></div></aside>
-      <main id="workspace"><div className="page-head"><div><div className="eyebrow">VUODEN 1 ARTIKKELI</div><h1>{title}</h1><p>{description}</p></div><button type="button" onClick={() => setExportOpen(true)}>Vie näkymä</button></div>
+      <main id="workspace" tabIndex={-1}><div className="page-head"><div><div className="eyebrow">VUODEN 1 ARTIKKELI</div><h1>{title}</h1><p>{description}</p></div><button type="button" onClick={() => setExportOpen(true)}>Vie näkymä</button></div>
         <div id="message" role="status" aria-live="polite" className={message.error ? 'error' : ''}>{message.text}</div>
-        {route.view === 'graph' && <div className="toolbar"><label>Hae kohdetta<input type="search" value={query} placeholder="Esim. riittävyys tai Järvelin" onChange={event => { setQuery(event.target.value); setTrace(null); }} /></label><label>Näyttöä koskeva tila<select value={status} onChange={event => { setStatus(event.target.value); setTrace(null); }}><option value="all">Kaikki tilat</option><option value="reported">Raportoitu, ei itsenäisesti varmennettu</option><option value="adaptation">Oma sovellus</option><option value="hypothesis">Testaamaton oletus</option></select></label><button type="button" onClick={() => assignHash(formatHash('graph', selectedId, route.scope === 'map' ? 'focus' : 'map'))}>{route.scope === 'map' ? 'Näytä valitun kohteen ketjut' : 'Näytä koko kartta'}</button><button type="button" onClick={() => flowApi.current?.zoomIn()}>Lähennä</button><button type="button" onClick={() => flowApi.current?.zoomOut()}>Loitonna</button><button type="button" onClick={() => flowApi.current?.fit()}>Sovita näkymään</button><button type="button" onClick={() => flowApi.current?.home()}>Alkuun</button><button type="button" onClick={() => { const copy = clone(model); for (const key of ['sources', 'claims', 'constructs', 'criteria', 'propositions'] as const) copy[key].forEach(record => { delete record.position; }); commit(copy, 'Sarakkeiden järjestys palautettiin.'); setFitToken(value => value + 1); }}>Jäsennä sarakkeisiin</button><button type="button" onClick={() => guarded(() => { setEdgeId(''); setMode({ type: 'add-node' }); })}>Lisää kohde</button></div>}
+        <p id="graph-filter-status" className="sr-only" aria-live="polite">{route.view === 'graph' ? graphFilterNote : ''}</p>
+        {route.view === 'graph' && <div className="toolbar"><label>Hae kohdetta<input type="search" value={query} placeholder="Esim. riittävyys tai Järvelin" onChange={event => { setQuery(event.target.value); setTrace(null); }} /></label><label>Näyttöä koskeva tila<select value={status} onChange={event => { setStatus(event.target.value); setTrace(null); }}><option value="all">Kaikki tilat</option><option value="reported">Raportoitu, ei itsenäisesti varmennettu</option><option value="adaptation">Oma sovellus</option><option value="hypothesis">Testaamaton oletus</option></select></label><button type="button" onClick={() => assignHash(formatHash('graph', selectedId, route.scope === 'map' ? 'focus' : 'map'))}>{route.scope === 'map' ? 'Näytä valitun kohteen ketjut' : 'Näytä koko kartta'}</button><button type="button" onClick={() => flowApi.current?.zoomIn()}>Lähennä</button><button type="button" onClick={() => flowApi.current?.zoomOut()}>Loitonna</button><button type="button" onClick={() => flowApi.current?.fit()}>Sovita näkymään</button><button type="button" onClick={() => flowApi.current?.home()}>Alkuun</button><button type="button" onClick={() => guarded(() => { const copy = clone(modelRef.current); for (const key of ['sources', 'claims', 'constructs', 'criteria', 'propositions'] as const) copy[key].forEach(record => { delete record.position; }); commit(copy, 'Sarakkeiden järjestys palautettiin.'); setFitToken(value => value + 1); })}>Jäsennä sarakkeisiin</button><button type="button" onClick={() => guarded(() => { setEdgeId(''); setMode({ type: 'add-node' }); })}>Lisää kohde</button></div>}
         <div className={route.view === 'graph' ? 'graph-workspace' : 'split-workspace'}>
           {route.view === 'graph' && <section className="graph-area" aria-label="Lähteiden ja kriteerien yhteyskaavio"><div className="lane-heads"><span>Lähteet</span><span>Lähdeväitteet</span><span>Käsitteet</span><span>Arviointikriteerit</span><span>Avoimet kysymykset</span></div>
             <FlowMap model={model} ids={ids} selectedId={edgeId ? '' : selectedId} selectedEdge={edgeId} trace={trace} fitToken={fitToken} guardTick={guardTick} api={flowApi} onSelectNode={selectRecord} onSelectEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onMove={(id, position) => { const copy = clone(modelRef.current); const found = locate(copy, id) as { record?: { position?: { x: number; y: number } } } | null; if (found?.record) found.record.position = position; commit(copy); }} />
             <div className="legend" aria-label="Tiedollisen tilan selite"><span><i className="line solid" aria-hidden="true" />Raportoitu, ei varmennettu</span><span><i className="line dashed" aria-hidden="true" />Oma sovellus</span><span><i className="line dotted" aria-hidden="true" />Testaamaton oletus</span><span><i className="line membership" aria-hidden="true" />Lähdeviite, ei kausaalinuoli</span></div>
-            <div className="graph-foot">Yhteydet kuvaavat perusteluja ja ehdotuksia. Viivatyyppi, väri ja teksti kertovat tiedollisen tilan — tilaa ei merkitä pelkällä värillä. Graafi ei osoita syy-seuraussuhteita. Tiheässä kartassa rajaa ketjuun, käytä hakua/suodatusta tai zoomaa; täydet nimet ja rajaukset ovat tarkastelijassa.</div>
+            <div className="graph-foot"><p>Yhteydet kuvaavat perusteluja ja ehdotuksia. Viivatyyppi, väri ja teksti kertovat tiedollisen tilan — tilaa ei merkitä pelkällä värillä. Graafi ei osoita syy-seuraussuhteita. Tiheässä kartassa rajaa ketjuun, käytä hakua/suodatusta tai zoomaa.</p><p className="keyboard-help">Näppäimistö: sarkain kohteeseen, Enter tai välilyönti valitsee, nuolet siirtävät valittua kohdetta ja Vaihto pidentää askelta, Escape peruu valinnan. Poisto- tai askelpalautin ei poista kohdetta. Täysi nimi ja rajaus ovat tarkastelijassa ja listassa Näkyvät kohteet tekstinä, eivät pelkkä osoitinvinkki.</p></div>
             <details className="visible-list"><summary>Näkyvät kohteet tekstinä ({ids.size})</summary><ul className="plain-list">{[...ids].sort().map(id => { const hit = locate(model, id); const label = (hit?.record as { label?: string; statement?: string; title?: string } | undefined)?.label || (hit?.record as { statement?: string } | undefined)?.statement || (hit?.record as { title?: string } | undefined)?.title || id; return <li key={id}><button type="button" className="quiet" onClick={() => selectRecord(id)}>{label} <span className="subtle">({id})</span></button></li>; })}</ul></details></section>}
           {route.view === 'matrix' && <MatrixView model={model} selectedId={selectedId} onSelect={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onCsv={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')} />}
-          {route.view === 'cases' && <CasesView model={model} selectedId={selectedId} onSelect={selectRecord} onSave={commit} guard={guard} onEditModeChange={setCaseEditing} />}
+          {route.view === 'cases' && <CasesView model={model} selectedId={selectedId} onSelect={selectRecord} onSave={commit} guard={guard} onEditModeChange={setCaseEditing} onLeave={guarded} />}
           {route.view === 'questions' && <QuestionsView model={model} selectedId={selectedId} onSelect={selectRecord} onTrace={id => assignHash(formatHash('graph', id, 'focus'))} onAddDecision={addDecision} onSave={commit} />}
           {route.view === 'history' && <HistoryView model={model} actorLabel={actorLabel} onActorLabel={updateActorLabel} />}
           {route.view !== 'history' && <Inspector model={model} selectedId={selectedId} edgeId={edgeId} mode={mode} guard={guard} caseDraftPaused={route.view === 'cases' && caseEditing} onSave={commit} onMessage={text => setMessage({ text, error: true })} onOpen={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onAddEdge={sourceId => guarded(() => { setEdgeId(''); setMode({ type: 'add-edge', sourceId }); })} onAddClaim={addClaim} onRemove={requestRemove} />}
@@ -348,7 +366,7 @@ export function App() {
         {route.view === 'graph' && <details className="trace"><summary>Jäljitä perusteluketju</summary><p>{traceLimitation}</p><div className="trace-controls"><label>Lähtökohta<select value={traceStart} onChange={event => setTraceStart(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{record.label}</option>)}</select></label><label>Päätepiste<select value={traceEnd} onChange={event => setTraceEnd(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{record.label}</option>)}</select></label><button type="button" onClick={() => { setQuery(''); setStatus('all'); setFitToken(value => value + 1); const result = path(model, traceStart, traceEnd) as { nodes: string[]; edges: string[] } | null; setTrace(result); setTraceText(formatTrace(model, result)); if (route.scope !== 'map') assignHash(formatHash('graph', selectedId, 'map')); }}>Näytä ketju</button><button type="button" onClick={() => { setTrace(null); setTraceText('Ketju seuraa suunnattuja yhteyksiä; se ei vahvista perustelujen pätevyyttä.'); }}>Tyhjennä valinta</button></div><p aria-live="polite">{traceText}</p></details>}
         <footer>Työversio · Lähtöaineisto: käyttäjän kirjallisuusmatriisi ja artikkelisuunnitelma 26.10.2026 · Ei alkuperäislähteiden uutta kokotekstiarviointia</footer>
       </main></div>
-    <Modal open={dirtyOpen} title={dirtyKind === 'undo' ? 'Kumoaminen hylkää lomakkeen muutokset' : 'Tallentamattomia muutoksia'} onClose={() => { pending.current = null; attempted.current = ''; setDirtyOpen(false); }} initialFocus="primary">
+    <Modal open={dirtyOpen} title={dirtyKind === 'undo' ? 'Kumoaminen hylkää lomakkeen muutokset' : 'Tallentamattomia muutoksia'} onClose={() => { pending.current = null; attempted.current = ''; setDirtyOpen(false); }}>
       <p>{dirtyKind === 'undo' ? 'Lomakkeessa on muutoksia, joita ei ole tallennettu. Kumoaminen hylkää ne.' : 'Lomakkeessa on muutoksia, joita ei ole tallennettu. Siirtyminen hylkää ne, jos et tallenna.'}</p>
       <div className="actions">{dirtyKind === 'navigate' && <button type="button" className="primary" onClick={() => { const ok = guard.current?.save() ?? false; if (!ok) { setDirtyOpen(false); return; } setDirtyOpen(false); finishPending(); }}>Tallenna ja jatka</button>}<button type="button" onClick={() => { guard.current?.reset(); setDirtyOpen(false); if (dirtyKind === 'undo') performUndo(); else finishPending(); }}>{dirtyKind === 'undo' ? 'Hylkää ja kumoa' : 'Hylkää muutokset'}</button><button type="button" onClick={() => { pending.current = null; attempted.current = ''; setDirtyOpen(false); }}>Peruuta</button></div>
     </Modal>
@@ -369,10 +387,10 @@ export function App() {
       <p>Lisää kohteita ja yhteyksiä graafissa. Yhteydelle valitaan merkitys erikseen. Matriisi muodostuu samoista tiedoista. Tapaukset A–C ovat rakennettuja esimerkkejä; asiantuntija-arvioita tai tutkimustuloksia ei ole keksitty.</p>
       <button type="button" className="primary" onClick={() => setAboutOpen(false)}>Sulje</button>
     </Modal>
-    {cslOpen && <CslImportDialog model={model} onClose={() => setCslOpen(false)} onApply={(next, text) => { commit(next, text, { kind: 'csl-import', reason: text, actorLabel }); }} />}
-    {snapshotOpen && <SnapshotDialog model={model} open={snapshotOpen} onClose={() => setSnapshotOpen(false)} onReplace={replaceFromSnapshot} actorLabel={actorLabel} />}
-    {figureOpen && <FigureExportDialog model={model} open={figureOpen} onClose={() => setFigureOpen(false)} visibleIds={ids} selectedId={selectedId} focusId={selectedId} />}
-    <Modal open={Boolean(removal)} title="Poisto irrottaa viitteet" onClose={() => setRemoval(null)} initialFocus="primary">
+    <CslImportDialog open={cslOpen} model={model} onClose={() => setCslOpen(false)} onApply={(next, text) => commit(next, text, { kind: 'csl-import', reason: text, actorLabel })} />
+    <SnapshotDialog model={model} open={snapshotOpen} onClose={() => setSnapshotOpen(false)} onReplace={replaceFromSnapshot} actorLabel={actorLabel} />
+    <FigureExportDialog model={model} open={figureOpen} onClose={() => setFigureOpen(false)} visibleIds={ids} selectedId={selectedId} focusId={selectedId} />
+    <Modal open={Boolean(removal)} title="Poisto irrottaa viitteet" onClose={() => setRemoval(null)}>
       <p>Poisto ja viitteiden irrotus tehdään yhtenä kumottavana toiminnona. Peruuta, jos nykyinen työtila säilytetään.</p>
       <ul>{removal?.effects.map(effect => <li key={`${effect.id}-${effect.reason}`}>{(effect.label || effect.id)} — {effect.reason}</li>)}</ul>
       <div className="actions"><button type="button" onClick={() => setRemoval(null)}>Peruuta</button><button type="button" className="primary" onClick={confirmRemoval}>Poista ja irrota viitteet</button></div>

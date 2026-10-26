@@ -47,8 +47,6 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
     })();
   }, [open, model]);
 
-  if (!open) return null;
-
   async function exportSnapshot() {
     setBusy(true);
     try {
@@ -110,7 +108,7 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
     if (ok) onClose();
   }
 
-  return <Modal open={open} title="Tilannekuvat ja tuonti" onClose={onClose} className="snapshot-dialog" initialFocus="primary">
+  return <Modal open={open} title="Tilannekuvat ja tuonti" onClose={onClose} className="snapshot-dialog">
     <p className="subtle">{LOCAL_SAVE_DISCLAIMER}</p>
     <p className="subtle">{HASH_DISCLAIMER}</p>
     <p className="subtle">{AUDIT_DISCLAIMER}</p>
@@ -122,7 +120,7 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
     <div className="actions">
       <button type="button" className="primary" disabled={busy} onClick={() => void exportSnapshot()}>Vie tilannekuva JSON</button>
       <label className="file-button">Tuo tilannekuva / työtila
-        <input type="file" accept=".json,application/json" hidden onChange={event => { const file = event.target.files?.[0] || null; event.target.value = ''; void onFile(file); }} />
+        <input type="file" accept=".json,application/json" onChange={event => { const file = event.target.files?.[0] || null; event.target.value = ''; void onFile(file); }} />
       </label>
       <button type="button" onClick={restoreBackup}>Palauta tuontivarmuuskopio</button>
     </div>

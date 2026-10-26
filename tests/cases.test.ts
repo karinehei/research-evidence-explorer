@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  CASE_VIEW_DISCLAIMER, exportConstructedCase, hydrateConstructedCase, layerCoverage,
+  CASE_VIEW_DISCLAIMER, applyConstructedCaseDraft, exportConstructedCase, hydrateConstructedCase, layerCoverage,
   missingEssentialFacets
 } from '../src/cases.ts';
 import { load, validate } from '../src/model.ts';
@@ -95,6 +95,34 @@ test('legacy flat cases hydrate and remain constructed; empirical kind stays rej
   const empirical = JSON.parse(JSON.stringify(model));
   empirical.cases[0].kind = 'empirical';
   assert.throws(() => validate(empirical), /rakennetuksi|empiirinen/i);
+});
+
+test('a case draft stays a constructed example and a failed check does not replace the workspace', () => {
+  const source = model.cases.find(entry => entry.id === 'A');
+  assert.ok(source);
+  const original = source.taskReference.statement;
+  const disguised = JSON.parse(JSON.stringify(source));
+  disguised.kind = 'empirical';
+  disguised.analyticLabel = 'empirical-result';
+  disguised.unmeasured.expertRatings = 'high';
+  disguised.taskReference.statement = `${original} [draft]`;
+  const applied = applyConstructedCaseDraft(model, disguised);
+  const saved = applied.cases.find(entry => entry.id === 'A');
+  assert.ok(saved);
+  assert.equal(saved.kind, 'constructed');
+  assert.equal(saved.analyticLabel, 'constructed-analytical-example');
+  assert.equal(saved.unmeasured.expertRatings, 'not-measured');
+  assert.equal(saved.unmeasured.verificationSuccess, 'not-measured');
+  assert.match(saved.taskReference.statement, /\[draft\]/);
+  assert.equal(source.taskReference.statement, original);
+  assert.equal(source.kind, 'constructed');
+
+  const tooLong = JSON.parse(JSON.stringify(source));
+  tooLong.taskReference.statement = 'x'.repeat(8001);
+  tooLong.task = tooLong.taskReference.statement;
+  const rejected = applyConstructedCaseDraft(model, tooLong);
+  assert.throws(() => validate(rejected), /virheellinen teksti/);
+  assert.equal(model.cases.find(entry => entry.id === 'A')?.taskReference.statement, original);
 });
 
 test('editing a facet and source version round-trips through validate', () => {

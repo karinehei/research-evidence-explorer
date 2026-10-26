@@ -1,63 +1,67 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { useId, useLayoutEffect, useRef, type ReactNode, type SyntheticEvent } from 'react';
 
-/** Native modal dialog: focus trap, Escape, backdrop via showModal(). */
+/**
+ * Native modal dialog. Visibility uses showModal()/close() so the browser
+ * traps focus, restores it on close, and treats Escape as cancel.
+ * Do not pass an open attribute and do not add a second focus trap.
+ */
 export function Modal({
   open,
   title,
   onClose,
   children,
   className = '',
-  initialFocus = 'close',
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
   className?: string;
-  initialFocus?: 'close' | 'primary';
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
     if (open) {
       if (!node.open) node.showModal();
-      const target =
-        initialFocus === 'primary'
-          ? bodyRef.current?.querySelector<HTMLElement>('button.primary, button[type=submit]')
-          : closeRef.current;
-      (target || closeRef.current)?.focus();
     } else if (node.open) {
       node.close();
     }
-  }, [open, initialFocus]);
+    return () => {
+      if (node.open) node.close();
+    };
+  }, [open]);
 
-  if (!open) return null;
+  function restoreFocusIfLost() {
+    const active = document.activeElement;
+    if (!active || active === document.body || active === document.documentElement) {
+      document.getElementById('workspace')?.focus();
+    }
+  }
 
   return (
     <dialog
       ref={ref}
-      className={`modal ${className}`.trim()}
+      className={className ? `modal ${className}` : 'modal'}
       aria-labelledby={titleId}
-      onCancel={event => {
+      onCancel={(event: SyntheticEvent<HTMLDialogElement, Event>) => {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
       }}
-      onClick={event => {
-        if (event.target === ref.current) onClose();
+      onClose={restoreFocusIfLost}
+      onMouseDown={event => {
+        if (event.target === event.currentTarget) onCloseRef.current();
       }}
     >
       <div className="dialog-head">
         <h2 id={titleId}>{title}</h2>
-        <button type="button" ref={closeRef} aria-label="Sulje" onClick={onClose}>
-          ×
-        </button>
+        <button type="button" aria-label="Sulje" onClick={() => onCloseRef.current()}>×</button>
       </div>
-      <div ref={bodyRef}>{children}</div>
+      <div className="dialog-body">{children}</div>
     </dialog>
   );
 }

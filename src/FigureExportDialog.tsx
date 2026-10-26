@@ -36,8 +36,6 @@ export function FigureExportDialog({ model, open, onClose, visibleIds, selectedI
     void contentHash(model).then(setHash).catch(() => setHash(''));
   }, [open, model]);
 
-  if (!open) return null;
-
   async function runExport() {
     setBusy(true);
     setMessage('');
@@ -70,7 +68,7 @@ export function FigureExportDialog({ model, open, onClose, visibleIds, selectedI
     }
   }
 
-  return <Modal open={open} title="Toistettava kuvion vienti" onClose={onClose} className="snapshot-dialog" initialFocus="primary">
+  return <Modal open={open} title="Toistettava kuvion vienti" onClose={onClose} className="snapshot-dialog">
     <p className="subtle">Kaksi eksplisiittistä tilaa: selaimen asettelu (tallennetut sijainnit) tai Graphviz DOT. Ei koko työtilan pakotettua kuviota. Yhteyksien tiedollinen tila säilyy valinnassa.</p>
     <p className="subtle">Sisältötiiviste: {hash || '…'}</p>
     <label>Esiasetus

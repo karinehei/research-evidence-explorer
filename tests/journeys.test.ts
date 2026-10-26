@@ -58,13 +58,10 @@ test('curated open → claim edit → justified relationship → matrix → case
   assert.ok(edge.claimIds.includes(claim.id));
 
   const matrixRows = filterCriterionRows(buildCriterionRows(model), emptyFilters());
-  const sufficiencyRow = matrixRows.find(row => row.criterion.id === 'sufficiency');
-  assert.ok(sufficiencyRow, 'matrix still exposes sufficiency');
+  assert.ok(matrixRows.some(row => row.constructs.some(item => item.id === 'sufficiency')), 'matrix still exposes the sufficiency construct');
   assert.ok(
-    sufficiencyRow!.claims.some(item => item.claimId === claim.id) ||
-      sufficiencyRow!.adaptations.some(item => item.id === relId) ||
-      model.relationships.some(item => item.id === relId && item.target === 'sufficiency'),
-    'new justified relationship remains visible to matrix projections'
+    model.relationships.some(item => item.id === relId && item.target === 'sufficiency'),
+    'new justified relationship remains in the workspace the matrix reads'
   );
 
   const caseA = model.cases.find(item => item.id === 'A');

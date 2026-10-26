@@ -88,9 +88,16 @@ export function MatrixView({ model, selectedId, onSelect, onEdge, onCsv }: {
         </select>
       </label>}
     </div>
+    <p id="matrix-filter-status" className="sr-only" aria-live="polite" aria-atomic="true">
+      {orientation === 'criterion'
+        ? `Suodatus, kriteerinäkymä: ${criterionRows.length} riviä.`
+        : orientation === 'source'
+          ? `Suodatus, lähdenäkymä: ${sourceRows.length} riviä.`
+          : 'Perustelunäkymä. Rivisuodatusta ei käytetä.'}
+    </p>
 
-    {orientation === 'criterion' && <div className="table-wrap"><table>
-      <caption>Kriteeriorientoitunut matriisi — samat kanoniset tietueet kuin graafissa</caption>
+    {orientation === 'criterion' && <div className="table-wrap" tabIndex={0}><table>
+      <caption>Kriteeriorientoitunut matriisi — samat kanoniset tietueet kuin graafissa. Leveä taulukko vierii kehyksessään.</caption>
       <thead><tr>
         {['Kriteeri', 'Käsite ja määritelmä', 'Lähdeväitteet ja ketju', 'Oma sovellus', 'Näyttö / arvioija / yksikkö', 'Päätössääntö', 'Sallittu päättely', 'Validointitarve'].map(column => <th key={column} scope="col">{column}</th>)}
       </tr></thead>
@@ -143,8 +150,8 @@ export function MatrixView({ model, selectedId, onSelect, onEdge, onCsv }: {
 
     {orientation === 'source' && <>
       <p className="subtle">Lähderoolit (käsitteellinen, tekninen, empiirinen, työkalu/työnkulku) eivät ole keskenään vaihdettavia viitekehyksiä. Kirjaamaton rooli on “Ei kirjattu”, ei arvottava sijoitus. Ketjun rooli kertoo tallennetun yhteyden luonteen.</p>
-      <div className="table-wrap"><table>
-        <caption>Lähdeorientoitunut matriisi — roolit eivät ole rangattuja viitekehyksiä</caption>
+      <div className="table-wrap" tabIndex={0}><table>
+        <caption>Lähdeorientoitunut matriisi — roolit eivät ole rangattuja viitekehyksiä. Leveä taulukko vierii kehyksessään.</caption>
         <thead><tr>{['Lähde', 'Kirjattu rooli', 'Väitteet', 'Esiintyminen kriteereissä', 'Kilpailevat / rajoittavat huomiot'].map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
         <tbody>{sourceRows.map(row => {
           const active = selectedId === row.source.id || row.claims.some(claim => claim.id === selectedId);
