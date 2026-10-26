@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "node --experimental-strip-types scripts/build.ts",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:smoke": "node tests/smoke.mjs",
     "migrate": "node --experimental-strip-types scripts/migrate.ts",
     "export-graph": "node --experimental-strip-types scripts/export-graph.ts"
   },

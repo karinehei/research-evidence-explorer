@@ -13,12 +13,10 @@ if (data.schemaVersion !== 2) throw new Error('The curated seed did not validate
 await build({ configFile: path.join(root, 'vite.config.ts') });
 
 const dist = path.join(root, 'dist');
-const published = structuredClone(data) as typeof data & { editLog?: unknown[]; recordRevisions?: unknown };
+const published = structuredClone(data);
 // Explicit published export: curated model only — strip local decision history if present.
 published.editLog = [];
-published.recordRevisions = published.recordRevisions && typeof published.recordRevisions === 'object'
-  ? {}
-  : published.recordRevisions;
+published.recordRevisions = [];
 fs.writeFileSync(path.join(dist, 'published-seed.json'), `${JSON.stringify(published, null, 2)}\n`);
 const hash = await contentHash(data);
 const manifest = {
