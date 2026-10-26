@@ -18,7 +18,7 @@ const descriptions: Record<View, [string, string]> = {
   graph: ['Lähteistä arviointikriteereihin', 'Tutki, mihin käsitteet ja omat menetelmävalinnat perustuvat.'],
   matrix: ['Arviointimatriisi', 'Käsitteet, kriteerit, näyttö ja päätelmien rajat samassa näkymässä.'],
   cases: ['Tehtävästä näyttöön', 'Rakennetut tapaukset A–C erottavat kattavuuden, väitetuen ja näytön. Näkymä ei ole validoitu kausaalimalli.'],
-  questions: ['Oletukset ja avoimet kysymykset', 'Säilytä ehdotetut suhteet erillään jo osoitetuista tuloksista.']
+  questions: ['Oletukset ja avoimet kysymykset', 'Propositiot ja alustavat arviointiprotokollat ilman inventoituja havaintoja tai yhdistelmäpistettä.']
 };
 
 function here(hash: string): string {
@@ -302,7 +302,7 @@ export function App() {
             <div className="graph-foot">Yhteydet kuvaavat perusteluja ja ehdotuksia. Viivatyyppi, väri ja teksti kertovat tiedollisen tilan. Graafi ei osoita syy-seuraussuhteita.</div></section>}
           {route.view === 'matrix' && <MatrixView model={model} selectedId={selectedId} onSelect={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onCsv={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')} />}
           {route.view === 'cases' && <CasesView model={model} selectedId={selectedId} onSelect={selectRecord} onSave={commit} />}
-          {route.view === 'questions' && <QuestionsView model={model} selectedId={selectedId} onSelect={selectRecord} onTrace={id => assignHash(formatHash('graph', id, 'focus'))} onAddDecision={addDecision} />}
+          {route.view === 'questions' && <QuestionsView model={model} selectedId={selectedId} onSelect={selectRecord} onTrace={id => assignHash(formatHash('graph', id, 'focus'))} onAddDecision={addDecision} onSave={commit} />}
           <Inspector model={model} selectedId={selectedId} edgeId={edgeId} mode={mode} guard={guard} onSave={commit} onMessage={text => setMessage({ text, error: true })} onOpen={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onAddEdge={sourceId => guarded(() => { setEdgeId(''); setMode({ type: 'add-edge', sourceId }); })} onAddClaim={addClaim} onRemove={requestRemove} />
         </div>
         {route.view === 'graph' && <details className="trace"><summary>Jäljitä perusteluketju</summary><p>{traceLimitation}</p><div className="trace-controls"><label>Lähtökohta<select value={traceStart} onChange={event => setTraceStart(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{record.label}</option>)}</select></label><label>Päätepiste<select value={traceEnd} onChange={event => setTraceEnd(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{record.label}</option>)}</select></label><button type="button" onClick={() => { setQuery(''); setStatus('all'); setFitToken(value => value + 1); const result = path(model, traceStart, traceEnd) as { nodes: string[]; edges: string[] } | null; setTrace(result); setTraceText(formatTrace(model, result)); if (route.scope !== 'map') assignHash(formatHash('graph', selectedId, 'map')); }}>Näytä ketju</button><button type="button" onClick={() => { setTrace(null); setTraceText('Ketju seuraa suunnattuja yhteyksiä; se ei vahvista perustelujen pätevyyttä.'); }}>Tyhjennä valinta</button></div><p aria-live="polite">{traceText}</p></details>}

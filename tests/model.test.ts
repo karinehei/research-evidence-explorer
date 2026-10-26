@@ -23,9 +23,11 @@ test('schema 2 seed round-trips and keeps the selected record counts', () => {
   assert.equal(d.criteria.length, 7);
   assert.equal(d.relationships.length, 32);
   assert.equal(d.propositions.length, 4);
+  assert.equal(d.protocols.length, 4);
   assert.deepEqual(d.cases.map(c => c.id), ['A', 'B', 'C']);
   assert.equal(d.criteria.filter(c => c.id === 'expert').length, 1);
   assert.ok(d.cases.every(c => c.kind === 'constructed'));
+  assert.ok(d.protocols.every(p => p.status === 'provisional-draft' && p.observations.length === 0 && p.compositeTrustScore === 'not-computed'));
   assert.deepEqual(M.validate(d), d);
 });
 

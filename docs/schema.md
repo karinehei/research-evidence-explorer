@@ -8,7 +8,7 @@ Schema 2 is the stored shape of the research workspace. `src/model.ts` validates
 
 Identifiers match `^[a-zA-Z0-9_-]{1,120}$` and are unique across every collection. Schema 1 allowed 80 characters and kept node, edge and case identifiers in separate sets. Schema 2 uses one set, so a schema 1 file whose node and edge identifiers collide is rejected instead of being merged.
 
-A workspace needs 1–400 graph records in total. Graph records are sources, constructs, criteria and propositions. Claims are capped at 400, relationships at 1,200, cases at 20 and research decisions at 40. Long text fields allow 8,000 characters. Labels allow 160. Coordinates must be finite and within ±20,000. URLs must be empty or start with `http://` or `https://`.
+A workspace needs 1–400 graph records in total. Graph records are sources, constructs, criteria and propositions. Claims are capped at 400, relationships at 1,200, assessment protocols at 40, cases at 20 and research decisions at 40. Protocols are not graph nodes. Long text fields allow 8,000 characters. Labels allow 160. Coordinates must be finite and within ±20,000. URLs must be empty or start with `http://` or `https://`.
 
 ### Source
 
@@ -52,9 +52,11 @@ The seed criterion `expert` is still one criterion, “Viisi erillistä asiantun
 
 `relationshipDraft()` creates a user relationship as `proposed`. The only way that helper stores `reviewed` is when the caller passes `reviewed`. Passing `imported` still returns `proposed`. Saving an existing relationship does not change its review state unless the review field is changed.
 
-### Proposition, constructed case and research decision
+### Proposition, assessment protocol, constructed case and research decision
 
-A proposition has `statement`, `boundary`, `unit` and `criterionIds`.
+A proposition has `statement`, `boundary`, `unit`, `criterionIds`, `constructIds`, conceptual design fields (`conceptualRationale`, `intendedClaimKind`, `intendedClaim`, `proposedDesign`, `counterexamples`, `evidenceNeeded`), `protocolIds` and `statementRevisions`. Changing the statement requires a logged rationale. P1–P3 keep their seed wording unless a revision is explicitly justified and logged. `intendedClaimKind` distinguishes `association`, `controlled-comparison`, `paired-coverage` and `other`; these are planned claims, not established positive effects.
+
+An assessment protocol (`protocols`, kind `assessment-protocol`) is a provisional plan, not a result set. It links propositions, criteria and constructs; stores five separate expert dimensions (draft wording, ordinal anchors, assessor instructions, and “cannot assess” with a reason outside the numeric scale); keeps correctness and successful verification as `separateAudits`; names future rating targets as saved answer + display condition; preserves question / information-need / query-variant / rater identities; records blinding, randomisation, repeated observations and disagreement handling; and links open validation questions to concrete checks (`construct-interpretation`, `finnish-wording`, `annotation-consistency`, `evaluator-errors`, `task-applicability`). Status stays `provisional-draft` until validation evidence supports stronger language. `observations` must be empty and `compositeTrustScore` must be `not-computed`. Inter-rater agreement is not treated as construct validity. Protocol JSON export repeats the provisional disclaimer and does not invent observations.
 
 A case stays `kind: "constructed"` with fixed `analyticLabel: "constructed-analytical-example"`. `empirical` is rejected: a future empirical case needs a distinct record type and explicit run provenance. Beside the summary `columns`/`rows` table, a case stores a task-to-evidence structure:
 

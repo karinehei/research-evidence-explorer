@@ -1,8 +1,21 @@
 // @ts-nocheck
 // Runtime schema checks are the contract for both the browser and the command line.
 import { hydrateConstructedCase } from './cases.ts';
+import { hydrateProposition, hydrateProtocol } from './protocols.ts';
 const SCHEMA = 2;
   const facetStates = ['full', 'partial', 'absent', 'conflicting', 'unresolved'];
+  const claimKinds = ['association', 'controlled-comparison', 'paired-coverage', 'other'];
+  const validationFoci = ['construct-interpretation', 'finnish-wording', 'annotation-consistency', 'evaluator-errors', 'task-applicability'];
+  const propositionKeys = [
+    'id', 'label', 'statement', 'boundary', 'unit', 'criterionIds', 'constructIds', 'conceptualRationale',
+    'intendedClaimKind', 'intendedClaim', 'proposedDesign', 'counterexamples', 'evidenceNeeded', 'protocolIds',
+    'statementRevisions', 'epistemicStatus', 'reviewState', 'basis', 'locator', 'notes', 'position'
+  ];
+  const protocolKeys = [
+    'id', 'kind', 'label', 'status', 'propositionIds', 'criterionIds', 'constructIds', 'designKind', 'designSummary',
+    'dimensions', 'separateAudits', 'targets', 'identities', 'procedure', 'validationChecks', 'observations',
+    'compositeTrustScore', 'basis', 'notes'
+  ];
   const caseKeys = [
     'id', 'kind', 'analyticLabel', 'title', 'task', 'taskReference', 'facets', 'sourceSnapshots', 'passages',
     'savedContexts', 'answerVariants', 'claimAnnotations', 'displayConditions', 'unmeasured',
@@ -104,11 +117,11 @@ const SCHEMA = 2;
         unit: n.unit, epistemicStatus: epistemicFrom(n.status), reviewState: 'imported', basis: n.basis, locator: n.locator, notes: n.notes
       }, n);
     });
-    const propositions = nodes.filter(n => n.kind === 'question').map(n => withPosition({
+    const propositions = nodes.filter(n => n.kind === 'question').map(n => withPosition(hydrateProposition({
       id: n.id, label: n.label, statement: n.description, boundary: n.boundary, unit: n.unit,
       criterionIds: edges.filter(e => e.relation === 'proposes' && e.target === n.id && byId.get(e.source)?.kind === 'criterion').map(e => e.source).sort(),
       epistemicStatus: epistemicFrom(n.status), reviewState: 'imported', basis: n.basis, locator: n.locator, notes: n.notes
-    }, n));
+    }), n));
     const relationships = edges.map(e => {
       const sourceIds = [e.source, e.target].filter(id => byId.get(id)?.kind === 'source').sort();
       return {
@@ -130,7 +143,7 @@ const SCHEMA = 2;
     return validate({
       schemaVersion: 2,
       project: clone(legacy.project),
-      sources, claims, constructs, criteria, relationships, propositions, cases, decisions,
+      sources, claims, constructs, criteria, relationships, propositions, protocols: [], cases, decisions,
       legacy: { schemaVersion: 1, preservedBeforeReplacement: true, document: legacy }
     });
   }
@@ -156,11 +169,12 @@ const SCHEMA = 2;
       }
     };
     if (!isObj(value) || value.schemaVersion !== 2) fail('Tuettu schemaVersion on 2.');
-    keys(value, ['schemaVersion', 'project', 'sources', 'claims', 'constructs', 'criteria', 'relationships', 'propositions', 'cases', 'decisions', 'legacy'], 'Työtila');
+    if (!Array.isArray(value.protocols)) value = { ...value, protocols: [] };
+    keys(value, ['schemaVersion', 'project', 'sources', 'claims', 'constructs', 'criteria', 'relationships', 'propositions', 'protocols', 'cases', 'decisions', 'legacy'], 'Työtila');
     keys(value.project, ['name', 'description'], 'Projekti');
     str(value.project.name, 'Projektin nimi', 120, true);
     str(value.project.description, 'Projektin kuvaus');
-    for (const [key, max] of [['sources', 400], ['claims', 400], ['constructs', 400], ['criteria', 400], ['relationships', 1200], ['propositions', 400], ['cases', 20], ['decisions', 40]]) {
+    for (const [key, max] of [['sources', 400], ['claims', 400], ['constructs', 400], ['criteria', 400], ['relationships', 1200], ['propositions', 400], ['protocols', 40], ['cases', 20], ['decisions', 40]]) {
       if (!Array.isArray(value[key]) || value[key].length > max) fail('Kokoelman ' + key + ' määrä on virheellinen.');
     }
     const graphCount = value.sources.length + value.constructs.length + value.criteria.length + value.propositions.length;
@@ -239,15 +253,86 @@ const SCHEMA = 2;
       position(c, 'Kriteeri');
     }
     const criterionIds = new Set(value.criteria.map(c => c.id));
-    for (const p of value.propositions) {
-      keys(p, ['id', 'label', 'statement', 'boundary', 'unit', 'criterionIds', 'epistemicStatus', 'reviewState', 'basis', 'locator', 'notes', 'position'], 'Propositio');
+    const propositions = value.propositions.map(p => hydrateProposition(p));
+    for (const p of propositions) {
+      keys(p, propositionKeys, 'Propositio');
       take(p.id, 'Propositio');
       str(p.label, 'Proposition nimi', 160, true); str(p.statement, 'Väite'); str(p.boundary, 'Rajaus'); str(p.unit, 'Yksikkö'); idList(p.criterionIds, 'Kriteeriviite', criterionIds);
+      idList(p.constructIds, 'Proposition käsiteviite', constructIds);
+      str(p.conceptualRationale, 'Käsitteellinen perustelu'); str(p.intendedClaim, 'Ehdotettu väitelaji'); str(p.proposedDesign, 'Ehdotettu asetelma');
+      str(p.counterexamples, 'Mahdolliset vastaesimerkit'); str(p.evidenceNeeded, 'Tarvittava näyttö');
+      oneOf(p.intendedClaimKind, claimKinds, 'Väitelaji');
+      if (!Array.isArray(p.protocolIds) || p.protocolIds.length > 40) fail('Proposition protokolla viitteet ovat virheellisiä.');
+      if (!Array.isArray(p.statementRevisions) || p.statementRevisions.length > 40) fail('Proposition muutosloki on virheellinen.');
+      for (const rev of p.statementRevisions) {
+        keys(rev, ['revisedAt', 'previousStatement', 'rationale'], 'Muutosloki');
+        str(rev.revisedAt, 'Muutosajankohta', 80); str(rev.previousStatement, 'Edellinen väite'); str(rev.rationale, 'Muutoksen perustelu');
+      }
       str(p.basis, 'Perusta'); str(p.locator, 'Lähdekohta'); str(p.notes, 'Muistiinpanot');
       oneOf(p.epistemicStatus, epistemic, 'Tiedollinen tila'); oneOf(p.reviewState, reviewStates, 'Arvioinnin tila');
       position(p, 'Propositio');
     }
-    const graphIds = new Set([...value.sources, ...value.constructs, ...value.criteria, ...value.propositions].map(r => r.id));
+    const propositionIds = new Set(propositions.map(p => p.id));
+    const protocols = value.protocols.map(p => hydrateProtocol(p));
+    for (const proto of protocols) {
+      keys(proto, protocolKeys, 'Protokolla');
+      take(proto.id, 'Protokolla');
+      if (proto.kind !== 'assessment-protocol') fail('Protokollan tyyppi on virheellinen.');
+      if (proto.status !== 'provisional-draft') fail('Protokolla merkitään provisional-draft kunnes validointinäyttö on kirjattu.');
+      str(proto.label, 'Protokollan nimi', 160, true); str(proto.designSummary, 'Asetelman kuvaus'); str(proto.basis, 'Perusta'); str(proto.notes, 'Muistiinpanot');
+      oneOf(proto.designKind, claimKinds, 'Protokollan väitelaji');
+      idList(proto.propositionIds, 'Protokollan propositio', propositionIds);
+      idList(proto.criterionIds, 'Protokollan kriteeri', criterionIds);
+      idList(proto.constructIds, 'Protokollan käsite', constructIds);
+      if (!Array.isArray(proto.dimensions) || !proto.dimensions.length || proto.dimensions.length > 20) fail('Protokollan ulottuvuudet ovat virheellisiä.');
+      const dimIds = new Set();
+      for (const dim of proto.dimensions) {
+        keys(dim, ['id', 'label', 'draftWording', 'anchors', 'assessorInstructions', 'cannotAssessLabel', 'cannotAssessGuidance', 'provisional'], 'Ulottuvuus');
+        if (!idPattern.test(dim.id) || dimIds.has(dim.id)) fail('Ulottuvuuden tunniste on virheellinen.');
+        dimIds.add(dim.id);
+        if (dim.provisional !== true) fail('Asiantuntijaulottuvuus on merkitty alustavaksi kunnes validointi tukee vahvempaa kieltä.');
+        str(dim.label, 'Ulottuvuuden nimi', 160, true); str(dim.draftWording, 'Luonnosmuotoilu'); str(dim.assessorInstructions, 'Arvioijan ohje');
+        str(dim.cannotAssessLabel, 'Ei voida arvioida -merkintä', 160, true); str(dim.cannotAssessGuidance, 'Ei voida arvioida -ohje');
+        if (!Array.isArray(dim.anchors) || !dim.anchors.length || dim.anchors.length > 20) fail('Ulottuvuuden ankkurit ovat virheellisiä.');
+        for (const anchor of dim.anchors) {
+          keys(anchor, ['id', 'category', 'wording', 'revisionRationale'], 'Ankkuri');
+          if (!idPattern.test(anchor.id)) fail('Ankkurin tunniste on virheellinen.');
+          str(anchor.category, 'Ankkurin luokka', 40, true); str(anchor.wording, 'Ankkurin sanamuoto'); str(anchor.revisionRationale, 'Ankkurin muutoksen perustelu');
+        }
+      }
+      if (!Array.isArray(proto.separateAudits) || proto.separateAudits.length > 20) fail('Erilliset auditointitehtävät ovat virheellisiä.');
+      for (const audit of proto.separateAudits) {
+        keys(audit, ['id', 'kind', 'statement', 'note'], 'Auditointi');
+        if (!idPattern.test(audit.id)) fail('Auditoinnin tunniste on virheellinen.');
+        oneOf(audit.kind, ['correctness', 'successful-verification'], 'Auditoinnin tyyppi');
+        str(audit.statement, 'Auditoinnin kuvaus'); str(audit.note, 'Auditoinnin huomio');
+      }
+      if (!Array.isArray(proto.targets) || proto.targets.length > 40) fail('Protokollan kohteet ovat virheellisiä.');
+      for (const target of proto.targets) {
+        keys(target, ['caseId', 'answerVariantId', 'displayConditionId', 'note'], 'Protokollan kohde');
+        str(target.caseId, 'Tapauksen tunniste', 120); str(target.answerVariantId, 'Vastausvariantti', 120); str(target.displayConditionId, 'Näyttöehto', 120); str(target.note, 'Kohteen huomio');
+      }
+      keys(proto.identities, ['questionIds', 'informationNeedIds', 'queryVariantIds', 'raterIds'], 'Protokollan identiteetit');
+      for (const key of ['questionIds', 'informationNeedIds', 'queryVariantIds', 'raterIds']) {
+        if (!Array.isArray(proto.identities[key]) || proto.identities[key].length > 40) fail('Protokollan identiteettilista on virheellinen.');
+        proto.identities[key].forEach(id => str(id, 'Identiteetti', 120));
+      }
+      keys(proto.procedure, ['blinding', 'randomisation', 'repeatedObservations', 'disagreementHandling', 'independenceNote'], 'Protokollan menettely');
+      for (const key of ['blinding', 'randomisation', 'repeatedObservations', 'disagreementHandling', 'independenceNote']) str(proto.procedure[key], 'Menettely');
+      if (!Array.isArray(proto.validationChecks) || proto.validationChecks.length > 40) fail('Validointikysymykset ovat virheellisiä.');
+      for (const check of proto.validationChecks) {
+        keys(check, ['id', 'label', 'focus', 'question', 'note'], 'Validointikysymys');
+        if (!idPattern.test(check.id)) fail('Validointikysymyksen tunniste on virheellinen.');
+        str(check.label, 'Validointikysymyksen nimi', 160, true); str(check.question, 'Validointikysymys'); str(check.note, 'Validointihuomio');
+        oneOf(check.focus, validationFoci, 'Validointikohde');
+      }
+      if (!Array.isArray(proto.observations) || proto.observations.length !== 0) fail('Protokolla ei saa sisältää keksittyjä havaintoja.');
+      if (proto.compositeTrustScore !== 'not-computed') fail('Yhdistelmäluottamuspistettä ei lasketa.');
+    }
+    for (const p of propositions) {
+      for (const id of p.protocolIds) if (!protocols.some(proto => proto.id === id)) fail('Proposition protokolla viite puuttuu.');
+    }
+    const graphIds = new Set([...value.sources, ...value.constructs, ...value.criteria, ...propositions].map(r => r.id));
     const claimIds = new Set(value.claims.map(c => c.id));
     for (const r of value.relationships) {
       keys(r, ['id', 'meaning', 'source', 'target', 'label', 'rationale', 'locator', 'claimIds', 'sourceIds', 'epistemicStatus', 'reviewState', 'reviewNote'], 'Yhteys');
@@ -349,7 +434,6 @@ const SCHEMA = 2;
         if (c.unmeasured[key] !== 'not-measured') fail('Asiantuntija-arvoja tai tarkistusmittareita ei saa keksiä; merkitse not-measured.');
       }
     }
-    const propositionIds = new Set(value.propositions.map(p => p.id));
     for (const d of value.decisions) {
       keys(d, ['id', 'label', 'statement', 'scope', 'rationale', 'epistemicStatus', 'reviewState', 'recordIds'], 'Tutkimuspäätös');
       take(d.id, 'Tutkimuspäätös');
@@ -369,6 +453,8 @@ const SCHEMA = 2;
       validateLegacy(value.legacy.document);
     }
     const next = clone(value);
+    next.propositions = propositions;
+    next.protocols = protocols;
     next.cases = cases;
     return next;
   }
@@ -399,15 +485,15 @@ const SCHEMA = 2;
   }
 
   function locate(model, id) {
-    for (const [key, kind] of [['sources', 'source'], ['claims', 'claim'], ['constructs', 'construct'], ['criteria', 'criterion'], ['relationships', 'relationship'], ['propositions', 'proposition'], ['cases', 'case'], ['decisions', 'decision']]) {
-      const record = model[key].find(r => r.id === id);
+    for (const [key, kind] of [['sources', 'source'], ['claims', 'claim'], ['constructs', 'construct'], ['criteria', 'criterion'], ['relationships', 'relationship'], ['propositions', 'proposition'], ['protocols', 'protocol'], ['cases', 'case'], ['decisions', 'decision']]) {
+      const record = (model[key] || []).find(r => r.id === id);
       if (record) return { key, kind, record };
     }
     return null;
   }
 
   function allIds(model) {
-    return ['sources', 'claims', 'constructs', 'criteria', 'relationships', 'propositions', 'cases', 'decisions'].flatMap(key => model[key].map(r => r.id));
+    return ['sources', 'claims', 'constructs', 'criteria', 'relationships', 'propositions', 'protocols', 'cases', 'decisions'].flatMap(key => (model[key] || []).map(r => r.id));
   }
 
   function relationshipDraft(fields = {}) {
@@ -435,6 +521,7 @@ const SCHEMA = 2;
     else if (found.kind === 'construct') next.constructs = next.constructs.filter(c => c.id !== id);
     else if (found.kind === 'criterion') next.criteria = next.criteria.filter(c => c.id !== id);
     else if (found.kind === 'proposition') next.propositions = next.propositions.filter(p => p.id !== id);
+    else if (found.kind === 'protocol') next.protocols = (next.protocols || []).filter(p => p.id !== id);
     else if (found.kind === 'case') next.cases = next.cases.filter(c => c.id !== id);
     else if (found.kind === 'decision') next.decisions = next.decisions.filter(d => d.id !== id);
     else if (found.kind === 'relationship') {
@@ -457,9 +544,16 @@ const SCHEMA = 2;
       effect(c.id, c.label, c.constructIds.length ? 'Käsiteviite irrotetaan.' : 'Ainoa käsiteviite irrotetaan. Kriteeri säilyy, mutta viite on täsmennettävä.', 'reference');
     }
     for (const p of next.propositions) {
-      if (!p.criterionIds.some(x => drop.has(x))) continue;
-      p.criterionIds = p.criterionIds.filter(x => !drop.has(x));
-      effect(p.id, p.label, 'Kriteeriviite irrotetaan.', 'reference');
+      let changed = false;
+      if (p.criterionIds.some(x => drop.has(x))) { p.criterionIds = p.criterionIds.filter(x => !drop.has(x)); changed = true; }
+      if ((p.constructIds || []).some(x => drop.has(x))) { p.constructIds = p.constructIds.filter(x => !drop.has(x)); changed = true; }
+      if ((p.protocolIds || []).some(x => drop.has(x))) { p.protocolIds = p.protocolIds.filter(x => !drop.has(x)); changed = true; }
+      if (changed) effect(p.id, p.label, 'Proposition viite irrotetaan.', 'reference');
+    }
+    for (const proto of (next.protocols || [])) {
+      let changed = false;
+      for (const key of ['propositionIds', 'criterionIds', 'constructIds']) if ((proto[key] || []).some(x => drop.has(x))) { proto[key] = proto[key].filter(x => !drop.has(x)); changed = true; }
+      if (changed) effect(proto.id, proto.label, 'Protokollan viite irrotetaan.', 'reference');
     }
     for (const s of next.sources) if (drop.has(s.versionOf)) { s.versionOf = ''; effect(s.id, s.label, 'Versioviite irrotetaan.', 'reference'); }
     for (const c of next.cases) {
@@ -505,7 +599,8 @@ const SCHEMA = 2;
     for (const c of model.claims) rows.push(row({ recordType: 'claim', id: c.id, label: c.id, epistemicStatus: c.epistemicStatus, reviewState: c.reviewState, provenance: c.provenance, appraisal: c.appraisal, links: c.sourceId, text: c.statement, boundary: c.limitations, basis: c.basis, locator: c.locator, notes: c.notes }));
     for (const c of model.constructs) rows.push(row({ recordType: 'construct', id: c.id, label: c.label, epistemicStatus: c.epistemicStatus, reviewState: c.reviewState, unit: c.unit, text: c.definition, boundary: c.boundary, basis: c.basis, locator: c.locator, notes: c.notes }));
     for (const c of model.criteria) rows.push(row({ recordType: 'criterion', id: c.id, label: c.label, epistemicStatus: c.epistemicStatus, reviewState: c.reviewState, links: c.constructIds.join(' '), unit: c.unit, text: c.evidenceRequirements, boundary: c.permittedInference, basis: c.basis, locator: c.locator, notes: c.notes }));
-    for (const p of model.propositions) rows.push(row({ recordType: 'proposition', id: p.id, label: p.label, epistemicStatus: p.epistemicStatus, reviewState: p.reviewState, links: p.criterionIds.join(' '), unit: p.unit, text: p.statement, boundary: p.boundary, basis: p.basis, locator: p.locator, notes: p.notes }));
+    for (const p of model.propositions) rows.push(row({ recordType: 'proposition', id: p.id, label: p.label, epistemicStatus: p.epistemicStatus, reviewState: p.reviewState, links: [...(p.criterionIds || []), ...(p.constructIds || []), ...(p.protocolIds || [])].join(' '), unit: p.unit, text: p.statement, boundary: p.boundary, basis: p.basis, locator: p.locator, notes: p.notes }));
+    for (const proto of (model.protocols || [])) rows.push(row({ recordType: 'protocol', id: proto.id, label: proto.label, links: [...proto.propositionIds, ...proto.criterionIds].join(' '), text: proto.designSummary, boundary: proto.designKind, basis: proto.basis, notes: proto.status }));
     for (const r of model.relationships) rows.push(row({ recordType: 'relationship', id: r.id, label: r.label, epistemicStatus: r.epistemicStatus, reviewState: r.reviewState, meaning: r.meaning, claimIds: (r.claimIds || []).join(' '), sourceIds: (r.sourceIds || []).join(' '), links: r.source + ' ' + r.target, text: r.rationale, boundary: r.reviewNote, locator: r.locator }));
     for (const c of model.cases) rows.push(row({ recordType: 'case', id: c.id, label: c.title, links: [...c.propositionIds, ...c.criterionIds, ...c.decisionIds].join(' '), text: c.task, boundary: c.boundary, basis: c.basis }));
     for (const d of model.decisions) rows.push(row({ recordType: 'decision', id: d.id, label: d.label, epistemicStatus: d.epistemicStatus, reviewState: d.reviewState, links: d.recordIds.join(' '), text: d.statement, boundary: d.scope, basis: d.rationale }));

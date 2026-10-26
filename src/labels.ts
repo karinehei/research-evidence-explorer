@@ -2,7 +2,7 @@ import type { Access, EpistemicStatus, Meaning, PublicationStatus, RecordKind, R
 
 export const kindLabel: Record<RecordKind, string> = {
   source: 'Lähde', claim: 'Lähdeväite', construct: 'Käsite', criterion: 'Kriteeri', proposition: 'Propositio',
-  relationship: 'Yhteys', case: 'Rakennettu tapaus', decision: 'Tutkimuspäätös'
+  relationship: 'Yhteys', case: 'Rakennettu tapaus', decision: 'Tutkimuspäätös', protocol: 'Arviointiprotokolla'
 };
 export const epistemicLabel: Record<EpistemicStatus, string> = {
   reported: 'Raportoitu, ei varmennettu', adaptation: 'Oma sovellus', hypothesis: 'Testaamaton oletus'

@@ -49,9 +49,58 @@ export interface Relationship {
   id: string; meaning: Meaning; source: string; target: string; label: string; rationale: string; locator: string;
   claimIds: string[]; sourceIds: string[]; epistemicStatus: EpistemicStatus; reviewState: ReviewState; reviewNote: string;
 }
+export type IntendedClaimKind = 'association' | 'controlled-comparison' | 'paired-coverage' | 'other';
+export type ValidationFocus =
+  | 'construct-interpretation'
+  | 'finnish-wording'
+  | 'annotation-consistency'
+  | 'evaluator-errors'
+  | 'task-applicability';
+
+export interface StatementRevision {
+  revisedAt: string;
+  previousStatement: string;
+  rationale: string;
+}
 export interface Proposition {
   id: string; label: string; statement: string; boundary: string; unit: string; criterionIds: string[];
+  constructIds: string[]; conceptualRationale: string; intendedClaimKind: IntendedClaimKind; intendedClaim: string;
+  proposedDesign: string; counterexamples: string; evidenceNeeded: string; protocolIds: string[];
+  statementRevisions: StatementRevision[];
   epistemicStatus: EpistemicStatus; reviewState: ReviewState; basis: string; locator: string; notes: string; position?: Position;
+}
+export interface RubricAnchor {
+  id: string; category: string; wording: string; revisionRationale: string;
+}
+export interface ExpertDimensionSpec {
+  id: string; label: string; draftWording: string; anchors: RubricAnchor[];
+  assessorInstructions: string; cannotAssessLabel: string; cannotAssessGuidance: string; provisional: true;
+}
+export interface SeparateAuditTask {
+  id: string; kind: 'correctness' | 'successful-verification'; statement: string; note: string;
+}
+export interface ProtocolTargetRef {
+  caseId: string; answerVariantId: string; displayConditionId: string; note: string;
+}
+export interface ProtocolIdentities {
+  questionIds: string[]; informationNeedIds: string[]; queryVariantIds: string[]; raterIds: string[];
+}
+export interface ProtocolProcedure {
+  blinding: string; randomisation: string; repeatedObservations: string;
+  disagreementHandling: string; independenceNote: string;
+}
+export interface ValidationCheck {
+  id: string; label: string; focus: ValidationFocus; question: string; note: string;
+}
+export interface AssessmentProtocol {
+  id: string; kind: 'assessment-protocol'; label: string; status: 'provisional-draft';
+  propositionIds: string[]; criterionIds: string[]; constructIds: string[];
+  designKind: IntendedClaimKind; designSummary: string;
+  dimensions: ExpertDimensionSpec[]; separateAudits: SeparateAuditTask[];
+  targets: ProtocolTargetRef[]; identities: ProtocolIdentities; procedure: ProtocolProcedure;
+  validationChecks: ValidationCheck[];
+  observations: []; compositeTrustScore: 'not-computed';
+  basis: string; notes: string;
 }
 export type FacetState = 'full' | 'partial' | 'absent' | 'conflicting' | 'unresolved';
 export type UnmeasuredMarker = 'not-measured';
@@ -111,8 +160,9 @@ export interface Workspace {
   criteria: Criterion[];
   relationships: Relationship[];
   propositions: Proposition[];
+  protocols: AssessmentProtocol[];
   cases: ConstructedCase[];
   decisions: Decision[];
   legacy?: { schemaVersion: 1; preservedBeforeReplacement: true; document: unknown };
 }
-export type RecordKind = 'source' | 'claim' | 'construct' | 'criterion' | 'proposition' | 'relationship' | 'case' | 'decision';
+export type RecordKind = 'source' | 'claim' | 'construct' | 'criterion' | 'proposition' | 'relationship' | 'case' | 'decision' | 'protocol';
