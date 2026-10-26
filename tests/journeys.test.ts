@@ -91,7 +91,7 @@ test('curated open → claim edit → justified relationship → matrix → case
   assert.equal(snapshot.workspace.schemaVersion, 2);
   const preview = previewImport(seed, snapshot);
   assert.equal(preview.ok, true);
-  const roundTrip = load(workspaceFromIncoming(snapshot));
+  const roundTrip = load(workspaceFromIncoming(snapshot)) as Workspace;
   assert.ok(roundTrip.relationships.some(item => item.id === relId));
 
   const undone = validate(prepareUndo(model, seed, {

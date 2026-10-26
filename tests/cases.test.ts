@@ -8,13 +8,13 @@ import {
   missingEssentialFacets
 } from '../src/cases.ts';
 import { load, validate } from '../src/model.ts';
-import type { ConstructedCase, Workspace } from '../src/types.ts';
+import type { CaseFacet, ConstructedCase, Workspace } from '../src/types.ts';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const model = load(JSON.parse(fs.readFileSync(path.join(root, '../data/research.json'), 'utf8'))) as Workspace;
 
 test('case A keeps supported claim with incomplete task answer and separate coverage layers', () => {
-  const item = model.cases.find(entry => entry.id === 'A')!;
+  const item: ConstructedCase = model.cases.find((entry: ConstructedCase) => entry.id === 'A')!;
   assert.equal(item.kind, 'constructed');
   assert.equal(item.analyticLabel, 'constructed-analytical-example');
   const collection = layerCoverage(item.facets, 'collection');
@@ -23,10 +23,10 @@ test('case A keeps supported claim with incomplete task answer and separate cove
   assert.equal(collection.fullRatioLabel, '3/3');
   assert.equal(context.fullRatioLabel, '1/3');
   assert.equal(answer.fullRatioLabel, '1/3');
-  assert.ok(missingEssentialFacets(item.facets).some(facet => facet.id === 'A_f2'));
+  assert.ok(missingEssentialFacets(item.facets).some((facet: CaseFacet) => facet.id === 'A_f2'));
   assert.equal(item.claimAnnotations[0]?.support, 'full');
   assert.match(item.claimAnnotations[0]?.reason || '', /tuettu \(S\)/i);
-  assert.match(item.facets.find(facet => facet.id === 'A_f2')?.reason || '', /kokoelman ja kontekstin/i);
+  assert.match(item.facets.find((facet: CaseFacet) => facet.id === 'A_f2')?.reason || '', /kokoelman ja kontekstin/i);
   assert.doesNotMatch(item.boundary, /kliinisen turvallisuuden piste/i);
 });
 
@@ -124,12 +124,12 @@ test('a case draft stays a constructed example and a failed check does not repla
 test('editing a facet and source version round-trips through validate', () => {
   const copy = JSON.parse(JSON.stringify(model)) as Workspace;
   const item = copy.cases.find(entry => entry.id === 'A')!;
-  item.facets.find(facet => facet.id === 'A_f2')!.context = 'partial';
-  item.facets.find(facet => facet.id === 'A_f2')!.reason = 'Muokattu: konteksti osittainen.';
+  item.facets.find((facet: CaseFacet) => facet.id === 'A_f2')!.context = 'partial';
+  item.facets.find((facet: CaseFacet) => facet.id === 'A_f2')!.reason = 'Muokattu: konteksti osittainen.';
   item.sourceSnapshots[0].version = 'constructed-v2';
   const next = validate(copy) as Workspace;
   const saved = next.cases.find(entry => entry.id === 'A')!;
-  assert.equal(saved.facets.find(facet => facet.id === 'A_f2')?.context, 'partial');
+  assert.equal(saved.facets.find((facet: CaseFacet) => facet.id === 'A_f2')?.context, 'partial');
   assert.equal(saved.sourceSnapshots[0].version, 'constructed-v2');
   assert.equal(saved.analyticLabel, 'constructed-analytical-example');
 });
