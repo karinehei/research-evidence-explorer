@@ -1,0 +1,17 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const M=require('../web/model.js');
+const seed=JSON.parse(fs.readFileSync(require('node:path').join(__dirname,'../data/research.json'),'utf8'));
+const copy=()=>JSON.parse(JSON.stringify(seed));
+test('curated data round-trips without losing evidence and constructed-case labels',()=>{const d=M.validate(seed);assert.deepEqual(d,seed);assert.equal(d.cases.length,3);assert.ok(d.cases.every(c=>c.kind==='constructed'));assert.equal(d.nodes.filter(n=>n.kind==='question').length,4);});
+test('unknown schema and duplicate nodes are rejected',()=>{const d=copy();d.schemaVersion=2;assert.throws(()=>M.validate(d));d.schemaVersion=1;d.nodes.push(d.nodes[0]);assert.throws(()=>M.validate(d));});
+test('dangling links, missing and duplicate link IDs are rejected',()=>{for(const change of [d=>d.edges[0].target='absent',d=>delete d.edges[0].id,d=>d.edges.push(d.edges[0])]){const d=copy();change(d);assert.throws(()=>M.validate(d));}});
+test('script URLs and nonfinite or excessive coordinates are rejected',()=>{for(const change of [d=>d.nodes[0].url='javascript:alert(1)',d=>d.nodes[0].position={x:Infinity,y:1},d=>d.nodes[0].position={x:1,y:30000}]){const d=copy();change(d);assert.throws(()=>M.validate(d));}});
+test('cases cannot be relabelled as empirical results or given malformed rows',()=>{const d=copy();d.cases[0].kind='empirical';assert.throws(()=>M.validate(d));d.cases[0].kind='constructed';d.cases[0].rows[0].pop();assert.throws(()=>M.validate(d));});
+test('reported access and epistemic categories cannot silently acquire unknown values',()=>{const d=copy();d.nodes[0].access='verified-by-app';assert.throws(()=>M.validate(d));d.nodes[0].access='not-recorded';d.edges[0].status='proven-causal';assert.throws(()=>M.validate(d));});
+test('directed trace follows evidence links and terminates safely with cycles',()=>{const d=copy();assert.deepEqual(M.path(d,'blueprint24','p1').nodes,['blueprint24','sufficiency','facets','p1']);assert.equal(M.path(d,'p1','blueprint24'),null);d.edges.push({...d.edges[0],id:'cycle',source:'p1',target:'blueprint24'});assert.equal(M.path(d,'blueprint24','absent'),null);assert.ok(M.path(d,'p1','ranking'));});
+test('neighbourhood retains precisely the incident edges',()=>{const n=M.neighbourhood(seed,'sufficiency');assert.ok(n.nodes.has('blueprint24'));assert.ok(n.nodes.has('facets'));assert.ok(!n.nodes.has('p1'));});
+test('CSV escapes quotes, newlines and spreadsheet formula prefixes',()=>{const d=copy();d.nodes[0].notes='=2+2';d.nodes[0].label='A "quote"\nand newline';const csv=M.csv(d);assert.ok(csv.includes('"\'=2+2"'));assert.ok(csv.includes('"A ""quote""\nand newline"'));});
+test('DOT exports a selected subgraph and preserves hypothesis distinction',()=>{const d=M.dot(seed,new Set(['facets','p1']));assert.ok(d.includes('"facets" -> "p1"'));assert.ok(d.includes('style="dotted"'));assert.ok(!d.includes('"blueprint24"'));});
+test('oversized text and data are rejected before replacing the workspace',()=>{const d=copy();d.nodes[0].notes='x'.repeat(8001);assert.throws(()=>M.validate(d));});
