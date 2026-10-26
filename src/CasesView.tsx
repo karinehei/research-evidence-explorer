@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type MutableRefObject } from 'react';
+import { useEffect, useMemo, useState, type RefObject } from 'react';
 import {
   ANALYTIC_CASE_LABEL, CASE_VIEW_DISCLAIMER, CONSTRUCTED_CASE_TAG, applyConstructedCaseDraft,
   coverageLayerLabel, exportConstructedCase, facetStateLabel, layerCoverage, missingEssentialFacets, type CoverageLayer
@@ -26,7 +26,7 @@ export function CasesView({ model, selectedId, onSelect, onSave, guard, onEditMo
   selectedId: string;
   onSelect: (id: string) => void;
   onSave: (next: Workspace, message: string) => boolean;
-  guard: MutableRefObject<DirtyApi | null>;
+  guard: RefObject<DirtyApi | null>;
   onEditModeChange?: (editing: boolean) => void;
   onLeave: (action: () => void) => void;
 }) {
@@ -40,7 +40,7 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
   selected: ConstructedCase;
   onSelect: (id: string) => void;
   onSave: (next: Workspace, message: string) => boolean;
-  guard: MutableRefObject<DirtyApi | null>;
+  guard: RefObject<DirtyApi | null>;
   onEditModeChange?: (editing: boolean) => void;
   onLeave: (action: () => void) => void;
 }) {

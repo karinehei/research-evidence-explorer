@@ -8,13 +8,13 @@ import {
   missingEssentialFacets
 } from '../src/cases.ts';
 import { load, validate } from '../src/model.ts';
+import type { ConstructedCase, Workspace } from '../src/types.ts';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const model = load(JSON.parse(fs.readFileSync(path.join(root, '../data/research.json'), 'utf8')));
+const model = load(JSON.parse(fs.readFileSync(path.join(root, '../data/research.json'), 'utf8'))) as Workspace;
 
 test('case A keeps supported claim with incomplete task answer and separate coverage layers', () => {
-  const item = model.cases.find(entry => entry.id === 'A');
-  assert.ok(item);
+  const item = model.cases.find(entry => entry.id === 'A')!;
   assert.equal(item.kind, 'constructed');
   assert.equal(item.analyticLabel, 'constructed-analytical-example');
   const collection = layerCoverage(item.facets, 'collection');
@@ -31,8 +31,7 @@ test('case A keeps supported claim with incomplete task answer and separate cove
 });
 
 test('case B shares claim support across display variants and leaves verification unmeasured', () => {
-  const item = model.cases.find(entry => entry.id === 'B');
-  assert.ok(item);
+  const item = model.cases.find(entry => entry.id === 'B')!;
   assert.equal(item.answerVariants.length, 2);
   assert.equal(item.displayConditions.length, 2);
   assert.ok(item.displayConditions.some(display => display.passageLocatorVisible === false));
@@ -46,8 +45,7 @@ test('case B shares claim support across display variants and leaves verificatio
 });
 
 test('case C separates historical support from present-time task and source audit', () => {
-  const item = model.cases.find(entry => entry.id === 'C');
-  assert.ok(item);
+  const item = model.cases.find(entry => entry.id === 'C')!;
   assert.deepEqual(item.taskReference.acceptableSourceVersionIds, ['C_d3_2026']);
   assert.ok(item.sourceSnapshots.some(snap => snap.id === 'C_d3_2024' && snap.version === '2024'));
   assert.ok(item.sourceSnapshots.some(snap => snap.id === 'C_d3_2026' && snap.version === '2026'));
@@ -98,17 +96,15 @@ test('legacy flat cases hydrate and remain constructed; empirical kind stays rej
 });
 
 test('a case draft stays a constructed example and a failed check does not replace the workspace', () => {
-  const source = model.cases.find(entry => entry.id === 'A');
-  assert.ok(source);
+  const source = model.cases.find(entry => entry.id === 'A')!;
   const original = source.taskReference.statement;
   const disguised = JSON.parse(JSON.stringify(source));
   disguised.kind = 'empirical';
   disguised.analyticLabel = 'empirical-result';
   disguised.unmeasured.expertRatings = 'high';
   disguised.taskReference.statement = `${original} [draft]`;
-  const applied = applyConstructedCaseDraft(model, disguised);
-  const saved = applied.cases.find(entry => entry.id === 'A');
-  assert.ok(saved);
+  const applied = applyConstructedCaseDraft(model, disguised as ConstructedCase);
+  const saved = applied.cases.find(entry => entry.id === 'A')!;
   assert.equal(saved.kind, 'constructed');
   assert.equal(saved.analyticLabel, 'constructed-analytical-example');
   assert.equal(saved.unmeasured.expertRatings, 'not-measured');
@@ -117,7 +113,7 @@ test('a case draft stays a constructed example and a failed check does not repla
   assert.equal(source.taskReference.statement, original);
   assert.equal(source.kind, 'constructed');
 
-  const tooLong = JSON.parse(JSON.stringify(source));
+  const tooLong = JSON.parse(JSON.stringify(source)) as ConstructedCase;
   tooLong.taskReference.statement = 'x'.repeat(8001);
   tooLong.task = tooLong.taskReference.statement;
   const rejected = applyConstructedCaseDraft(model, tooLong);
@@ -126,12 +122,12 @@ test('a case draft stays a constructed example and a failed check does not repla
 });
 
 test('editing a facet and source version round-trips through validate', () => {
-  const copy = JSON.parse(JSON.stringify(model));
-  const item = copy.cases.find((entry: { id: string }) => entry.id === 'A');
-  item.facets.find((facet: { id: string }) => facet.id === 'A_f2').context = 'partial';
-  item.facets.find((facet: { id: string }) => facet.id === 'A_f2').reason = 'Muokattu: konteksti osittainen.';
+  const copy = JSON.parse(JSON.stringify(model)) as Workspace;
+  const item = copy.cases.find(entry => entry.id === 'A')!;
+  item.facets.find(facet => facet.id === 'A_f2')!.context = 'partial';
+  item.facets.find(facet => facet.id === 'A_f2')!.reason = 'Muokattu: konteksti osittainen.';
   item.sourceSnapshots[0].version = 'constructed-v2';
-  const next = validate(copy);
+  const next = validate(copy) as Workspace;
   const saved = next.cases.find(entry => entry.id === 'A')!;
   assert.equal(saved.facets.find(facet => facet.id === 'A_f2')?.context, 'partial');
   assert.equal(saved.sourceSnapshots[0].version, 'constructed-v2');
