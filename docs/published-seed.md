@@ -29,4 +29,4 @@ Before treating a Pages build as a public research surface, review:
 
 The SPA imports `data/research.json` for first load. That is the same curated dataset the projection describes. Browser edits after load stay in local storage until the researcher exports JSON or a snapshot. They do not rewrite `published-seed.json` or the GitHub Pages artifact automatically.
 
-See also `dist/published-seed.manifest.json` after `npm run build` for the machine-readable copy of these rules.
+See also `dist/published-seed.manifest.json` after `npm run build` for the machine-readable copy of these rules. The content review of the current curated fields is in [publication-review.md](publication-review.md).
