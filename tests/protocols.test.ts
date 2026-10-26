@@ -29,8 +29,11 @@ test('P1–P3 keep statements and distinct design kinds without established posi
   assert.match(p1.intendedClaim, /assosiaatio/i);
   assert.match(p2.proposedDesign, /sama vastaus ja sama näyttö/i);
   assert.match(p3.proposedDesign, /merkitysvastaavat/i);
+  assert.match(p1.intendedClaim, /Ei osoitettu/i);
+  assert.match(p2.intendedClaim, /Ei vakiintunut/i);
+  assert.match(p3.intendedClaim, /Ei vakiintunut/i);
   for (const item of [p1, p2, p3]) {
-    assert.doesNotMatch(item.intendedClaim, /osoitettu positiivinen vaikutus|vakiintunut positiivinen/i);
+    assert.doesNotMatch(item.intendedClaim, /on osoitettu positiivinen|on vakiintunut positiivinen/i);
     assert.ok(item.criterionIds.length);
     assert.ok(item.protocolIds.length);
   }

@@ -82,11 +82,11 @@ The included workflow was prepared but was not run in this session. Publishing a
 
 ## Checks for this port
 
-`npm test` and `npm run build` are the acceptance path for the current seed. After the assessment-protocol work, tests cover P1–P3 design distinctions, five provisional expert dimensions, empty observations / `not-computed` composite trust score, anchor revision with rationale, and protocol export provenance, in addition to earlier case, matrix, CSL and schema checks.
+`npm test` passed 38 tests after the assessment-protocol work (P1–P3 design distinctions, five provisional expert dimensions, empty observations / `not-computed` composite trust score, anchor revision with rationale, protocol export provenance, plus earlier case, matrix, CSL and schema checks). `npm run build` with Vite 7.3.7 wrote `dist/` using relative `./assets` paths.
 
-In the browser, clear an older localStorage workspace so the seeded protocols load. `#questions/p1` should show linked criteria, association (not causal) design, and open `proto_p1`. Revising an anchor requires a rationale and keeps the rubric provisional. Protocol JSON export must list `observations: []` and `compositeTrustScore: "not-computed"` with no composite trust score. `#questions/p2` should distinguish the controlled presentation comparison and name B answer/display targets.
+In the browser against `dist/` on a local static server (`#questions/p1`), P1 showed linked criteria (expert, facets, ranking), association design (not a controlled causal test), and `proto_p1` with five separate dimensions, `observations: []` and `compositeTrustScore: not-computed`. Revising the trustworthiness anchor with a recorded rationale updated the provisional rubric and enabled undo; localStorage kept the rationale without inventing observations. P2 remains labelled controlled-comparison with B answer/display targets in the seed.
 
-Not checked here unless restated below: the GitHub Actions workflow, Graphviz SVG/PDF/PNG rendering when `dot` is absent, and opening the module build with `file://`.
+Not checked here: the GitHub Actions workflow, Graphviz SVG/PDF/PNG rendering when `dot` is absent, and opening the module build with `file://`.
 
 ## Next research step
 
