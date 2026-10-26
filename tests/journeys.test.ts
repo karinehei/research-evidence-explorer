@@ -83,8 +83,8 @@ test('curated open → claim edit → justified relationship → matrix → case
 
   const proposition = model.propositions.find(item => item.id === 'p1');
   assert.ok(proposition);
-  assert.ok(proposition!.protocolIds.length >= 1 || model.protocols.some(p => p.propositionId === 'p1' || p.id));
-  const protocol = model.protocols.find(item => proposition!.protocolIds.includes(item.id)) || model.protocols[0];
+  const protocol = model.protocols.find(item => item.propositionIds.includes('p1') || proposition!.protocolIds.includes(item.id))
+    || model.protocols[0];
   assert.ok(protocol);
   assert.equal(protocol.dimensions.length, 5);
 
