@@ -1,765 +1,1144 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "project": {
     "name": "Finnish healthcare RAG — Year 1",
     "description": "Valikoitu lähtömalli käsitteelliselle kehittämiselle. Ei valmis kirjallisuuskatsaus eikä validoitu mittaristo."
   },
-  "nodes": [
+  "sources": [
     {
       "id": "jarvelin15",
-      "kind": "source",
       "label": "Järvelin ym. 2015",
-      "description": "Tehtävät, informaatiotoiminnot, järjestelmätuotokset ja tehtävätulokset erotetaan toisistaan.",
-      "boundary": "Vastauksen arvio ei osoita onnistumista varsinaisessa työtehtävässä.",
-      "status": "literature",
-      "access": "not-recorded",
-      "locator": "Conceptual foundations and model structure",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "citation": "Järvelin ym. 2015",
+      "year": "",
+      "publicationStatus": "not-recorded",
+      "versionOf": "",
+      "doi": "10.1145/2699660",
       "url": "https://doi.org/10.1145/2699660",
-      "unit": ""
+      "access": "not-recorded",
+      "accessNote": "",
+      "notes": ""
     },
     {
       "id": "blueprint24",
-      "kind": "source",
       "label": "Järvelin & Sormunen 2024",
-      "description": "Tehtävä- ja käyttäjäominaisuudet sekä relevanssin, päällekkäisyyden ja käytettävyyden ulottuvuudet jäsentävät arviointia.",
-      "boundary": "Tämän työtilan kattavuussääntö on oma ehdotus; sitä ei esitetä Blueprintin validoituna mittarina.",
-      "status": "literature",
-      "access": "not-recorded",
-      "locator": "Conceptual foundations and model structure",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "citation": "Järvelin & Sormunen 2024",
+      "year": "",
+      "publicationStatus": "not-recorded",
+      "versionOf": "",
+      "doi": "10.1145/3675162",
       "url": "https://doi.org/10.1145/3675162",
-      "unit": ""
+      "access": "not-recorded",
+      "accessNote": "",
+      "notes": ""
     },
     {
       "id": "hilligoss08",
-      "kind": "source",
       "label": "Hilligoss & Rieh 2008",
-      "description": "Uskottavuusarviointia jäsentävät käsitteet, heuristiikat ja tilanteinen vuorovaikutus.",
-      "boundary": "Lähteestä ei periydy validoitua asteikkoa suomalaisille terveydenhuollon asiantuntijoille.",
-      "status": "literature",
-      "access": "not-recorded",
-      "locator": "Conceptual foundations and model structure",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "citation": "Hilligoss & Rieh 2008",
+      "year": "",
+      "publicationStatus": "not-recorded",
+      "versionOf": "",
+      "doi": "10.1016/j.ipm.2007.10.001",
       "url": "https://doi.org/10.1016/j.ipm.2007.10.001",
-      "unit": ""
+      "access": "not-recorded",
+      "accessNote": "",
+      "notes": ""
     },
     {
       "id": "sittig10",
-      "kind": "source",
       "label": "Sittig & Singh 2010",
-      "description": "Sisältö, käyttöliittymä, ihmiset ja organisaatio ovat toisiinsa kytkeytyviä terveydenhuollon tietotekniikan ehtoja.",
-      "boundary": "Työtila ei arvioi kaikkia kahdeksaa ulottuvuutta eikä käyttöönoton turvallisuutta.",
-      "status": "literature",
-      "access": "not-recorded",
-      "locator": "Conceptual foundations and model structure",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "citation": "Sittig & Singh 2010",
+      "year": "",
+      "publicationStatus": "not-recorded",
+      "versionOf": "",
+      "doi": "10.1136/qshc.2010.042085",
       "url": "https://doi.org/10.1136/qshc.2010.042085",
-      "unit": ""
+      "access": "not-recorded",
+      "accessNote": "",
+      "notes": ""
     },
     {
       "id": "thomas26",
-      "kind": "source",
       "label": "Thomas ym. 2026",
-      "description": "Arvioinnissa on määriteltävä tavoiteltu laatu ja päätelmät, joihin mittaustulos oikeuttaa.",
-      "boundary": "Mittarien tai arvioijien samanmielisyys ei yksin osoita tulkinnan validiteettia.",
-      "status": "literature",
-      "access": "not-recorded",
-      "locator": "Conceptual foundations and model structure",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "citation": "Thomas ym. 2026",
+      "year": "",
+      "publicationStatus": "not-recorded",
+      "versionOf": "",
+      "doi": "10.1145/3805712.3808538",
       "url": "https://doi.org/10.1145/3805712.3808538",
-      "unit": ""
+      "access": "not-recorded",
+      "accessNote": "",
+      "notes": ""
     },
     {
       "id": "ragas24",
-      "kind": "source",
       "label": "RAGAs 2024",
-      "description": "Väitetuki, vastauksen relevanssi ja kontekstin relevanssi ovat erillisiä teknisiä arviointikohteita.",
-      "boundary": "Ei osoita suomenkielisen terveydenhuollon validiteettia, kliinistä oikeellisuutta tai asiantuntijan luottamusta.",
-      "status": "literature",
-      "access": "reported-abstract",
-      "locator": "Corrected source and claim mapping — C1",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "citation": "RAGAs 2024",
+      "year": "",
+      "publicationStatus": "not-recorded",
+      "versionOf": "",
+      "doi": "10.18653/v1/2024.eacl-demo.16",
       "url": "https://doi.org/10.18653/v1/2024.eacl-demo.16",
-      "unit": ""
+      "access": "reported-abstract",
+      "accessNote": "",
+      "notes": ""
     },
     {
       "id": "ares24",
-      "kind": "source",
       "label": "ARES 2024",
-      "description": "Arviointituomareita ja ihmisen merkintöjä voidaan käyttää järjestelmätason arvioiden kalibrointiin.",
-      "boundary": "Ihmisen tekemä tuomarin validointi ei ole käyttäjän luottamuksen mittaus.",
-      "status": "literature",
-      "access": "reported-abstract",
-      "locator": "Corrected source and claim mapping — C1; matrix 2.2",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "citation": "ARES 2024",
+      "year": "",
+      "publicationStatus": "not-recorded",
+      "versionOf": "",
+      "doi": "10.18653/v1/2024.naacl-long.20",
       "url": "https://doi.org/10.18653/v1/2024.naacl-long.20",
-      "unit": ""
+      "access": "reported-abstract",
+      "accessNote": "",
+      "notes": ""
     },
     {
       "id": "ragchecker24",
-      "kind": "source",
       "label": "RAGChecker 2024",
-      "description": "Väitetason diagnostiikka erottelee haun ja generoinnin ongelmia.",
-      "boundary": "Tämä ei sellaisenaan validoi tämän tutkimuksen suomenkielistä sosioteknistä arviointimallia.",
-      "status": "literature",
-      "access": "reported-abstract",
-      "locator": "Corrected source and claim mapping — C5",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "citation": "RAGChecker 2024",
+      "year": "",
+      "publicationStatus": "not-recorded",
+      "versionOf": "",
+      "doi": "10.52202/079017-0692",
       "url": "https://doi.org/10.52202/079017-0692",
-      "unit": ""
+      "access": "reported-abstract",
+      "accessNote": "",
+      "notes": ""
     },
     {
       "id": "liu23",
-      "kind": "source",
       "label": "Liu ym. 2023",
-      "description": "Vastauksen sisällön ja viitattujen lähteiden tukisuhteita tarkastellaan erikseen.",
-      "boundary": "Viitetuki ei osoita lähteen ajantasaisuutta eikä ihmisen onnistunutta tarkistamista.",
-      "status": "literature",
-      "access": "not-recorded",
-      "locator": "Corrected source and claim mapping — C2; abstract and evaluation protocol",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "citation": "Liu ym. 2023",
+      "year": "",
+      "publicationStatus": "not-recorded",
+      "versionOf": "",
+      "doi": "10.18653/v1/2023.findings-emnlp.467",
       "url": "https://doi.org/10.18653/v1/2023.findings-emnlp.467",
-      "unit": ""
+      "access": "not-recorded",
+      "accessNote": "",
+      "notes": ""
     },
     {
       "id": "lajewska24",
-      "kind": "source",
       "label": "Łajewska ym. 2024",
-      "description": "Selityksen laatua ja esitystapaa voidaan tutkia erillään vastauksen laadusta.",
-      "boundary": "Ei osoita, että katkelmalinkki aiheuttaa onnistuneen tarkistamisen terveydenhuollossa.",
-      "status": "literature",
-      "access": "reported-abstract",
-      "locator": "Restricted claims and methodological decisions — C10",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "citation": "Łajewska ym. 2024",
+      "year": "",
+      "publicationStatus": "not-recorded",
+      "versionOf": "",
+      "doi": "10.1145/3626772.3657768",
       "url": "https://doi.org/10.1145/3626772.3657768",
-      "unit": ""
+      "access": "reported-abstract",
+      "accessNote": "",
+      "notes": ""
     },
     {
       "id": "saukkoriipi26",
-      "kind": "source",
       "label": "Saukkoriipi ym. 2026",
-      "description": "Merkitykseltään vastaavien suomenkielisten muotoilujen vaihtelu motivoi robustiuden tarkastelua lähialueella.",
-      "boundary": "Potilastietojen retrieval-free long-context-asetelma ei eristä morfologiaa eikä osoita vaikutusta ohjeisiin perustuvassa RAG-haussa.",
-      "status": "literature",
-      "access": "reported-full-text",
-      "locator": "Restricted claims and methodological decisions — C6; inspected manuscript Introduction and Methods",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "citation": "Saukkoriipi ym. 2026",
+      "year": "",
+      "publicationStatus": "not-recorded",
+      "versionOf": "",
+      "doi": "10.48550/arXiv.2603.26434",
       "url": "https://doi.org/10.48550/arXiv.2603.26434",
-      "unit": ""
+      "access": "reported-full-text",
+      "accessNote": "",
+      "notes": ""
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim_jarvelin15",
+      "sourceId": "jarvelin15",
+      "statement": "Tehtävät, informaatiotoiminnot, järjestelmätuotokset ja tehtävätulokset erotetaan toisistaan.",
+      "methodContext": "",
+      "locator": "Conceptual foundations and model structure",
+      "limitations": "Vastauksen arvio ei osoita onnistumista varsinaisessa työtehtävässä.",
+      "provenance": "imported-summary",
+      "appraisal": "not-appraised",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+      "epistemicStatus": "reported",
+      "reviewState": "imported",
+      "notes": ""
     },
     {
+      "id": "claim_blueprint24",
+      "sourceId": "blueprint24",
+      "statement": "Tehtävä- ja käyttäjäominaisuudet sekä relevanssin, päällekkäisyyden ja käytettävyyden ulottuvuudet jäsentävät arviointia.",
+      "methodContext": "",
+      "locator": "Conceptual foundations and model structure",
+      "limitations": "Tämän työtilan kattavuussääntö on oma ehdotus; sitä ei esitetä Blueprintin validoituna mittarina.",
+      "provenance": "imported-summary",
+      "appraisal": "not-appraised",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+      "epistemicStatus": "reported",
+      "reviewState": "imported",
+      "notes": ""
+    },
+    {
+      "id": "claim_hilligoss08",
+      "sourceId": "hilligoss08",
+      "statement": "Uskottavuusarviointia jäsentävät käsitteet, heuristiikat ja tilanteinen vuorovaikutus.",
+      "methodContext": "",
+      "locator": "Conceptual foundations and model structure",
+      "limitations": "Lähteestä ei periydy validoitua asteikkoa suomalaisille terveydenhuollon asiantuntijoille.",
+      "provenance": "imported-summary",
+      "appraisal": "not-appraised",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+      "epistemicStatus": "reported",
+      "reviewState": "imported",
+      "notes": ""
+    },
+    {
+      "id": "claim_sittig10",
+      "sourceId": "sittig10",
+      "statement": "Sisältö, käyttöliittymä, ihmiset ja organisaatio ovat toisiinsa kytkeytyviä terveydenhuollon tietotekniikan ehtoja.",
+      "methodContext": "",
+      "locator": "Conceptual foundations and model structure",
+      "limitations": "Työtila ei arvioi kaikkia kahdeksaa ulottuvuutta eikä käyttöönoton turvallisuutta.",
+      "provenance": "imported-summary",
+      "appraisal": "not-appraised",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+      "epistemicStatus": "reported",
+      "reviewState": "imported",
+      "notes": ""
+    },
+    {
+      "id": "claim_thomas26",
+      "sourceId": "thomas26",
+      "statement": "Arvioinnissa on määriteltävä tavoiteltu laatu ja päätelmät, joihin mittaustulos oikeuttaa.",
+      "methodContext": "",
+      "locator": "Conceptual foundations and model structure",
+      "limitations": "Mittarien tai arvioijien samanmielisyys ei yksin osoita tulkinnan validiteettia.",
+      "provenance": "imported-summary",
+      "appraisal": "not-appraised",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+      "epistemicStatus": "reported",
+      "reviewState": "imported",
+      "notes": ""
+    },
+    {
+      "id": "claim_ragas24",
+      "sourceId": "ragas24",
+      "statement": "Väitetuki, vastauksen relevanssi ja kontekstin relevanssi ovat erillisiä teknisiä arviointikohteita.",
+      "methodContext": "",
+      "locator": "Corrected source and claim mapping — C1",
+      "limitations": "Ei osoita suomenkielisen terveydenhuollon validiteettia, kliinistä oikeellisuutta tai asiantuntijan luottamusta.",
+      "provenance": "imported-summary",
+      "appraisal": "not-appraised",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+      "epistemicStatus": "reported",
+      "reviewState": "imported",
+      "notes": ""
+    },
+    {
+      "id": "claim_ares24",
+      "sourceId": "ares24",
+      "statement": "Arviointituomareita ja ihmisen merkintöjä voidaan käyttää järjestelmätason arvioiden kalibrointiin.",
+      "methodContext": "",
+      "locator": "Corrected source and claim mapping — C1; matrix 2.2",
+      "limitations": "Ihmisen tekemä tuomarin validointi ei ole käyttäjän luottamuksen mittaus.",
+      "provenance": "imported-summary",
+      "appraisal": "not-appraised",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+      "epistemicStatus": "reported",
+      "reviewState": "imported",
+      "notes": ""
+    },
+    {
+      "id": "claim_ragchecker24",
+      "sourceId": "ragchecker24",
+      "statement": "Väitetason diagnostiikka erottelee haun ja generoinnin ongelmia.",
+      "methodContext": "",
+      "locator": "Corrected source and claim mapping — C5",
+      "limitations": "Tämä ei sellaisenaan validoi tämän tutkimuksen suomenkielistä sosioteknistä arviointimallia.",
+      "provenance": "imported-summary",
+      "appraisal": "not-appraised",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+      "epistemicStatus": "reported",
+      "reviewState": "imported",
+      "notes": ""
+    },
+    {
+      "id": "claim_liu23",
+      "sourceId": "liu23",
+      "statement": "Vastauksen sisällön ja viitattujen lähteiden tukisuhteita tarkastellaan erikseen.",
+      "methodContext": "",
+      "locator": "Corrected source and claim mapping — C2; abstract and evaluation protocol",
+      "limitations": "Viitetuki ei osoita lähteen ajantasaisuutta eikä ihmisen onnistunutta tarkistamista.",
+      "provenance": "imported-summary",
+      "appraisal": "not-appraised",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+      "epistemicStatus": "reported",
+      "reviewState": "imported",
+      "notes": ""
+    },
+    {
+      "id": "claim_lajewska24",
+      "sourceId": "lajewska24",
+      "statement": "Selityksen laatua ja esitystapaa voidaan tutkia erillään vastauksen laadusta.",
+      "methodContext": "",
+      "locator": "Restricted claims and methodological decisions — C10",
+      "limitations": "Ei osoita, että katkelmalinkki aiheuttaa onnistuneen tarkistamisen terveydenhuollossa.",
+      "provenance": "imported-summary",
+      "appraisal": "not-appraised",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+      "epistemicStatus": "reported",
+      "reviewState": "imported",
+      "notes": ""
+    },
+    {
+      "id": "claim_saukkoriipi26",
+      "sourceId": "saukkoriipi26",
+      "statement": "Merkitykseltään vastaavien suomenkielisten muotoilujen vaihtelu motivoi robustiuden tarkastelua lähialueella.",
+      "methodContext": "",
+      "locator": "Restricted claims and methodological decisions — C6; inspected manuscript Introduction and Methods",
+      "limitations": "Potilastietojen retrieval-free long-context-asetelma ei eristä morfologiaa eikä osoita vaikutusta ohjeisiin perustuvassa RAG-haussa.",
+      "provenance": "imported-summary",
+      "appraisal": "not-appraised",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+      "epistemicStatus": "reported",
+      "reviewState": "imported",
+      "notes": ""
+    }
+  ],
+  "constructs": [
+    {
       "id": "task",
-      "kind": "concept",
       "label": "Tehtävän tietovaatimukset",
-      "description": "Mitä tietoa ja olennaisia ehtoja määritelty informaatiotyön tehtävä edellyttää?",
+      "definition": "Mitä tietoa ja olennaisia ehtoja määritelty informaatiotyön tehtävä edellyttää?",
+      "object": "",
+      "unit": "Tehtävä ja tiedontarve",
+      "scope": "",
+      "competingDefinitions": "",
       "boundary": "Kyselyn sanamuoto ei yksin määrittele koko tehtävää.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Working constructs; Conceptual foundations and model structure",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Tehtävä ja tiedontarve"
+      "locator": "Working constructs; Conceptual foundations and model structure",
+      "notes": ""
     },
     {
       "id": "retrieval",
-      "kind": "concept",
       "label": "Haun laatu",
-      "description": "Kuinka hyvin järjestetyt hakukatkelmat vastaavat määriteltyä tiedontarvetta relevanssiarvioiden perusteella?",
+      "definition": "Kuinka hyvin järjestetyt hakukatkelmat vastaavat määriteltyä tiedontarvetta relevanssiarvioiden perusteella?",
+      "object": "",
+      "unit": "Kysely × järjestetty hakukatkelmalista",
+      "scope": "",
+      "competingDefinitions": "",
       "boundary": "Haun relevanssi, kokoelman kattavuus ja kontekstin riittävyys arvioidaan erillisinä asioina.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Working constructs; Technical criteria and evaluation units",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Literature_Matrix_RAG_Evaluation(2).docx; Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Kysely × järjestetty hakukatkelmalista"
+      "locator": "Working constructs; Technical criteria and evaluation units",
+      "notes": ""
     },
     {
       "id": "sufficiency",
-      "kind": "concept",
       "label": "Näytön riittävyys",
-      "description": "Kattaako näyttö tehtävän vaatimat tietoasiat ja olennaiset rajaukset?",
+      "definition": "Kattaako näyttö tehtävän vaatimat tietoasiat ja olennaiset rajaukset?",
+      "object": "",
+      "unit": "Tehtävän tietoasia × arviointivaihe",
+      "scope": "",
+      "competingDefinitions": "",
       "boundary": "Aiheeseen liittyvä katkelma tai suuri viitemäärä ei takaa riittävyyttä.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Working constructs; Conceptual foundations and model structure",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Tehtävän tietoasia × arviointivaihe"
+      "locator": "Working constructs; Conceptual foundations and model structure",
+      "notes": ""
     },
     {
       "id": "groundedness",
-      "kind": "concept",
       "label": "Väitteiden lähdetuki",
-      "description": "Tukevatko mallille annetut katkelmat kutakin tarkistettavaa väitettä?",
+      "definition": "Tukevatko mallille annetut katkelmat kutakin tarkistettavaa väitettä?",
+      "object": "",
+      "unit": "Atominen väite × annettu konteksti",
+      "scope": "",
+      "competingDefinitions": "",
       "boundary": "Lähdetuki ei takaa lähteen ajantasaisuutta tai väitteen oikeellisuutta.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Working constructs; Conceptual foundations and model structure",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Atominen väite × annettu konteksti"
+      "locator": "Working constructs; Conceptual foundations and model structure",
+      "notes": ""
     },
     {
       "id": "transparency",
-      "kind": "concept",
       "label": "Lähteiden läpinäkyvyys",
-      "description": "Ovatko lähde, versio ja väitteen yhteys lähdekatkelmaan näkyvissä?",
+      "definition": "Ovatko lähde, versio ja väitteen yhteys lähdekatkelmaan näkyvissä?",
+      "object": "",
+      "unit": "Tallennettu lähdenäkymä",
+      "scope": "",
+      "competingDefinitions": "",
       "boundary": "Näkyvä viite ei vielä osoita, että viite tukee väitettä.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Working constructs; Conceptual foundations and model structure",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Tallennettu lähdenäkymä"
+      "locator": "Working constructs; Conceptual foundations and model structure",
+      "notes": ""
     },
     {
       "id": "verification",
-      "kind": "concept",
       "label": "Koettu tarkistettavuus",
-      "description": "Arvioijan käsitys siitä, löytyykö pääväitteille tunnistettavaa ja saavutettavaa näyttöä.",
+      "definition": "Arvioijan käsitys siitä, löytyykö pääväitteille tunnistettavaa ja saavutettavaa näyttöä.",
+      "object": "",
+      "unit": "Arviointitapahtuma",
+      "scope": "",
+      "competingDefinitions": "",
       "boundary": "Arvio ei osoita tarkistamisen onnistumista, aikaa tai vaivaa.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Working constructs; Conceptual foundations and model structure",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Arviointitapahtuma"
+      "locator": "Working constructs; Conceptual foundations and model structure",
+      "notes": ""
     },
     {
       "id": "credibility",
-      "kind": "concept",
       "label": "Koettu luotettavuus",
-      "description": "Asiantuntijan arvio vastauksen uskottavuudesta määritellyssä tehtävässä.",
+      "definition": "Asiantuntijan arvio vastauksen uskottavuudesta määritellyssä tehtävässä.",
+      "object": "",
+      "unit": "Arvioija × tallennettu vastaus",
+      "scope": "",
+      "competingDefinitions": "",
       "boundary": "Ei sama asia kuin lähdetuki, oikeellisuus tai toteutunut tukeutuminen vastaukseen.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Working constructs; Conceptual foundations and model structure",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Arvioija × tallennettu vastaus"
+      "locator": "Working constructs; Conceptual foundations and model structure",
+      "notes": ""
     },
     {
       "id": "robustness",
-      "kind": "concept",
       "label": "Suomenkielinen robustius",
-      "description": "Arvioiden ja näyttökattavuuden vakaus merkitykseltään vastaavien kysymysmuotojen välillä.",
+      "definition": "Arvioiden ja näyttökattavuuden vakaus merkitykseltään vastaavien kysymysmuotojen välillä.",
+      "object": "",
+      "unit": "Tiedontarve × muunnelmapari",
+      "scope": "",
+      "competingDefinitions": "",
       "boundary": "Muunnelmat eivät ole riippumattomia tiedontarpeita; morfologian vaikutus vaatii kontrollin.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Working constructs; Conceptual foundations and model structure",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Tiedontarve × muunnelmapari"
+      "locator": "Working constructs; Conceptual foundations and model structure",
+      "notes": ""
     },
     {
       "id": "validity",
-      "kind": "concept",
       "label": "Päätelmien validiteetti",
-      "description": "Mitä tämän arvioinnin havainto kertoo tarkoitetusta laatukäsitteestä?",
+      "definition": "Mitä tämän arvioinnin havainto kertoo tarkoitetusta laatukäsitteestä?",
+      "object": "",
+      "unit": "Kriteeri ja sen perusteella tehtävä päätelmä",
+      "scope": "",
+      "competingDefinitions": "",
       "boundary": "Yhteys tai samanmielisyys ei yksin osoita validiteettia eikä syy-seuraussuhdetta.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Working constructs; Conceptual foundations and model structure",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Kriteeri ja sen perusteella tehtävä päätelmä"
-    },
+      "locator": "Working constructs; Conceptual foundations and model structure",
+      "notes": ""
+    }
+  ],
+  "criteria": [
     {
       "id": "facets",
-      "kind": "criterion",
       "label": "Tietoasialle tehtävä kattavuustarkastus",
-      "description": "Merkitse vaaditut tietoasiat erikseen kokoelmasta, annetusta kontekstista ja vastauksesta. Luokat: täysi, osittainen, puuttuva tai ristiriitainen tuki.",
-      "boundary": "Raportoi puuttuvat olennaiset ehdot erikseen. Ehdotettu suhdeluku ei ole validoitu kokonaisindeksi.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "constructIds": [
+        "sufficiency",
+        "task"
+      ],
+      "evidenceRequirements": "Merkitse vaaditut tietoasiat erikseen kokoelmasta, annetusta kontekstista ja vastauksesta. Luokat: täysi, osittainen, puuttuva tai ristiriitainen tuki.",
+      "assessor": "",
+      "decisionRule": "",
+      "permittedInference": "Raportoi puuttuvat olennaiset ehdot erikseen. Ehdotettu suhdeluku ei ole validoitu kokonaisindeksi.",
+      "validationNeed": "",
+      "unit": "Tietoasia × vaihe",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Tietoasia × vaihe"
+      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "notes": ""
     },
     {
       "id": "ranking",
-      "kind": "criterion",
       "label": "Haun relevanssimittarit",
-      "description": "Käytä kalibroituja relevanssiarvioita sekä ennalta määriteltyjä nDCG@k- ja Recall@k-mittareita.",
-      "boundary": "Poolattuihin arvioihin perustuva recall koskee tunnettua relevanttia näyttöä; arvioimattomat kohteet dokumentoidaan.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "constructIds": [
+        "retrieval"
+      ],
+      "evidenceRequirements": "Käytä kalibroituja relevanssiarvioita sekä ennalta määriteltyjä nDCG@k- ja Recall@k-mittareita.",
+      "assessor": "",
+      "decisionRule": "",
+      "permittedInference": "Poolattuihin arvioihin perustuva recall koskee tunnettua relevanttia näyttöä; arvioimattomat kohteet dokumentoidaan.",
+      "validationNeed": "",
+      "unit": "Kysely × järjestetty katkelmalista",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Kysely × järjestetty katkelmalista"
+      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "notes": ""
     },
     {
       "id": "support",
-      "kind": "criterion",
       "label": "Väitetuen S P C U A -merkinnät",
-      "description": "S = täysin tuettu; P = osittain tuettu; C = ristiriidassa; U = ei tukea; A = epäselvä. Säilytä tukikatkelma ja kaikki luokkamäärät.",
-      "boundary": "Tukea vailla oleva väite ei välttämättä ole epätosi. Atomisten väitteiden rajaus ja suomenkielinen päättely on pilotoitava.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "constructIds": [
+        "groundedness"
+      ],
+      "evidenceRequirements": "S = täysin tuettu; P = osittain tuettu; C = ristiriidassa; U = ei tukea; A = epäselvä. Säilytä tukikatkelma ja kaikki luokkamäärät.",
+      "assessor": "",
+      "decisionRule": "",
+      "permittedInference": "Tukea vailla oleva väite ei välttämättä ole epätosi. Atomisten väitteiden rajaus ja suomenkielinen päättely on pilotoitava.",
+      "validationNeed": "",
+      "unit": "Atominen väite × konteksti",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Atominen väite × konteksti"
+      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "notes": ""
     },
     {
       "id": "display",
-      "kind": "criterion",
       "label": "Lähdenäkymän tarkastus",
-      "description": "Kirjaa lähteen tunniste, versio, väitelinkki ja katkelmapaikannin erillisinä tietoina.",
-      "boundary": "Tarkastus koskee näkyvyyttä; viitetuki ja lähteen soveltuvuus arvioidaan erikseen.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "constructIds": [
+        "transparency"
+      ],
+      "evidenceRequirements": "Kirjaa lähteen tunniste, versio, väitelinkki ja katkelmapaikannin erillisinä tietoina.",
+      "assessor": "",
+      "decisionRule": "",
+      "permittedInference": "Tarkastus koskee näkyvyyttä; viitetuki ja lähteen soveltuvuus arvioidaan erikseen.",
+      "validationNeed": "",
+      "unit": "Tallennettu näkymä × vastaus",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Tallennettu näkymä × vastaus"
+      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "notes": ""
     },
     {
       "id": "expert",
-      "kind": "criterion",
       "label": "Viisi erillistä asiantuntija-arviota",
-      "description": "Koettu luotettavuus, hyödyllisyys, lähteiden läpinäkyvyys, lähteiden riittävyys ja koettu tarkistettavuus.",
-      "boundary": "Asteikot on pilotoitava; ei yhdistelmäluottamuspistemäärää. Ei päätelmiä todellisesta työtehtävässä onnistumisesta.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "constructIds": [
+        "credibility",
+        "verification"
+      ],
+      "evidenceRequirements": "Koettu luotettavuus, hyödyllisyys, lähteiden läpinäkyvyys, lähteiden riittävyys ja koettu tarkistettavuus.",
+      "assessor": "",
+      "decisionRule": "",
+      "permittedInference": "Asteikot on pilotoitava; ei yhdistelmäluottamuspistemäärää. Ei päätelmiä todellisesta työtehtävässä onnistumisesta.",
+      "validationNeed": "",
+      "unit": "Arvioija × vastaus × näkymä",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Arvioija × vastaus × näkymä"
+      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "notes": ""
     },
     {
       "id": "pairs",
-      "kind": "criterion",
       "label": "Merkitysvastaavien muotoilujen vertailu",
-      "description": "Tarkista muotoilujen vastaavuus. Vertaa samassa konfiguraatiossa haun ja näyttökattavuuden parittaisia muutoksia.",
-      "boundary": "Muotoilun monet piirteet voivat muuttua yhtä aikaa; vaikutusta ei automaattisesti nimetä morfologiavaikutukseksi.",
-      "status": "adaptation",
-      "access": "not-applicable",
-      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "constructIds": [
+        "robustness"
+      ],
+      "evidenceRequirements": "Tarkista muotoilujen vastaavuus. Vertaa samassa konfiguraatiossa haun ja näyttökattavuuden parittaisia muutoksia.",
+      "assessor": "",
+      "decisionRule": "",
+      "permittedInference": "Muotoilun monet piirteet voivat muuttua yhtä aikaa; vaikutusta ei automaattisesti nimetä morfologiavaikutukseksi.",
+      "validationNeed": "",
+      "unit": "Tiedontarve × muunnelmapari",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Tiedontarve × muunnelmapari"
+      "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+      "notes": ""
     },
     {
       "id": "currency",
-      "kind": "criterion",
       "label": "Ajantasaisuuden ja soveltuvuuden tarkastus",
-      "description": "Kirjaa lähteen versio, ajallinen soveltuvuus ja mahdollinen korvaava versio. Oikeellisuus arvioidaan määriteltyä vertailuperustaa vasten.",
-      "boundary": "Lähteen päivämäärä ei yksin ratkaise oikeellisuutta; asiantuntemuksen tai vertailuperustan puuttuessa ei anneta arviota.",
-      "status": "adaptation",
-      "access": "not-applicable",
+      "constructIds": [
+        "validity"
+      ],
+      "evidenceRequirements": "Kirjaa lähteen versio, ajallinen soveltuvuus ja mahdollinen korvaava versio. Oikeellisuus arvioidaan määriteltyä vertailuperustaa vasten.",
+      "assessor": "",
+      "decisionRule": "",
+      "permittedInference": "Lähteen päivämäärä ei yksin ratkaise oikeellisuutta; asiantuntemuksen tai vertailuperustan puuttuessa ei anneta arviota.",
+      "validationNeed": "",
+      "unit": "Lähdeversio tai tehtäväsidonnainen väite",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
       "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Lähdeversio tai tehtäväsidonnainen väite"
-    },
-    {
-      "id": "p1",
-      "kind": "question",
-      "label": "P1 · Kattavuus ja koettu riittävyys",
-      "description": "Onko kontekstin täysi tietoasiakattavuus yhteydessä asiantuntijan arvioimaan riittävyyteen, kun ennalta valittu hakumittari sekä toistuvat kysymykset ja arvioijat huomioidaan?",
-      "boundary": "Tuleva yhteystarkastelu; ei osoitettu vaikutus.",
-      "status": "hypothesis",
-      "access": "not-applicable",
-      "locator": "Expert rubric and future propositions; remaining validation needs",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Myöhemmin määriteltävä tutkimusasetelma"
-    },
-    {
-      "id": "p2",
-      "kind": "question",
-      "label": "P2 · Katkelmalinkki ja tarkistettavuus",
-      "description": "Saako eksplisiittinen väite–katkelmalinkki korkeamman koetun tarkistettavuuden arvion kuin dokumenttiviite, kun vastaus ja näyttö pidetään samoina?",
-      "boundary": "Vaatii erillisen kontrolloidun esitystapavertailun. Tarkistamisen onnistumista ei päätellä arviosta.",
-      "status": "hypothesis",
-      "access": "not-applicable",
-      "locator": "Expert rubric and future propositions; remaining validation needs",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Myöhemmin määriteltävä tutkimusasetelma"
-    },
-    {
-      "id": "p3",
-      "kind": "question",
-      "label": "P3 · Muotoilu ja näytön menetys",
-      "description": "Liittyykö olennaisen kontekstikattavuuden lasku vastauksen kattavuuden laskuun merkitysvastaavissa muunnelmapareissa?",
-      "boundary": "Tutki myös tapaukset, joissa generointi kompensoi puutetta tai epäonnistuu riittävästä kontekstista huolimatta.",
-      "status": "hypothesis",
-      "access": "not-applicable",
-      "locator": "Expert rubric and future propositions; remaining validation needs",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Myöhemmin määriteltävä tutkimusasetelma"
-    },
-    {
-      "id": "q_validity",
-      "kind": "question",
-      "label": "Miten kriteerit validoidaan?",
-      "description": "Pystyvätkö arvioijat soveltamaan määritelmiä johdonmukaisesti, ja tukevatko havainnot niistä tehtäviä päätelmiä?",
-      "boundary": "Pelkkä arvioijien yhdenmielisyys tai mittarien korrelaatio ei riitä validiteetin osoitukseksi.",
-      "status": "hypothesis",
-      "access": "not-applicable",
-      "locator": "Expert rubric and future propositions; remaining validation needs",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
-      "notes": "",
-      "url": "",
-      "unit": "Myöhemmin määriteltävä tutkimusasetelma"
+      "notes": ""
     }
   ],
-  "edges": [
+  "relationships": [
     {
       "id": "e_1",
+      "meaning": "motivates",
       "source": "jarvelin15",
       "target": "task",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_jarvelin15"
+      ],
+      "sourceIds": [
+        "jarvelin15"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_2",
+      "meaning": "motivates",
       "source": "blueprint24",
       "target": "sufficiency",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_blueprint24"
+      ],
+      "sourceIds": [
+        "blueprint24"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_3",
+      "meaning": "motivates",
       "source": "hilligoss08",
       "target": "credibility",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_hilligoss08"
+      ],
+      "sourceIds": [
+        "hilligoss08"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_4",
+      "meaning": "motivates",
       "source": "sittig10",
       "target": "transparency",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_sittig10"
+      ],
+      "sourceIds": [
+        "sittig10"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_5",
+      "meaning": "motivates",
       "source": "thomas26",
       "target": "validity",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_thomas26"
+      ],
+      "sourceIds": [
+        "thomas26"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_6",
+      "meaning": "motivates",
       "source": "ragas24",
       "target": "groundedness",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_ragas24"
+      ],
+      "sourceIds": [
+        "ragas24"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_7",
+      "meaning": "motivates",
       "source": "ares24",
       "target": "groundedness",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_ares24"
+      ],
+      "sourceIds": [
+        "ares24"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_8",
+      "meaning": "motivates",
       "source": "ragchecker24",
       "target": "groundedness",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_ragchecker24"
+      ],
+      "sourceIds": [
+        "ragchecker24"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_9",
+      "meaning": "motivates",
       "source": "liu23",
       "target": "transparency",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_liu23"
+      ],
+      "sourceIds": [
+        "liu23"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_10",
+      "meaning": "motivates",
       "source": "liu23",
       "target": "groundedness",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_liu23"
+      ],
+      "sourceIds": [
+        "liu23"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_11",
+      "meaning": "motivates",
       "source": "lajewska24",
       "target": "verification",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_lajewska24"
+      ],
+      "sourceIds": [
+        "lajewska24"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_12",
+      "meaning": "motivates",
       "source": "saukkoriipi26",
       "target": "robustness",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [
+        "claim_saukkoriipi26"
+      ],
+      "sourceIds": [
+        "saukkoriipi26"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_13",
+      "meaning": "operationalises",
       "source": "task",
       "target": "facets",
       "label": "ehdotettu toteutus",
-      "relation": "operationalises",
-      "status": "adaptation",
       "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_14",
+      "meaning": "operationalises",
       "source": "sufficiency",
       "target": "facets",
       "label": "ehdotettu toteutus",
-      "relation": "operationalises",
-      "status": "adaptation",
       "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_15",
+      "meaning": "complements",
       "source": "sufficiency",
       "target": "ranking",
       "label": "erillinen vertailumittari",
-      "relation": "complements",
-      "status": "adaptation",
       "rationale": "Riittävyys täydentää haun relevanssin tarkastelua. Relevanssimittari ei operationalisoi riittävyyttä.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_16",
+      "meaning": "operationalises",
       "source": "groundedness",
       "target": "support",
       "label": "ehdotettu toteutus",
-      "relation": "operationalises",
-      "status": "adaptation",
       "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_17",
+      "meaning": "operationalises",
       "source": "transparency",
       "target": "display",
       "label": "ehdotettu toteutus",
-      "relation": "operationalises",
-      "status": "adaptation",
       "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_18",
+      "meaning": "operationalises",
       "source": "verification",
       "target": "expert",
       "label": "ehdotettu toteutus",
-      "relation": "operationalises",
-      "status": "adaptation",
       "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_19",
+      "meaning": "operationalises",
       "source": "credibility",
       "target": "expert",
       "label": "ehdotettu toteutus",
-      "relation": "operationalises",
-      "status": "adaptation",
       "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_20",
+      "meaning": "operationalises",
       "source": "robustness",
       "target": "pairs",
       "label": "ehdotettu toteutus",
-      "relation": "operationalises",
-      "status": "adaptation",
       "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_21",
+      "meaning": "operationalises",
       "source": "validity",
       "target": "currency",
       "label": "ehdotettu toteutus",
-      "relation": "operationalises",
-      "status": "adaptation",
       "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_22",
+      "meaning": "proposes",
       "source": "facets",
       "target": "p1",
       "label": "vielä testattava",
-      "relation": "proposes",
-      "status": "hypothesis",
       "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_23",
+      "meaning": "proposes",
       "source": "ranking",
       "target": "p1",
       "label": "vielä testattava",
-      "relation": "proposes",
-      "status": "hypothesis",
       "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_24",
+      "meaning": "proposes",
       "source": "display",
       "target": "p2",
       "label": "vielä testattava",
-      "relation": "proposes",
-      "status": "hypothesis",
       "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_25",
+      "meaning": "proposes",
       "source": "expert",
       "target": "p1",
       "label": "vielä testattava",
-      "relation": "proposes",
-      "status": "hypothesis",
       "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_26",
+      "meaning": "proposes",
       "source": "expert",
       "target": "p2",
       "label": "vielä testattava",
-      "relation": "proposes",
-      "status": "hypothesis",
       "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_27",
+      "meaning": "proposes",
       "source": "pairs",
       "target": "p3",
       "label": "vielä testattava",
-      "relation": "proposes",
-      "status": "hypothesis",
       "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_28",
+      "meaning": "proposes",
       "source": "facets",
       "target": "p3",
       "label": "vielä testattava",
-      "relation": "proposes",
-      "status": "hypothesis",
       "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_29",
+      "meaning": "proposes",
       "source": "support",
       "target": "q_validity",
       "label": "vielä testattava",
-      "relation": "proposes",
-      "status": "hypothesis",
       "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_30",
+      "meaning": "proposes",
       "source": "currency",
       "target": "q_validity",
       "label": "vielä testattava",
-      "relation": "proposes",
-      "status": "hypothesis",
       "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
-      "locator": ""
+      "locator": "",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_31",
+      "meaning": "operationalises",
       "source": "retrieval",
       "target": "ranking",
       "label": "ehdotettu toteutus",
-      "relation": "operationalises",
-      "status": "adaptation",
       "rationale": "Asiakirjoissa kuvattuun erotteluun perustuva alustava sovellus.",
-      "locator": "Working constructs; Technical criteria and evaluation units"
+      "locator": "Working constructs; Technical criteria and evaluation units",
+      "claimIds": [],
+      "sourceIds": [],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
     },
     {
       "id": "e_32",
+      "meaning": "motivates",
       "source": "blueprint24",
       "target": "retrieval",
       "label": "motivoi käsitettä",
-      "relation": "motivates",
-      "status": "adaptation",
       "rationale": "Asiakirjoissa kuvattuun erotteluun perustuva alustava sovellus.",
-      "locator": "Working constructs; Technical criteria and evaluation units"
+      "locator": "Working constructs; Technical criteria and evaluation units",
+      "claimIds": [
+        "claim_blueprint24"
+      ],
+      "sourceIds": [
+        "blueprint24"
+      ],
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "reviewNote": ""
+    }
+  ],
+  "propositions": [
+    {
+      "id": "p1",
+      "label": "P1 · Kattavuus ja koettu riittävyys",
+      "statement": "Onko kontekstin täysi tietoasiakattavuus yhteydessä asiantuntijan arvioimaan riittävyyteen, kun ennalta valittu hakumittari sekä toistuvat kysymykset ja arvioijat huomioidaan?",
+      "boundary": "Tuleva yhteystarkastelu; ei osoitettu vaikutus.",
+      "unit": "Myöhemmin määriteltävä tutkimusasetelma",
+      "criterionIds": [
+        "expert",
+        "facets",
+        "ranking"
+      ],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+      "locator": "Expert rubric and future propositions; remaining validation needs",
+      "notes": ""
+    },
+    {
+      "id": "p2",
+      "label": "P2 · Katkelmalinkki ja tarkistettavuus",
+      "statement": "Saako eksplisiittinen väite–katkelmalinkki korkeamman koetun tarkistettavuuden arvion kuin dokumenttiviite, kun vastaus ja näyttö pidetään samoina?",
+      "boundary": "Vaatii erillisen kontrolloidun esitystapavertailun. Tarkistamisen onnistumista ei päätellä arviosta.",
+      "unit": "Myöhemmin määriteltävä tutkimusasetelma",
+      "criterionIds": [
+        "display",
+        "expert"
+      ],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+      "locator": "Expert rubric and future propositions; remaining validation needs",
+      "notes": ""
+    },
+    {
+      "id": "p3",
+      "label": "P3 · Muotoilu ja näytön menetys",
+      "statement": "Liittyykö olennaisen kontekstikattavuuden lasku vastauksen kattavuuden laskuun merkitysvastaavissa muunnelmapareissa?",
+      "boundary": "Tutki myös tapaukset, joissa generointi kompensoi puutetta tai epäonnistuu riittävästä kontekstista huolimatta.",
+      "unit": "Myöhemmin määriteltävä tutkimusasetelma",
+      "criterionIds": [
+        "facets",
+        "pairs"
+      ],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+      "locator": "Expert rubric and future propositions; remaining validation needs",
+      "notes": ""
+    },
+    {
+      "id": "q_validity",
+      "label": "Miten kriteerit validoidaan?",
+      "statement": "Pystyvätkö arvioijat soveltamaan määritelmiä johdonmukaisesti, ja tukevatko havainnot niistä tehtäviä päätelmiä?",
+      "boundary": "Pelkkä arvioijien yhdenmielisyys tai mittarien korrelaatio ei riitä validiteetin osoitukseksi.",
+      "unit": "Myöhemmin määriteltävä tutkimusasetelma",
+      "criterionIds": [
+        "currency",
+        "support"
+      ],
+      "epistemicStatus": "hypothesis",
+      "reviewState": "imported",
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+      "locator": "Expert rubric and future propositions; remaining validation needs",
+      "notes": ""
     }
   ],
   "cases": [
@@ -796,7 +1175,10 @@
       ],
       "interpretation": "Kokoelman kattavuus 3/3; kontekstin ja vastauksen kattavuus 1/3. Vastauksen ainoa tarkistettava väite on tuettu (S). Ensimmäinen havaittu menetys on kokoelman ja kontekstin välissä.",
       "boundary": "Puuttumisen syytä ei päätellä: tarkista järjestetty hakulista ja kontekstin muodostaminen. Asiantuntija-arvioita ei ole kerätty.",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case A"
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case A",
+      "propositionIds": [],
+      "criterionIds": [],
+      "decisionIds": []
     },
     {
       "id": "B",
@@ -837,7 +1219,10 @@
       ],
       "interpretation": "Ero koskee lähdenäytön tarkkuutta. Dokumenttiviitettä ei luokitella virheelliseksi, jos dokumentti sisältää tuen. P2 ehdottaa myöhempää koetun tarkistettavuuden vertailua.",
       "boundary": "Paikantimen puuttuminen ei osoita, ettei tarkistaminen voisi onnistua esimerkiksi dokumenttihaulla.",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case B"
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case B",
+      "propositionIds": [],
+      "criterionIds": [],
+      "decisionIds": []
     },
     {
       "id": "C",
@@ -873,7 +1258,905 @@
       ],
       "interpretation": "Historiallinen väite voi olla tuettu ja tosiasiallisesti oikea mutta nykyhetken tehtävään riittämätön. Nykyisyysväite vaatii erillisen ajallisen tuen. Riippumattoman nykyviitteen ristiriita kirjataan erikseen kontekstituesta.",
       "boundary": "Älä käytä yleisluokitusta ”täysin lähteisiin ankkuroitu mutta väärä” tutkimatta väitteen sanamuotoa ja ajallista rajausta. Ei päätelmää kliinisestä turvallisuudesta.",
-      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case C"
+      "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case C",
+      "propositionIds": [],
+      "criterionIds": [],
+      "decisionIds": []
     }
-  ]
+  ],
+  "decisions": [
+    {
+      "id": "decision_schema1_import",
+      "label": "Schema 1 -tuonti",
+      "statement": "Jokainen schema 1 -kirjallisuusmerkintä jaettiin lähteeksi ja eksplisiittisesti merkityksi tuoduksi yhteenvedoksi. Yhteenvetoa ei käsitelty alkuperäislähteestä tarkastettuna väitteenä.",
+      "scope": "Säilytetty lähtöaineisto",
+      "rationale": "Julkaisun tilaa ei päätelty preprint-tiedosta, osoitteesta tai vuodesta. Lukemistasosta ei päätelty menetelmällistä laatua. Alkuperäinen asiakirja säilyy kentässä legacy.document.",
+      "epistemicStatus": "adaptation",
+      "reviewState": "imported",
+      "recordIds": []
+    }
+  ],
+  "legacy": {
+    "schemaVersion": 1,
+    "preservedBeforeReplacement": true,
+    "document": {
+      "schemaVersion": 1,
+      "project": {
+        "name": "Finnish healthcare RAG — Year 1",
+        "description": "Valikoitu lähtömalli käsitteelliselle kehittämiselle. Ei valmis kirjallisuuskatsaus eikä validoitu mittaristo."
+      },
+      "nodes": [
+        {
+          "id": "jarvelin15",
+          "kind": "source",
+          "label": "Järvelin ym. 2015",
+          "description": "Tehtävät, informaatiotoiminnot, järjestelmätuotokset ja tehtävätulokset erotetaan toisistaan.",
+          "boundary": "Vastauksen arvio ei osoita onnistumista varsinaisessa työtehtävässä.",
+          "status": "literature",
+          "access": "not-recorded",
+          "locator": "Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+          "notes": "",
+          "url": "https://doi.org/10.1145/2699660",
+          "unit": ""
+        },
+        {
+          "id": "blueprint24",
+          "kind": "source",
+          "label": "Järvelin & Sormunen 2024",
+          "description": "Tehtävä- ja käyttäjäominaisuudet sekä relevanssin, päällekkäisyyden ja käytettävyyden ulottuvuudet jäsentävät arviointia.",
+          "boundary": "Tämän työtilan kattavuussääntö on oma ehdotus; sitä ei esitetä Blueprintin validoituna mittarina.",
+          "status": "literature",
+          "access": "not-recorded",
+          "locator": "Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+          "notes": "",
+          "url": "https://doi.org/10.1145/3675162",
+          "unit": ""
+        },
+        {
+          "id": "hilligoss08",
+          "kind": "source",
+          "label": "Hilligoss & Rieh 2008",
+          "description": "Uskottavuusarviointia jäsentävät käsitteet, heuristiikat ja tilanteinen vuorovaikutus.",
+          "boundary": "Lähteestä ei periydy validoitua asteikkoa suomalaisille terveydenhuollon asiantuntijoille.",
+          "status": "literature",
+          "access": "not-recorded",
+          "locator": "Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+          "notes": "",
+          "url": "https://doi.org/10.1016/j.ipm.2007.10.001",
+          "unit": ""
+        },
+        {
+          "id": "sittig10",
+          "kind": "source",
+          "label": "Sittig & Singh 2010",
+          "description": "Sisältö, käyttöliittymä, ihmiset ja organisaatio ovat toisiinsa kytkeytyviä terveydenhuollon tietotekniikan ehtoja.",
+          "boundary": "Työtila ei arvioi kaikkia kahdeksaa ulottuvuutta eikä käyttöönoton turvallisuutta.",
+          "status": "literature",
+          "access": "not-recorded",
+          "locator": "Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+          "notes": "",
+          "url": "https://doi.org/10.1136/qshc.2010.042085",
+          "unit": ""
+        },
+        {
+          "id": "thomas26",
+          "kind": "source",
+          "label": "Thomas ym. 2026",
+          "description": "Arvioinnissa on määriteltävä tavoiteltu laatu ja päätelmät, joihin mittaustulos oikeuttaa.",
+          "boundary": "Mittarien tai arvioijien samanmielisyys ei yksin osoita tulkinnan validiteettia.",
+          "status": "literature",
+          "access": "not-recorded",
+          "locator": "Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+          "notes": "",
+          "url": "https://doi.org/10.1145/3805712.3808538",
+          "unit": ""
+        },
+        {
+          "id": "ragas24",
+          "kind": "source",
+          "label": "RAGAs 2024",
+          "description": "Väitetuki, vastauksen relevanssi ja kontekstin relevanssi ovat erillisiä teknisiä arviointikohteita.",
+          "boundary": "Ei osoita suomenkielisen terveydenhuollon validiteettia, kliinistä oikeellisuutta tai asiantuntijan luottamusta.",
+          "status": "literature",
+          "access": "reported-abstract",
+          "locator": "Corrected source and claim mapping — C1",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+          "notes": "",
+          "url": "https://doi.org/10.18653/v1/2024.eacl-demo.16",
+          "unit": ""
+        },
+        {
+          "id": "ares24",
+          "kind": "source",
+          "label": "ARES 2024",
+          "description": "Arviointituomareita ja ihmisen merkintöjä voidaan käyttää järjestelmätason arvioiden kalibrointiin.",
+          "boundary": "Ihmisen tekemä tuomarin validointi ei ole käyttäjän luottamuksen mittaus.",
+          "status": "literature",
+          "access": "reported-abstract",
+          "locator": "Corrected source and claim mapping — C1; matrix 2.2",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+          "notes": "",
+          "url": "https://doi.org/10.18653/v1/2024.naacl-long.20",
+          "unit": ""
+        },
+        {
+          "id": "ragchecker24",
+          "kind": "source",
+          "label": "RAGChecker 2024",
+          "description": "Väitetason diagnostiikka erottelee haun ja generoinnin ongelmia.",
+          "boundary": "Tämä ei sellaisenaan validoi tämän tutkimuksen suomenkielistä sosioteknistä arviointimallia.",
+          "status": "literature",
+          "access": "reported-abstract",
+          "locator": "Corrected source and claim mapping — C5",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+          "notes": "",
+          "url": "https://doi.org/10.52202/079017-0692",
+          "unit": ""
+        },
+        {
+          "id": "liu23",
+          "kind": "source",
+          "label": "Liu ym. 2023",
+          "description": "Vastauksen sisällön ja viitattujen lähteiden tukisuhteita tarkastellaan erikseen.",
+          "boundary": "Viitetuki ei osoita lähteen ajantasaisuutta eikä ihmisen onnistunutta tarkistamista.",
+          "status": "literature",
+          "access": "not-recorded",
+          "locator": "Corrected source and claim mapping — C2; abstract and evaluation protocol",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+          "notes": "",
+          "url": "https://doi.org/10.18653/v1/2023.findings-emnlp.467",
+          "unit": ""
+        },
+        {
+          "id": "lajewska24",
+          "kind": "source",
+          "label": "Łajewska ym. 2024",
+          "description": "Selityksen laatua ja esitystapaa voidaan tutkia erillään vastauksen laadusta.",
+          "boundary": "Ei osoita, että katkelmalinkki aiheuttaa onnistuneen tarkistamisen terveydenhuollossa.",
+          "status": "literature",
+          "access": "reported-abstract",
+          "locator": "Restricted claims and methodological decisions — C10",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+          "notes": "",
+          "url": "https://doi.org/10.1145/3626772.3657768",
+          "unit": ""
+        },
+        {
+          "id": "saukkoriipi26",
+          "kind": "source",
+          "label": "Saukkoriipi ym. 2026",
+          "description": "Merkitykseltään vastaavien suomenkielisten muotoilujen vaihtelu motivoi robustiuden tarkastelua lähialueella.",
+          "boundary": "Potilastietojen retrieval-free long-context-asetelma ei eristä morfologiaa eikä osoita vaikutusta ohjeisiin perustuvassa RAG-haussa.",
+          "status": "literature",
+          "access": "reported-full-text",
+          "locator": "Restricted claims and methodological decisions — C6; inspected manuscript Introduction and Methods",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
+          "notes": "",
+          "url": "https://doi.org/10.48550/arXiv.2603.26434",
+          "unit": ""
+        },
+        {
+          "id": "task",
+          "kind": "concept",
+          "label": "Tehtävän tietovaatimukset",
+          "description": "Mitä tietoa ja olennaisia ehtoja määritelty informaatiotyön tehtävä edellyttää?",
+          "boundary": "Kyselyn sanamuoto ei yksin määrittele koko tehtävää.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Working constructs; Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Tehtävä ja tiedontarve"
+        },
+        {
+          "id": "retrieval",
+          "kind": "concept",
+          "label": "Haun laatu",
+          "description": "Kuinka hyvin järjestetyt hakukatkelmat vastaavat määriteltyä tiedontarvetta relevanssiarvioiden perusteella?",
+          "boundary": "Haun relevanssi, kokoelman kattavuus ja kontekstin riittävyys arvioidaan erillisinä asioina.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Working constructs; Technical criteria and evaluation units",
+          "basis": "Literature_Matrix_RAG_Evaluation(2).docx; Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Kysely × järjestetty hakukatkelmalista"
+        },
+        {
+          "id": "sufficiency",
+          "kind": "concept",
+          "label": "Näytön riittävyys",
+          "description": "Kattaako näyttö tehtävän vaatimat tietoasiat ja olennaiset rajaukset?",
+          "boundary": "Aiheeseen liittyvä katkelma tai suuri viitemäärä ei takaa riittävyyttä.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Working constructs; Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Tehtävän tietoasia × arviointivaihe"
+        },
+        {
+          "id": "groundedness",
+          "kind": "concept",
+          "label": "Väitteiden lähdetuki",
+          "description": "Tukevatko mallille annetut katkelmat kutakin tarkistettavaa väitettä?",
+          "boundary": "Lähdetuki ei takaa lähteen ajantasaisuutta tai väitteen oikeellisuutta.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Working constructs; Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Atominen väite × annettu konteksti"
+        },
+        {
+          "id": "transparency",
+          "kind": "concept",
+          "label": "Lähteiden läpinäkyvyys",
+          "description": "Ovatko lähde, versio ja väitteen yhteys lähdekatkelmaan näkyvissä?",
+          "boundary": "Näkyvä viite ei vielä osoita, että viite tukee väitettä.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Working constructs; Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Tallennettu lähdenäkymä"
+        },
+        {
+          "id": "verification",
+          "kind": "concept",
+          "label": "Koettu tarkistettavuus",
+          "description": "Arvioijan käsitys siitä, löytyykö pääväitteille tunnistettavaa ja saavutettavaa näyttöä.",
+          "boundary": "Arvio ei osoita tarkistamisen onnistumista, aikaa tai vaivaa.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Working constructs; Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Arviointitapahtuma"
+        },
+        {
+          "id": "credibility",
+          "kind": "concept",
+          "label": "Koettu luotettavuus",
+          "description": "Asiantuntijan arvio vastauksen uskottavuudesta määritellyssä tehtävässä.",
+          "boundary": "Ei sama asia kuin lähdetuki, oikeellisuus tai toteutunut tukeutuminen vastaukseen.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Working constructs; Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Arvioija × tallennettu vastaus"
+        },
+        {
+          "id": "robustness",
+          "kind": "concept",
+          "label": "Suomenkielinen robustius",
+          "description": "Arvioiden ja näyttökattavuuden vakaus merkitykseltään vastaavien kysymysmuotojen välillä.",
+          "boundary": "Muunnelmat eivät ole riippumattomia tiedontarpeita; morfologian vaikutus vaatii kontrollin.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Working constructs; Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Tiedontarve × muunnelmapari"
+        },
+        {
+          "id": "validity",
+          "kind": "concept",
+          "label": "Päätelmien validiteetti",
+          "description": "Mitä tämän arvioinnin havainto kertoo tarkoitetusta laatukäsitteestä?",
+          "boundary": "Yhteys tai samanmielisyys ei yksin osoita validiteettia eikä syy-seuraussuhdetta.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Working constructs; Conceptual foundations and model structure",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Kriteeri ja sen perusteella tehtävä päätelmä"
+        },
+        {
+          "id": "facets",
+          "kind": "criterion",
+          "label": "Tietoasialle tehtävä kattavuustarkastus",
+          "description": "Merkitse vaaditut tietoasiat erikseen kokoelmasta, annetusta kontekstista ja vastauksesta. Luokat: täysi, osittainen, puuttuva tai ristiriitainen tuki.",
+          "boundary": "Raportoi puuttuvat olennaiset ehdot erikseen. Ehdotettu suhdeluku ei ole validoitu kokonaisindeksi.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Tietoasia × vaihe"
+        },
+        {
+          "id": "ranking",
+          "kind": "criterion",
+          "label": "Haun relevanssimittarit",
+          "description": "Käytä kalibroituja relevanssiarvioita sekä ennalta määriteltyjä nDCG@k- ja Recall@k-mittareita.",
+          "boundary": "Poolattuihin arvioihin perustuva recall koskee tunnettua relevanttia näyttöä; arvioimattomat kohteet dokumentoidaan.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Kysely × järjestetty katkelmalista"
+        },
+        {
+          "id": "support",
+          "kind": "criterion",
+          "label": "Väitetuen S P C U A -merkinnät",
+          "description": "S = täysin tuettu; P = osittain tuettu; C = ristiriidassa; U = ei tukea; A = epäselvä. Säilytä tukikatkelma ja kaikki luokkamäärät.",
+          "boundary": "Tukea vailla oleva väite ei välttämättä ole epätosi. Atomisten väitteiden rajaus ja suomenkielinen päättely on pilotoitava.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Atominen väite × konteksti"
+        },
+        {
+          "id": "display",
+          "kind": "criterion",
+          "label": "Lähdenäkymän tarkastus",
+          "description": "Kirjaa lähteen tunniste, versio, väitelinkki ja katkelmapaikannin erillisinä tietoina.",
+          "boundary": "Tarkastus koskee näkyvyyttä; viitetuki ja lähteen soveltuvuus arvioidaan erikseen.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Tallennettu näkymä × vastaus"
+        },
+        {
+          "id": "expert",
+          "kind": "criterion",
+          "label": "Viisi erillistä asiantuntija-arviota",
+          "description": "Koettu luotettavuus, hyödyllisyys, lähteiden läpinäkyvyys, lähteiden riittävyys ja koettu tarkistettavuus.",
+          "boundary": "Asteikot on pilotoitava; ei yhdistelmäluottamuspistemäärää. Ei päätelmiä todellisesta työtehtävässä onnistumisesta.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Arvioija × vastaus × näkymä"
+        },
+        {
+          "id": "pairs",
+          "kind": "criterion",
+          "label": "Merkitysvastaavien muotoilujen vertailu",
+          "description": "Tarkista muotoilujen vastaavuus. Vertaa samassa konfiguraatiossa haun ja näyttökattavuuden parittaisia muutoksia.",
+          "boundary": "Muotoilun monet piirteet voivat muuttua yhtä aikaa; vaikutusta ei automaattisesti nimetä morfologiavaikutukseksi.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Tiedontarve × muunnelmapari"
+        },
+        {
+          "id": "currency",
+          "kind": "criterion",
+          "label": "Ajantasaisuuden ja soveltuvuuden tarkastus",
+          "description": "Kirjaa lähteen versio, ajallinen soveltuvuus ja mahdollinen korvaava versio. Oikeellisuus arvioidaan määriteltyä vertailuperustaa vasten.",
+          "boundary": "Lähteen päivämäärä ei yksin ratkaise oikeellisuutta; asiantuntemuksen tai vertailuperustan puuttuessa ei anneta arviota.",
+          "status": "adaptation",
+          "access": "not-applicable",
+          "locator": "Technical criteria; Operational definitions; Claim support; Expert rubric",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Lähdeversio tai tehtäväsidonnainen väite"
+        },
+        {
+          "id": "p1",
+          "kind": "question",
+          "label": "P1 · Kattavuus ja koettu riittävyys",
+          "description": "Onko kontekstin täysi tietoasiakattavuus yhteydessä asiantuntijan arvioimaan riittävyyteen, kun ennalta valittu hakumittari sekä toistuvat kysymykset ja arvioijat huomioidaan?",
+          "boundary": "Tuleva yhteystarkastelu; ei osoitettu vaikutus.",
+          "status": "hypothesis",
+          "access": "not-applicable",
+          "locator": "Expert rubric and future propositions; remaining validation needs",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Myöhemmin määriteltävä tutkimusasetelma"
+        },
+        {
+          "id": "p2",
+          "kind": "question",
+          "label": "P2 · Katkelmalinkki ja tarkistettavuus",
+          "description": "Saako eksplisiittinen väite–katkelmalinkki korkeamman koetun tarkistettavuuden arvion kuin dokumenttiviite, kun vastaus ja näyttö pidetään samoina?",
+          "boundary": "Vaatii erillisen kontrolloidun esitystapavertailun. Tarkistamisen onnistumista ei päätellä arviosta.",
+          "status": "hypothesis",
+          "access": "not-applicable",
+          "locator": "Expert rubric and future propositions; remaining validation needs",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Myöhemmin määriteltävä tutkimusasetelma"
+        },
+        {
+          "id": "p3",
+          "kind": "question",
+          "label": "P3 · Muotoilu ja näytön menetys",
+          "description": "Liittyykö olennaisen kontekstikattavuuden lasku vastauksen kattavuuden laskuun merkitysvastaavissa muunnelmapareissa?",
+          "boundary": "Tutki myös tapaukset, joissa generointi kompensoi puutetta tai epäonnistuu riittävästä kontekstista huolimatta.",
+          "status": "hypothesis",
+          "access": "not-applicable",
+          "locator": "Expert rubric and future propositions; remaining validation needs",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Myöhemmin määriteltävä tutkimusasetelma"
+        },
+        {
+          "id": "q_validity",
+          "kind": "question",
+          "label": "Miten kriteerit validoidaan?",
+          "description": "Pystyvätkö arvioijat soveltamaan määritelmiä johdonmukaisesti, ja tukevatko havainnot niistä tehtäviä päätelmiä?",
+          "boundary": "Pelkkä arvioijien yhdenmielisyys tai mittarien korrelaatio ei riitä validiteetin osoitukseksi.",
+          "status": "hypothesis",
+          "access": "not-applicable",
+          "locator": "Expert rubric and future propositions; remaining validation needs",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx",
+          "notes": "",
+          "url": "",
+          "unit": "Myöhemmin määriteltävä tutkimusasetelma"
+        }
+      ],
+      "edges": [
+        {
+          "id": "e_1",
+          "source": "jarvelin15",
+          "target": "task",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_2",
+          "source": "blueprint24",
+          "target": "sufficiency",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_3",
+          "source": "hilligoss08",
+          "target": "credibility",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_4",
+          "source": "sittig10",
+          "target": "transparency",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_5",
+          "source": "thomas26",
+          "target": "validity",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_6",
+          "source": "ragas24",
+          "target": "groundedness",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_7",
+          "source": "ares24",
+          "target": "groundedness",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_8",
+          "source": "ragchecker24",
+          "target": "groundedness",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_9",
+          "source": "liu23",
+          "target": "transparency",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_10",
+          "source": "liu23",
+          "target": "groundedness",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_11",
+          "source": "lajewska24",
+          "target": "verification",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_12",
+          "source": "saukkoriipi26",
+          "target": "robustness",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
+          "locator": ""
+        },
+        {
+          "id": "e_13",
+          "source": "task",
+          "target": "facets",
+          "label": "ehdotettu toteutus",
+          "relation": "operationalises",
+          "status": "adaptation",
+          "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
+          "locator": ""
+        },
+        {
+          "id": "e_14",
+          "source": "sufficiency",
+          "target": "facets",
+          "label": "ehdotettu toteutus",
+          "relation": "operationalises",
+          "status": "adaptation",
+          "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
+          "locator": ""
+        },
+        {
+          "id": "e_15",
+          "source": "sufficiency",
+          "target": "ranking",
+          "label": "erillinen vertailumittari",
+          "relation": "complements",
+          "status": "adaptation",
+          "rationale": "Riittävyys täydentää haun relevanssin tarkastelua. Relevanssimittari ei operationalisoi riittävyyttä.",
+          "locator": ""
+        },
+        {
+          "id": "e_16",
+          "source": "groundedness",
+          "target": "support",
+          "label": "ehdotettu toteutus",
+          "relation": "operationalises",
+          "status": "adaptation",
+          "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
+          "locator": ""
+        },
+        {
+          "id": "e_17",
+          "source": "transparency",
+          "target": "display",
+          "label": "ehdotettu toteutus",
+          "relation": "operationalises",
+          "status": "adaptation",
+          "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
+          "locator": ""
+        },
+        {
+          "id": "e_18",
+          "source": "verification",
+          "target": "expert",
+          "label": "ehdotettu toteutus",
+          "relation": "operationalises",
+          "status": "adaptation",
+          "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
+          "locator": ""
+        },
+        {
+          "id": "e_19",
+          "source": "credibility",
+          "target": "expert",
+          "label": "ehdotettu toteutus",
+          "relation": "operationalises",
+          "status": "adaptation",
+          "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
+          "locator": ""
+        },
+        {
+          "id": "e_20",
+          "source": "robustness",
+          "target": "pairs",
+          "label": "ehdotettu toteutus",
+          "relation": "operationalises",
+          "status": "adaptation",
+          "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
+          "locator": ""
+        },
+        {
+          "id": "e_21",
+          "source": "validity",
+          "target": "currency",
+          "label": "ehdotettu toteutus",
+          "relation": "operationalises",
+          "status": "adaptation",
+          "rationale": "Tutkimuskohtainen operationalisointi, joka pitää pilotoida ja perustella.",
+          "locator": ""
+        },
+        {
+          "id": "e_22",
+          "source": "facets",
+          "target": "p1",
+          "label": "vielä testattava",
+          "relation": "proposes",
+          "status": "hypothesis",
+          "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
+          "locator": ""
+        },
+        {
+          "id": "e_23",
+          "source": "ranking",
+          "target": "p1",
+          "label": "vielä testattava",
+          "relation": "proposes",
+          "status": "hypothesis",
+          "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
+          "locator": ""
+        },
+        {
+          "id": "e_24",
+          "source": "display",
+          "target": "p2",
+          "label": "vielä testattava",
+          "relation": "proposes",
+          "status": "hypothesis",
+          "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
+          "locator": ""
+        },
+        {
+          "id": "e_25",
+          "source": "expert",
+          "target": "p1",
+          "label": "vielä testattava",
+          "relation": "proposes",
+          "status": "hypothesis",
+          "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
+          "locator": ""
+        },
+        {
+          "id": "e_26",
+          "source": "expert",
+          "target": "p2",
+          "label": "vielä testattava",
+          "relation": "proposes",
+          "status": "hypothesis",
+          "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
+          "locator": ""
+        },
+        {
+          "id": "e_27",
+          "source": "pairs",
+          "target": "p3",
+          "label": "vielä testattava",
+          "relation": "proposes",
+          "status": "hypothesis",
+          "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
+          "locator": ""
+        },
+        {
+          "id": "e_28",
+          "source": "facets",
+          "target": "p3",
+          "label": "vielä testattava",
+          "relation": "proposes",
+          "status": "hypothesis",
+          "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
+          "locator": ""
+        },
+        {
+          "id": "e_29",
+          "source": "support",
+          "target": "q_validity",
+          "label": "vielä testattava",
+          "relation": "proposes",
+          "status": "hypothesis",
+          "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
+          "locator": ""
+        },
+        {
+          "id": "e_30",
+          "source": "currency",
+          "target": "q_validity",
+          "label": "vielä testattava",
+          "relation": "proposes",
+          "status": "hypothesis",
+          "rationale": "Ei kerättyä tulosta; kysymys tai propositio tulevaa tutkimusta varten.",
+          "locator": ""
+        },
+        {
+          "id": "e_31",
+          "source": "retrieval",
+          "target": "ranking",
+          "label": "ehdotettu toteutus",
+          "relation": "operationalises",
+          "status": "adaptation",
+          "rationale": "Asiakirjoissa kuvattuun erotteluun perustuva alustava sovellus.",
+          "locator": "Working constructs; Technical criteria and evaluation units"
+        },
+        {
+          "id": "e_32",
+          "source": "blueprint24",
+          "target": "retrieval",
+          "label": "motivoi käsitettä",
+          "relation": "motivates",
+          "status": "adaptation",
+          "rationale": "Asiakirjoissa kuvattuun erotteluun perustuva alustava sovellus.",
+          "locator": "Working constructs; Technical criteria and evaluation units"
+        }
+      ],
+      "cases": [
+        {
+          "id": "A",
+          "kind": "constructed",
+          "title": "A · Tuettu väite, puuttuva poikkeus",
+          "task": "Tehtävä edellyttää tavallisen yhteydenottokanavan sekä poikkeusehdon E ja sen kanavan tunnistamista.",
+          "columns": [
+            "Tietoasia",
+            "Kokoelma",
+            "Konteksti",
+            "Vastaus"
+          ],
+          "rows": [
+            [
+              "F1 · Tavallinen kanava X",
+              "Saatavilla",
+              "Mukana",
+              "Mukana"
+            ],
+            [
+              "F2 · Poikkeusehto E",
+              "Saatavilla",
+              "Puuttuu",
+              "Puuttuu"
+            ],
+            [
+              "F3 · Kanava Y ehdossa E",
+              "Saatavilla",
+              "Puuttuu",
+              "Puuttuu"
+            ]
+          ],
+          "interpretation": "Kokoelman kattavuus 3/3; kontekstin ja vastauksen kattavuus 1/3. Vastauksen ainoa tarkistettava väite on tuettu (S). Ensimmäinen havaittu menetys on kokoelman ja kontekstin välissä.",
+          "boundary": "Puuttumisen syytä ei päätellä: tarkista järjestetty hakulista ja kontekstin muodostaminen. Asiantuntija-arvioita ei ole kerätty.",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case A"
+        },
+        {
+          "id": "B",
+          "kind": "constructed",
+          "title": "B · Sama näyttö, eri paikannettavuus",
+          "task": "Tehtävänä on selvittää, lähetetäänkö ohjauspyynnöstä kuittaus. Sama väite ja sitä tukeva lähdekatkelma pidetään molemmissa näkymissä samoina.",
+          "columns": [
+            "Tarkastettava asia",
+            "Dokumenttiviite",
+            "Katkelmalinkki"
+          ],
+          "rows": [
+            [
+              "Väitteen lähdetuki",
+              "Täysi tuki",
+              "Täysi tuki"
+            ],
+            [
+              "Lähteen tunniste ja versio",
+              "Näkyvissä",
+              "Näkyvissä"
+            ],
+            [
+              "Tarkka lähdekatkelma",
+              "Ei suoraa paikanninta",
+              "P7 avautuu suoraan"
+            ],
+            [
+              "Koettu tarkistettavuus",
+              "Ei mitattu",
+              "Ei mitattu"
+            ],
+            [
+              "Tarkistamisen onnistuminen tai aika",
+              "Ei mitattu",
+              "Ei mitattu"
+            ]
+          ],
+          "interpretation": "Ero koskee lähdenäytön tarkkuutta. Dokumenttiviitettä ei luokitella virheelliseksi, jos dokumentti sisältää tuen. P2 ehdottaa myöhempää koetun tarkistettavuuden vertailua.",
+          "boundary": "Paikantimen puuttuminen ei osoita, ettei tarkistaminen voisi onnistua esimerkiksi dokumenttihaulla.",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case B"
+        },
+        {
+          "id": "C",
+          "kind": "constructed",
+          "title": "C · Vanha lähde nykyhetken tehtävässä",
+          "task": "Kysymys pyytää nykyistä yhteydenottokanavaa. D3-2024 nimeää kanavan X; sen korvaava D3-2026 nimeää kanavan Y. Kontekstissa on vain vanha versio.",
+          "columns": [
+            "Arvioinnin kohde",
+            "Historiallinen väite A3a",
+            "Nykyhetken väite A3b"
+          ],
+          "rows": [
+            [
+              "Vastaus",
+              "Vuoden 2024 ohjeessa kanava on X.",
+              "Nykyinen kanava on X."
+            ],
+            [
+              "Tuki annetusta vanhasta kontekstista",
+              "Historiallinen väite tuettu",
+              "Nykyisyysväite ei saa tukea; epäselvä jos soveltuvuus ratkaisematta"
+            ],
+            [
+              "Nykyisen tehtävän kattavuus",
+              "Nykyinen kanava puuttuu",
+              "Nykyinen kanava esitetään väärin suhteessa annettuun nykyviitteeseen"
+            ],
+            [
+              "Erillinen lähdeauditointi",
+              "Vanha versio korvattu",
+              "Vanha versio korvattu"
+            ]
+          ],
+          "interpretation": "Historiallinen väite voi olla tuettu ja tosiasiallisesti oikea mutta nykyhetken tehtävään riittämätön. Nykyisyysväite vaatii erillisen ajallisen tuen. Riippumattoman nykyviitteen ristiriita kirjataan erikseen kontekstituesta.",
+          "boundary": "Älä käytä yleisluokitusta ”täysin lähteisiin ankkuroitu mutta väärä” tutkimatta väitteen sanamuotoa ja ajallista rajausta. Ei päätelmää kliinisestä turvallisuudesta.",
+          "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case C"
+        }
+      ]
+    }
+  }
 }

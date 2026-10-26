@@ -2,7 +2,28 @@
   "name": "research-evidence-explorer",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Traceable conceptual research workspace for Finnish healthcare RAG",
-  "scripts": {"build": "node scripts/build.js", "test": "node --test tests/*.test.js"},
-  "engines": {"node": ">=22"}
+  "scripts": {
+    "dev": "vite",
+    "build": "node --experimental-strip-types scripts/build.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "migrate": "node --experimental-strip-types scripts/migrate.ts",
+    "export-graph": "node --experimental-strip-types scripts/export-graph.ts"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@xyflow/react": "12.9.3",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "@vitejs/plugin-react": "5.1.0",
+    "typescript": "5.9.3",
+    "vite": "7.3.7"
+  }
 }

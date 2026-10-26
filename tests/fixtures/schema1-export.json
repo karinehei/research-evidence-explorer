@@ -1,4 +1,4 @@
-window.RESEARCH_SEED = {
+{
   "schemaVersion": 1,
   "project": {
     "name": "Finnish healthcare RAG — Year 1",
@@ -15,9 +15,13 @@ window.RESEARCH_SEED = {
       "access": "not-recorded",
       "locator": "Conceptual foundations and model structure",
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx; yhteenvetoa täydennetty matriisista",
-      "notes": "",
+      "notes": "Vientitarkistus: muistiinpano säilyy",
       "url": "https://doi.org/10.1145/2699660",
-      "unit": ""
+      "unit": "",
+      "position": {
+        "x": 40,
+        "y": 80
+      }
     },
     {
       "id": "blueprint24",
@@ -445,7 +449,7 @@ window.RESEARCH_SEED = {
       "id": "e_1",
       "source": "jarvelin15",
       "target": "task",
-      "label": "motivoi käsitettä",
+      "label": "vientitarkistuksen yhteys",
       "relation": "motivates",
       "status": "adaptation",
       "rationale": "Artikkelisuunnitelmassa tai matriisissa kuvattu rooli. Siirto tähän tutkimukseen on oma sovellus; yhteys ei ole alkuperäislähteen validointitulos.",
@@ -876,4 +880,4 @@ window.RESEARCH_SEED = {
       "basis": "Year_1_RAG_Conceptual_Article_Brief (2).docx — Case C"
     }
   ]
-};
+}
