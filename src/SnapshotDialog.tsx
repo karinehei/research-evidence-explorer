@@ -4,6 +4,7 @@ import {
   applySnapshotImport, compareSnapshots, contentHash, createSnapshot, layoutHash,
   loadPreImportBackup, previewImport, storePreImportBackup, type ImportPreview, type SnapshotComparison
 } from './snapshots.ts';
+import { Modal } from './Modal.tsx';
 import type { Workspace } from './types.ts';
 
 function downloadText(name: string, text: string) {
@@ -109,8 +110,7 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
     if (ok) onClose();
   }
 
-  return <dialog open className="modal snapshot-dialog">
-    <div className="dialog-head"><h2>Tilannekuvat ja tuonti</h2><button type="button" aria-label="Sulje" onClick={onClose}>×</button></div>
+  return <Modal open={open} title="Tilannekuvat ja tuonti" onClose={onClose} className="snapshot-dialog" initialFocus="primary">
     <p className="subtle">{LOCAL_SAVE_DISCLAIMER}</p>
     <p className="subtle">{HASH_DISCLAIMER}</p>
     <p className="subtle">{AUDIT_DISCLAIMER}</p>
@@ -129,7 +129,7 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
     {preview && <PreviewBlock preview={preview} compare={compare} />}
     {preview?.ok && <div className="actions"><button type="button" className="primary" onClick={confirmImport}>Hyväksy korvaava tuonti</button><button type="button" onClick={onClose}>Peruuta</button></div>}
     {message && <p className="subtle" role="status">{message}</p>}
-  </dialog>;
+  </Modal>;
 }
 
 function PreviewBlock({ preview, compare }: { preview: ImportPreview; compare: SnapshotComparison | null }) {

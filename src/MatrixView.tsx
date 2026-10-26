@@ -90,17 +90,18 @@ export function MatrixView({ model, selectedId, onSelect, onEdge, onCsv }: {
     </div>
 
     {orientation === 'criterion' && <div className="table-wrap"><table>
+      <caption>Kriteeriorientoitunut matriisi — samat kanoniset tietueet kuin graafissa</caption>
       <thead><tr>
         {['Kriteeri', 'Käsite ja määritelmä', 'Lähdeväitteet ja ketju', 'Oma sovellus', 'Näyttö / arvioija / yksikkö', 'Päätössääntö', 'Sallittu päättely', 'Validointitarve'].map(column => <th key={column} scope="col">{column}</th>)}
       </tr></thead>
       <tbody>{criterionRows.map(row => {
         const active = selectedId === row.criterion.id || row.claims.some(claim => claim.claimId === selectedId);
         return <tr key={row.criterion.id} className={active ? 'selected' : ''}>
-          <td>
+          <th scope="row">
             <button type="button" onClick={() => onSelect(row.criterion.id)}>{row.criterion.label}</button>
             <p className="subtle">{epistemicLabel[row.criterion.epistemicStatus]}</p>
             <p className="subtle">id: {row.criterion.id}</p>
-          </td>
+          </th>
           <td>
             {row.missingConstructIds.length > 0 && <p className="error-text">Puuttuva käsiteviite — tarkistettava: {row.missingConstructIds.join(', ')}</p>}
             {row.constructs.length ? row.constructs.map(item => <div key={item.id} className="matrix-block">
@@ -143,14 +144,15 @@ export function MatrixView({ model, selectedId, onSelect, onEdge, onCsv }: {
     {orientation === 'source' && <>
       <p className="subtle">Lähderoolit (käsitteellinen, tekninen, empiirinen, työkalu/työnkulku) eivät ole keskenään vaihdettavia viitekehyksiä. Kirjaamaton rooli on “Ei kirjattu”, ei arvottava sijoitus. Ketjun rooli kertoo tallennetun yhteyden luonteen.</p>
       <div className="table-wrap"><table>
+        <caption>Lähdeorientoitunut matriisi — roolit eivät ole rangattuja viitekehyksiä</caption>
         <thead><tr>{['Lähde', 'Kirjattu rooli', 'Väitteet', 'Esiintyminen kriteereissä', 'Kilpailevat / rajoittavat huomiot'].map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
         <tbody>{sourceRows.map(row => {
           const active = selectedId === row.source.id || row.claims.some(claim => claim.id === selectedId);
           return <tr key={row.source.id} className={active ? 'selected' : ''}>
-            <td>
+            <th scope="row">
               <button type="button" onClick={() => onSelect(row.source.id)}>{row.source.label}</button>
               <p className="subtle">id: {row.source.id}</p>
-            </td>
+            </th>
             <td>
               <p>{researchRoleLabel[row.researchRole]}</p>
               <p className="subtle">Roolit eivät ole rangattuja viitekehyksiä.</p>

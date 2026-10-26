@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type MutableRefObject } from 'react';
 import {
   ANALYTIC_CASE_LABEL, CASE_VIEW_DISCLAIMER, CONSTRUCTED_CASE_TAG, coverageLayerLabel,
   exportConstructedCase, facetStateLabel, layerCoverage, missingEssentialFacets, type CoverageLayer
 } from './cases.ts';
+import { contentKey } from './edit.ts';
+import type { DirtyApi } from './draft.ts';
 import type { ConstructedCase, FacetState, Workspace } from './types.ts';
 
 const facetOptions = Object.entries(facetStateLabel).map(([id, label]) => ({ id, label }));
@@ -20,17 +22,20 @@ function cloneCase(record: ConstructedCase): ConstructedCase {
   return JSON.parse(JSON.stringify(record));
 }
 
-export function CasesView({ model, selectedId, onSelect, onSave }: {
+export function CasesView({ model, selectedId, onSelect, onSave, guard, onEditModeChange }: {
   model: Workspace;
   selectedId: string;
   onSelect: (id: string) => void;
   onSave: (next: Workspace, message: string) => boolean;
+  guard: MutableRefObject<DirtyApi | null>;
+  onEditModeChange?: (editing: boolean) => void;
 }) {
   const selected = model.cases.find(item => item.id === selectedId) || model.cases[0];
   const [draft, setDraft] = useState<ConstructedCase | null>(selected ? cloneCase(selected) : null);
   const [leftVariantId, setLeftVariantId] = useState('');
   const [rightVariantId, setRightVariantId] = useState('');
   const [editMode, setEditMode] = useState(false);
+  const savedKey = selected ? contentKey(selected) : '';
 
   useEffect(() => {
     const record = model.cases.find(item => item.id === selectedId) || model.cases[0] || null;
@@ -40,10 +45,51 @@ export function CasesView({ model, selectedId, onSelect, onSave }: {
     }
     setDraft(cloneCase(record));
     setEditMode(false);
+    onEditModeChange?.(false);
     const answers = record.answerVariants;
     setLeftVariantId(answers[0]?.id || '');
     setRightVariantId(answers[1]?.id || answers[0]?.id || '');
-  }, [selectedId, model]);
+  }, [selectedId, model, onEditModeChange]);
+
+  useEffect(() => {
+    onEditModeChange?.(editMode);
+  }, [editMode, onEditModeChange]);
+
+  useEffect(() => {
+    if (!editMode || !draft || !selected) {
+      return;
+    }
+    const persist = () => {
+      const copy = JSON.parse(JSON.stringify(model)) as Workspace;
+      const index = copy.cases.findIndex(item => item.id === draft.id);
+      if (index < 0) return false;
+      copy.cases[index] = {
+        ...draft,
+        kind: 'constructed',
+        analyticLabel: ANALYTIC_CASE_LABEL,
+        task: draft.taskReference.statement || draft.task,
+        unmeasured: {
+          verificationSuccess: 'not-measured',
+          verificationTime: 'not-measured',
+          expertRatings: 'not-measured'
+        }
+      };
+      const ok = onSave(copy, 'Rakennettu tapaus tallennettiin. Esimerkki pysyy rakennettuna analyyttisenä esimerkkinä.');
+      if (ok) setEditMode(false);
+      return ok;
+    };
+    guard.current = {
+      isDirty: () => contentKey(draft) !== savedKey,
+      save: persist,
+      reset: () => {
+        setDraft(cloneCase(selected));
+        setEditMode(false);
+      }
+    };
+    return () => {
+      if (guard.current?.save === persist) guard.current = null;
+    };
+  }, [editMode, draft, selected, savedKey, model, onSave, guard]);
 
   const layers = useMemo(() => {
     if (!draft) return [];

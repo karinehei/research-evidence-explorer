@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type MutableRefObject, type ReactNode } from 'react';
+import { useRef, useState, type FormEvent, type MutableRefObject, type ReactNode } from 'react';
 import { access, appraisal, epistemic, locate, provenance, relations, reviewStates } from './model.ts';
 import { accessLabel, appraisalLabel, epistemicLabel, meaningLabel, provenanceLabel, publicationLabel, researchRoleLabel, reviewLabel } from './labels.ts';
 import { clone, newId, requireConnection } from './edit.ts';
@@ -41,16 +41,17 @@ function Remove({ id, onRemove }: { id: string; onRemove: (id: string) => void }
   return <button type="button" className="delete" onClick={() => onRemove(id)}>Poista kohde ja sen yhteydet</button>;
 }
 
-export function Inspector({ model, selectedId, edgeId, mode, guard, onSave, onMessage, onOpen, onEdge, onAddEdge, onAddClaim, onRemove }: {
+export function Inspector({ model, selectedId, edgeId, mode, guard, onSave, onMessage, onOpen, onEdge, onAddEdge, onAddClaim, onRemove, caseDraftPaused = false }: {
   model: Workspace; selectedId: string; edgeId: string; mode: Mode; guard: MutableRefObject<DirtyApi | null>;
   onSave: Save; onMessage: (text: string) => void; onOpen: (id: string) => void; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onAddClaim: (sourceId: string) => void; onRemove: (id: string) => void;
+  caseDraftPaused?: boolean;
 }) {
   if (mode.type === 'add-node') return <AddNode model={model} guard={guard} onSave={onSave} onMessage={onMessage} onOpen={onOpen} />;
   if (mode.type === 'add-edge') return <AddEdge model={model} sourceId={mode.sourceId} guard={guard} onSave={onSave} onMessage={onMessage} onEdge={onEdge} />;
   if (edgeId.startsWith('link:')) return <Membership model={model} edgeId={edgeId} onOpen={onOpen} />;
   if (edgeId) return <RelationshipForm model={model} edgeId={edgeId} guard={guard} onSave={onSave} onRemove={onRemove} />;
   const item = locate(model, selectedId) as { kind: string; record: Source & Criterion & Relationship & ConstructedCase & Decision & { statement?: string } } | null;
-  if (!item) return <aside className="inspector" aria-label="Valitun kohteen tiedot"><h2>Valitse kohde</h2><p className="subtle">Valinta säilyy kartan ja matriisin välillä. Sarkain ja Enter valitsevat kartan kohteen.</p></aside>;
+  if (!item) return <aside className="inspector" aria-label="Valitun kohteen tiedot"><h2>Valitse kohde</h2><p className="subtle">Valinta säilyy kartan ja matriisin välillä. Sarkain ja Enter valitsevat kartan kohteen. Pitkät nimet ja rajaukset ovat tässä tekstinä — kartta ei kutista kaikkia nimikkeitä.</p></aside>;
   return <aside className="inspector" aria-label="Valitun kohteen tiedot">
     {item.kind === 'source' && <SourceForm model={model} source={item.record} guard={guard} onSave={onSave} onOpen={onOpen} onEdge={onEdge} onAddEdge={onAddEdge} onAddClaim={onAddClaim} onRemove={onRemove} />}
     {item.kind === 'claim' && <ClaimForm model={model} claimId={item.record.id} guard={guard} onSave={onSave} onOpen={onOpen} onRemove={onRemove} />}
@@ -58,7 +59,7 @@ export function Inspector({ model, selectedId, edgeId, mode, guard, onSave, onMe
     {item.kind === 'criterion' && <CriterionForm model={model} recordId={item.record.id} guard={guard} onSave={onSave} onEdge={onEdge} onAddEdge={onAddEdge} onRemove={onRemove} />}
     {item.kind === 'proposition' && <PropositionForm model={model} recordId={item.record.id} guard={guard} onSave={onSave} onEdge={onEdge} onAddEdge={onAddEdge} onRemove={onRemove} onOpen={onOpen} />}
     {item.kind === 'protocol' && <ProtocolForm model={model} recordId={item.record.id} onOpen={onOpen} />}
-    {item.kind === 'case' && <CaseForm model={model} recordId={item.record.id} guard={guard} onSave={onSave} />}
+    {item.kind === 'case' && <CaseForm model={model} recordId={item.record.id} guard={guard} onSave={onSave} paused={caseDraftPaused} />}
     {item.kind === 'decision' && <DecisionForm model={model} recordId={item.record.id} guard={guard} onSave={onSave} onRemove={onRemove} />}
   </aside>;
 }
@@ -404,10 +405,12 @@ function ProtocolForm({ model, recordId, onOpen }: { model: Workspace; recordId:
   </>;
 }
 
-function CaseForm({ model, recordId, guard, onSave }: { model: Workspace; recordId: string; guard: MutableRefObject<DirtyApi | null>; onSave: Save }) {
+function CaseForm({ model, recordId, guard, onSave, paused }: { model: Workspace; recordId: string; guard: MutableRefObject<DirtyApi | null>; onSave: Save; paused: boolean }) {
   const record = model.cases.find(item => item.id === recordId)!;
   const saved = { propositionIds: record.propositionIds, criterionIds: record.criterionIds, decisionIds: record.decisionIds };
-  const { draft, setDraft, persist } = useDraft(saved, guard, next => {
+  const idleGuard = useRef<DirtyApi | null>(null);
+  const activeGuard = paused ? idleGuard : guard;
+  const { draft, setDraft, persist } = useDraft(saved, activeGuard, next => {
     const copy = clone(model);
     const item = copy.cases.find(entry => entry.id === recordId);
     if (!item) return false;
@@ -418,6 +421,7 @@ function CaseForm({ model, recordId, guard, onSave }: { model: Workspace; record
     <div className="eyebrow">RAKENNETTU TAPAUS</div><h2>{record.title}</h2>
     <span className="tag hypothesis">Rakennettu analyyttinen esimerkki</span>
     <p className="subtle">Tehtävä–näyttö-muokkaus on tapausten näkymässä. Tähän kirjataan vain erilliset viitteet. Niitä ei päätelty tekstistä. Empiirinen tapaus vaatisi erillisen tietuetyypin.</p>
+    {paused && <p className="subtle" role="status">Tapausnäkymän muokkaus on auki — tallentamattomat muutokset suojataan sieltä.</p>}
     <p className="subtle">analyticLabel: {record.analyticLabel}</p>
     <FormShell submit={persist} label="Tallenna esimerkin viitteet">
       <Checks title="Propositioviitteet" records={model.propositions.map(item => ({ id: item.id, label: item.label }))} selected={draft.propositionIds} onChange={ids => setDraft(current => ({ ...current, propositionIds: ids }))} />

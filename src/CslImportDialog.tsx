@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { StagedItem, StageAction } from './cslImport.ts';
 import { applyCslImport, stageCslImport, suggestVersionLinks } from './cslImport.ts';
+import { Modal } from './Modal.tsx';
 import type { Workspace } from './types.ts';
 
 const actionLabel: Record<StageAction, string> = {
@@ -66,11 +67,7 @@ export function CslImportDialog({ model, onClose, onApply }: {
     }
   }
 
-  return <dialog open className="modal wide-modal">
-    <div className="dialog-head">
-      <h2>Tuo Zotero CSL-JSON</h2>
-      <button type="button" aria-label="Sulje" onClick={onClose}>×</button>
-    </div>
+  return <Modal open title="Tuo Zotero CSL-JSON" onClose={onClose} className="wide-modal" initialFocus="primary">
     <p>Tuonti on tutkijan käynnistämä. Esikatselu näyttää osumat ennen tallennusta. Bibliografinen tuonti voi luoda lähteitä, mutta se ei keksi löydöksiä, menetelmiä, väitteitä eikä lukemistilaa. Liitteet säilytetään vain metatietona.</p>
     <label className="file-pick">Valitse CSL-JSON-tiedosto
       <input type="file" accept=".json,application/json" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; void onFile(file); }} />
@@ -120,5 +117,5 @@ export function CslImportDialog({ model, onClose, onApply }: {
       <button type="button" className="primary" disabled={!stage?.length} onClick={accept}>Hyväksy tuonti</button>
       <button type="button" onClick={onClose}>Peruuta</button>
     </div>
-  </dialog>;
+  </Modal>;
 }

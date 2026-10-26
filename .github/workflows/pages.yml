@@ -1,7 +1,7 @@
-name: Check and deploy research explorer
+# Deploys the static research explorer to GitHub Pages.
+# Manual only — ordinary push/PR checks must not publish unpublished notes.
+name: Deploy GitHub Pages
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -9,7 +9,7 @@ permissions:
   id-token: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   deploy:
     runs-on: ubuntu-24.04
@@ -25,6 +25,10 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Confirm published seed is curated only
+        run: |
+          test -f dist/published-seed.json
+          node -e "const fs=require('fs'); const seed=JSON.parse(fs.readFileSync('dist/published-seed.json','utf8')); if(seed.schemaVersion!==2) process.exit(1); if(Array.isArray(seed.editLog)&&seed.editLog.length) { console.error('Published seed must not carry a private editLog'); process.exit(1);} "
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

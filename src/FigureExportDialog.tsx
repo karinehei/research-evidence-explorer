@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   FIGURE_GENERATOR_VERSION, buildFigureBundle, type FigureMode, type FigurePreset
 } from './figures.ts';
+import { Modal } from './Modal.tsx';
 import { contentHash } from './snapshots.ts';
 import type { Workspace } from './types.ts';
 
@@ -69,8 +70,7 @@ export function FigureExportDialog({ model, open, onClose, visibleIds, selectedI
     }
   }
 
-  return <dialog open className="modal snapshot-dialog">
-    <div className="dialog-head"><h2>Toistettava kuvion vienti</h2><button type="button" aria-label="Sulje" onClick={onClose}>×</button></div>
+  return <Modal open={open} title="Toistettava kuvion vienti" onClose={onClose} className="snapshot-dialog" initialFocus="primary">
     <p className="subtle">Kaksi eksplisiittistä tilaa: selaimen asettelu (tallennetut sijainnit) tai Graphviz DOT. Ei koko työtilan pakotettua kuviota. Yhteyksien tiedollinen tila säilyy valinnassa.</p>
     <p className="subtle">Sisältötiiviste: {hash || '…'}</p>
     <label>Esiasetus
@@ -98,5 +98,5 @@ export function FigureExportDialog({ model, open, onClose, visibleIds, selectedI
       <button type="button" onClick={onClose}>Sulje</button>
     </div>
     {message && <p className="subtle" role="status">{message}</p>}
-  </dialog>;
+  </Modal>;
 }
