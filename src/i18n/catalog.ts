@@ -354,7 +354,28 @@ export const uiFi = {
     caseEyebrow: 'RAKENNETTU TAPAUS',
     decisionEyebrow: 'TUTKIMUSPÄÄTÖS',
     claimEyebrow: 'LÄHDEVÄITE',
-    sourceEyebrow: 'KIRJALLISUUS JA NÄYTTÖ'
+    sourceEyebrow: 'KIRJALLISUUS JA NÄYTTÖ',
+    savedLink: 'Yhteyden tiedot tallennettiin.',
+    savedSource: 'Lähteen tiedot tallennettiin.',
+    savedClaim: 'Lähdeväitteen tiedot tallennettiin.',
+    savedConstruct: 'Käsitteen tiedot tallennettiin.',
+    savedCriterion: 'Kriteerin tiedot tallennettiin.',
+    savedProposition: 'Proposition tiedot tallennettiin.',
+    savedCaseRefs: 'Esimerkin viitteet tallennettiin. Esimerkki pysyy rakennettuna.',
+    savedDecision: 'Tutkimuspäätös tallennettiin.',
+    linkAdded: 'Yhteys lisättiin ehdotuksena. Merkitys on valittu erikseen, eikä nuoli tarkoita kausaliteettia.',
+    linkAddFailed: 'Yhteyttä ei lisätty.',
+    newLinkTitle: 'Uusi yhteys',
+    newLinkFrom: 'Lähtö: {label}',
+    addLinkSubmit: 'Lisää yhteys',
+    target: 'Päätepiste',
+    pickTarget: 'Valitse päätepiste',
+    pickMeaning: 'Valitse yhteyden merkitys',
+    newLinkHint: 'Uusi yhteys pysyy ehdotuksena, kunnes merkitset sen arvioiduksi. Tyhjä merkitys ei tallennu motiivina eikä kausaalisena nuolena.'
+  },
+  graphExtra: {
+    traceMissing: 'Valituilla kohteilla ei ole kirjattua suunnattua ketjua. Puuttuva polku ei osoita tutkimustulosta eikä sitä, etteikö yhteyttä voisi myöhemmin kirjata.',
+    traceLinkFallback: 'yhteys'
   },
   history: {
     actorLabel: 'Valinnainen tutkijan nimiö (ei todennettu tunnistautuminen)',
@@ -853,7 +874,28 @@ export const uiEn = {
     caseEyebrow: 'CONSTRUCTED CASE',
     decisionEyebrow: 'RESEARCH DECISION',
     claimEyebrow: 'SOURCE CLAIM',
-    sourceEyebrow: 'LITERATURE AND EVIDENCE'
+    sourceEyebrow: 'LITERATURE AND EVIDENCE',
+    savedLink: 'Link details were saved.',
+    savedSource: 'Source details were saved.',
+    savedClaim: 'Source-claim details were saved.',
+    savedConstruct: 'Construct details were saved.',
+    savedCriterion: 'Criterion details were saved.',
+    savedProposition: 'Proposition details were saved.',
+    savedCaseRefs: 'Example references were saved. The example remains constructed.',
+    savedDecision: 'Research decision was saved.',
+    linkAdded: 'The link was added as a proposal. Meaning was chosen explicitly; the arrow does not mean causation.',
+    linkAddFailed: 'The link was not added.',
+    newLinkTitle: 'New link',
+    newLinkFrom: 'From: {label}',
+    addLinkSubmit: 'Add link',
+    target: 'Endpoint',
+    pickTarget: 'Select endpoint',
+    pickMeaning: 'Select link meaning',
+    newLinkHint: 'A new link stays proposed until you mark it reviewed. An empty meaning is not stored as a motive or causal arrow.'
+  },
+  graphExtra: {
+    traceMissing: 'There is no recorded directed path between the selected records. A missing path is not a research finding and does not mean a link could not be recorded later.',
+    traceLinkFallback: 'link'
   },
   history: {
     actorLabel: 'Optional researcher label (not authenticated identity)',

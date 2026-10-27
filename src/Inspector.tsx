@@ -16,7 +16,6 @@ const asList = (value: unknown) => value as string[];
 const option = (ids: string[], labels: Record<string, string>) => ids.map(id => ({ id, label: labels[id] || id }));
 const epistemicOptions = option(asList(epistemic), epistemicLabel);
 const reviewOptions = option(asList(reviewStates), reviewLabel);
-const meaningOptions = option(asList(relations), meaningLabel);
 
 function titleOf(model: Workspace, id: string, locale: 'fi' | 'en' = 'fi', hashMatches = true): string {
   return displayRecordLabel(locale, model, id, hashMatches) || (() => {
@@ -99,7 +98,7 @@ function RelationshipForm({ model, edgeId, guard, onSave, onRemove }: { model: W
     const item = copy.relationships.find(link => link.id === edgeId);
     if (!item) return false;
     Object.assign(item, next, { label: next.label, claimIds: next.claimIds, sourceIds: next.sourceIds });
-    return onSave(copy, 'Yhteyden tiedot tallennettiin.');
+    return onSave(copy, t('inspector.savedLink'));
   });
   if (!edge) return null;
   const patch = <K extends keyof Relationship>(key: K, value: Relationship[K]) => setDraft(current => ({ ...current, [key]: value }));
@@ -145,6 +144,7 @@ function Section({ title, children, note }: { title: string; children: ReactNode
 }
 
 function SourceForm({ model, source, guard, onSave, onOpen, onEdge, onAddEdge, onAddClaim, onRemove }: { model: Workspace; source: Source; guard: RefObject<DirtyApi | null>; onSave: Save; onOpen: (id: string) => void; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onAddClaim: (sourceId: string) => void; onRemove: (id: string) => void }) {
+  const { t } = useI18n();
   const draftSource = { ...source, nextCheck: source.nextCheck || '', researchRole: source.researchRole || 'not-recorded' };
   const { draft, setDraft, persist } = useDraft(draftSource, guard, next => {
     const copy = clone(model);
@@ -153,7 +153,7 @@ function SourceForm({ model, source, guard, onSave, onOpen, onEdge, onAddEdge, o
     const position = item.position;
     const bibliographicImport = item.bibliographicImport;
     Object.assign(item, next, { position, bibliographicImport, label: next.label.trim(), doi: next.doi.trim(), url: next.url.trim(), nextCheck: next.nextCheck || '', researchRole: next.researchRole || 'not-recorded' });
-    return onSave(copy, 'Lähteen tiedot tallennettiin.');
+    return onSave(copy, t('inspector.savedSource'));
   });
   const patch = <K extends keyof Source>(key: K, value: Source[K]) => setDraft(current => ({ ...current, [key]: value }));
   const claims = model.claims.filter(claim => claim.sourceId === source.id);
@@ -234,6 +234,7 @@ function SourceForm({ model, source, guard, onSave, onOpen, onEdge, onAddEdge, o
 }
 
 function ClaimForm({ model, claimId, guard, onSave, onOpen, onRemove }: { model: Workspace; claimId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onOpen: (id: string) => void; onRemove: (id: string) => void }) {
+  const { t } = useI18n();
   const claim = model.claims.find(item => item.id === claimId)!;
   const { draft, setDraft, persist } = useDraft(claim, guard, next => {
     const copy = clone(model);
@@ -241,7 +242,7 @@ function ClaimForm({ model, claimId, guard, onSave, onOpen, onRemove }: { model:
     if (!item) return false;
     const position = item.position;
     Object.assign(item, next, { position });
-    return onSave(copy, 'Lähdeväitteen tiedot tallennettiin.');
+    return onSave(copy, t('inspector.savedClaim'));
   });
   const patch = <K extends keyof typeof claim>(key: K, value: (typeof claim)[K]) => setDraft(current => ({ ...current, [key]: value }));
   return <>
@@ -289,7 +290,7 @@ function ConstructForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
     if (!item) return false;
     const position = item.position;
     Object.assign(item, next, { position, label: next.label.trim() });
-    return onSave(copy, 'Käsitteen tiedot tallennettiin.');
+    return onSave(copy, t('inspector.savedConstruct'));
   });
   const patch = <K extends keyof typeof record>(key: K, value: (typeof record)[K]) => setDraft(current => ({ ...current, [key]: value }));
   const labelDisplay = translateResearchField(locale, 'constructs', record.id, 'label', record.label, { hashMatches });
@@ -329,7 +330,7 @@ function CriterionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
     if (!item) return false;
     const position = item.position;
     Object.assign(item, next, { position, label: next.label.trim(), constructIds: next.constructIds });
-    return onSave(copy, 'Kriteerin tiedot tallennettiin.');
+    return onSave(copy, t('inspector.savedCriterion'));
   });
   const patch = <K extends keyof Criterion>(key: K, value: Criterion[K]) => setDraft(current => ({ ...current, [key]: value }));
   const labelDisplay = translateResearchField(locale, 'criteria', record.id, 'label', record.label, { hashMatches });
@@ -386,7 +387,7 @@ function PropositionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, on
       statementRevisions: item.statementRevisions
     });
     delete (item as { statementRationale?: string }).statementRationale;
-    return onSave(copy, 'Proposition tiedot tallennettiin.');
+    return onSave(copy, t('inspector.savedProposition'));
   });
   const patch = <K extends keyof typeof draft>(key: K, value: (typeof draft)[K]) => setDraft(current => ({ ...current, [key]: value }));
   const claimKindOptions = (['association', 'controlled-comparison', 'paired-coverage', 'other'] as IntendedClaimKind[]).map(id => ({ id, label: claimKindLabel[id] }));
@@ -473,7 +474,7 @@ function CaseForm({ model, recordId, guard, onSave, paused }: { model: Workspace
     const item = copy.cases.find(entry => entry.id === recordId);
     if (!item) return false;
     item.propositionIds = next.propositionIds; item.criterionIds = next.criterionIds; item.decisionIds = next.decisionIds;
-    return onSave(copy, 'Esimerkin viitteet tallennettiin. Esimerkki pysyy rakennettuna.');
+    return onSave(copy, t('inspector.savedCaseRefs'));
   });
   const titleDisplay = translateResearchField(locale, 'cases', record.id, 'title', record.title, { hashMatches });
   return <>
@@ -501,7 +502,7 @@ function DecisionForm({ model, recordId, guard, onSave, onRemove }: { model: Wor
     const item = copy.decisions.find(entry => entry.id === recordId);
     if (!item) return false;
     Object.assign(item, next, { label: next.label.trim() });
-    return onSave(copy, 'Tutkimuspäätös tallennettiin.');
+    return onSave(copy, t('inspector.savedDecision'));
   });
   const patch = <K extends keyof Decision>(key: K, value: Decision[K]) => setDraft(current => ({ ...current, [key]: value }));
   const labelDisplay = translateResearchField(locale, 'decisions', record.id, 'label', record.label, { hashMatches });
@@ -560,6 +561,8 @@ function AddNode({ model, guard, onSave, onMessage, onOpen }: { model: Workspace
 }
 
 function AddEdge({ model, sourceId, guard, onSave, onMessage, onEdge }: { model: Workspace; sourceId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onMessage: (text: string) => void; onEdge: (id: string) => void }) {
+  const { t, locale } = useI18n();
+  const L = labelsFor(locale);
   const blank = { target: '', meaning: '', epistemicStatus: 'adaptation', reviewState: 'proposed', rationale: '' };
   const targets = [...model.sources, ...model.constructs, ...model.criteria, ...model.propositions].filter(record => record.id !== sourceId).map(record => ({ id: record.id, label: record.label }));
   const created = { id: '' };
@@ -569,20 +572,20 @@ function AddEdge({ model, sourceId, guard, onSave, onMessage, onEdge }: { model:
       const id = newId(copy, 'edge');
       copy.relationships.push(requireConnection({ id, source: sourceId, target: next.target, meaning: next.meaning, rationale: next.rationale, epistemicStatus: next.epistemicStatus, reviewState: next.reviewState }) as Relationship);
       created.id = id;
-      return onSave(copy, 'Yhteys lisättiin ehdotuksena. Merkitys on valittu erikseen, eikä nuoli tarkoita kausaliteettia.');
+      return onSave(copy, t('inspector.linkAdded'));
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : 'Yhteyttä ei lisätty.');
+      onMessage(error instanceof Error ? error.message : t('inspector.linkAddFailed'));
       return false;
     }
   });
-  return <aside className="inspector" aria-label="Valitun kohteen tiedot"><h2>Uusi yhteys</h2><p>Lähtö: {titleOf(model, sourceId)}</p>
-    <FormShell submit={() => { const ok = persist(); if (ok && created.id) onEdge(created.id); return ok; }} label="Lisää yhteys">
-      <SelectField label="Päätepiste" value={draft.target} onChange={value => setDraft(current => ({ ...current, target: value }))} options={[{ id: '', label: 'Valitse päätepiste' }, ...targets]} />
-      <SelectField label="Yhteyden merkitys" value={draft.meaning} onChange={value => setDraft(current => ({ ...current, meaning: value }))} options={[{ id: '', label: 'Valitse yhteyden merkitys' }, ...meaningOptions]} />
-      <SelectField label="Tiedollinen tila" value={draft.epistemicStatus} onChange={value => setDraft(current => ({ ...current, epistemicStatus: value }))} options={epistemicOptions} />
-      <SelectField label="Kirjauksen tila" value={draft.reviewState} onChange={value => setDraft(current => ({ ...current, reviewState: value }))} options={[{ id: 'proposed', label: reviewLabel.proposed }, { id: 'reviewed', label: reviewLabel.reviewed }]} />
-      <TextField label="Perustelu ja soveltamisen rajaus" value={draft.rationale} onChange={value => setDraft(current => ({ ...current, rationale: value }))} area />
-      <p className="subtle">Uusi yhteys pysyy ehdotuksena, kunnes merkitset sen arvioiduksi. Tyhjä merkitys ei tallennu motiivina eikä kausaalisena nuolena.</p>
+  return <aside className="inspector" aria-label={t('inspector.aria')}><h2>{t('inspector.newLinkTitle')}</h2><p>{t('inspector.newLinkFrom', { label: titleOf(model, sourceId) })}</p>
+    <FormShell submit={() => { const ok = persist(); if (ok && created.id) onEdge(created.id); return ok; }} label={t('inspector.addLinkSubmit')}>
+      <SelectField label={t('inspector.target')} value={draft.target} onChange={value => setDraft(current => ({ ...current, target: value }))} options={[{ id: '', label: t('inspector.pickTarget') }, ...targets]} />
+      <SelectField label={t('inspector.linkMeaning')} value={draft.meaning} onChange={value => setDraft(current => ({ ...current, meaning: value }))} options={[{ id: '', label: t('inspector.pickMeaning') }, ...Object.entries(L.meaningLabel).map(([id, label]) => ({ id, label }))]} />
+      <SelectField label={t('inspector.epistemic')} value={draft.epistemicStatus} onChange={value => setDraft(current => ({ ...current, epistemicStatus: value }))} options={Object.entries(L.epistemicLabel).map(([id, label]) => ({ id, label }))} />
+      <SelectField label={t('inspector.review')} value={draft.reviewState} onChange={value => setDraft(current => ({ ...current, reviewState: value }))} options={[{ id: 'proposed', label: L.reviewLabel.proposed }, { id: 'reviewed', label: L.reviewLabel.reviewed }]} />
+      <TextField label={t('inspector.rationaleBoundary')} value={draft.rationale} onChange={value => setDraft(current => ({ ...current, rationale: value }))} area />
+      <p className="subtle">{t('inspector.newLinkHint')}</p>
     </FormShell>
   </aside>;
 }

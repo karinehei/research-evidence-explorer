@@ -4,8 +4,21 @@ import os from 'node:os';
 import path from 'node:path';
 
 const root = '/research-evidence-explorer/';
+const LOCALE_KEY = 'research-evidence-explorer-locale-v1';
+
+/** Force UI locale before first navigation so Finnish assertions stay stable. */
+async function forceLocale(page: Page, locale: 'fi' | 'en') {
+  await page.addInitScript(({ key, value }) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      /* preference only */
+    }
+  }, { key: LOCALE_KEY, value: locale });
+}
 
 async function openApp(page: Page, hash = '') {
+  await forceLocale(page, 'fi');
   await page.goto(`${root}${hash}`);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 }
@@ -349,4 +362,48 @@ test('a storage failure leaves the edit in memory and does not claim it was save
   expect(await page.evaluate(() => localStorage.getItem('research-evidence-explorer-v1'))).toBeNull();
   await page.reload();
   await expect(page.getByLabel('Oma pohdinta tai seuraava tarkistus')).toHaveValue('');
+});
+
+test('language switch updates chrome without discarding case drafts', async ({ page }) => {
+  await openApp(page);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fi');
+
+  await page.getByRole('button', { name: 'Rakennetut tapaukset' }).click();
+  await page.getByRole('button', { name: /A · Tuettu/ }).click();
+  await page.getByRole('button', { name: 'Muokkaa tapausta' }).click();
+  const taskFi = page.getByRole('textbox', { name: 'Tehtävä', exact: true });
+  await taskFi.fill('I18N-DRAFT-KEEP');
+
+  await page.getByRole('button', { name: 'English' }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.getByRole('button', { name: 'From sources to criteria' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'From task to evidence' })).toBeVisible();
+
+  const taskEn = page.getByRole('textbox', { name: 'Task', exact: true });
+  await expect(taskEn).toHaveValue('I18N-DRAFT-KEEP');
+
+  await page.getByRole('button', { name: 'About the data model' }).click();
+  const about = page.getByRole('dialog', { name: 'Traceable research workspace' });
+  await expect(about).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(about).toBeHidden();
+
+  await page.getByRole('button', { name: 'Export view' }).click();
+  const exported = page.getByRole('dialog', { name: 'Export current work' });
+  await expect(exported).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(exported).toBeHidden();
+  await expect(taskEn).toHaveValue('I18N-DRAFT-KEEP');
+
+  await page.getByRole('button', { name: 'Appraisal matrix' }).click();
+  const dirty = page.getByRole('dialog', { name: 'Unsaved changes' });
+  await expect(dirty).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dirty).toBeHidden();
+  await expect(taskEn).toHaveValue('I18N-DRAFT-KEEP');
+
+  await page.getByRole('button', { name: 'Suomi' }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fi');
+  await expect(page.getByRole('heading', { level: 1, name: 'Tehtävästä näyttöön' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Tehtävä', exact: true })).toHaveValue('I18N-DRAFT-KEEP');
 });
