@@ -329,7 +329,7 @@ test('matrix construct context, expanded details and on-demand editor', async ({
 
 test('narrow and wide layouts do not overflow the page, and dialogs stay on screen', async ({ page }) => {
   await openApp(page, '#matrix');
-  for (const width of [320, 390, 768, 1366]) {
+  for (const width of [320, 390, 768, 1366, 1440]) {
     await page.setViewportSize({ width, height: 800 });
     await page.getByRole('button', { name: 'Lähteistä kriteereihin' }).click();
     await page.getByRole('button', { name: 'Arviointimatriisi' }).click();

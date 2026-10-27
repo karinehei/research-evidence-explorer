@@ -2,7 +2,7 @@
   "exportType": "research-published-seed",
   "schemaVersion": 2,
   "source": "data/research.json",
-  "builtAt": "2026-10-27T08:42:28.467Z",
+  "builtAt": "2026-10-27T10:13:56.460Z",
   "contentHash": "sha256:9b898d668b9fc24024f7ea6bf4a4ca378deed453d13438548b0eaca7c527d636",
   "clearedFields": [
     "editLog",
