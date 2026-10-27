@@ -407,3 +407,36 @@ test('language switch updates chrome without discarding case drafts', async ({ p
   await expect(page.getByRole('heading', { level: 1, name: 'Tehtävästä näyttöön' })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Tehtävä', exact: true })).toHaveValue('I18N-DRAFT-KEEP');
 });
+
+test('English mode shows source/claim form labels and nested case translations', async ({ page }) => {
+  await forceLocale(page, 'en');
+  await page.goto(`${root}#graph/jarvelin15`);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  const inspector = page.locator('.inspector');
+  await expect(inspector.getByText('Bibliographic identity')).toBeVisible();
+  await expect(inspector.getByRole('button', { name: 'Add source claim manually' })).toBeVisible();
+
+  await page.goto(`${root}#graph/claim_jarvelin15`);
+  await expect(inspector.getByText('This is an imported summary, not an inspection from the original source.')).toBeVisible();
+  await expect(inspector.getByLabel('What the source is reported to show')).toBeVisible();
+  await expect(inspector.getByRole('heading', { level: 2 })).toContainText(/Tasks, information activities/i);
+
+  await page.getByRole('button', { name: 'Constructed cases' }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'From task to evidence' })).toBeVisible();
+  await page.getByRole('button', { name: /A ·/ }).click();
+  await expect(page.getByText('Constructed analytical example', { exact: false }).first()).toBeVisible();
+  await expect(page.getByRole('rowheader', { name: 'F1 · Ordinary channel X', exact: true })).toBeVisible();
+  await expect(page.getByText('The contact channel is X.').first()).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Information facet', exact: true })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('button', { name: 'English' })).toBeVisible();
+  await page.getByRole('button', { name: 'About the data model' }).click();
+  const about = page.getByRole('dialog', { name: 'Traceable research workspace' });
+  await expect(about).toBeVisible();
+  const box = await about.boundingBox();
+  expect(box).toBeTruthy();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.width).toBeLessThanOrEqual(390);
+  await page.keyboard.press('Escape');
+});

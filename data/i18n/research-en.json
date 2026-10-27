@@ -105,21 +105,147 @@
       "task": "The task requires identifying the ordinary contact channel and exception condition E with its channel.",
       "taskStatement": "The task requires identifying the ordinary contact channel and exception condition E with its channel.",
       "interpretation": "Collection coverage 3/3; context and answer coverage 1/3. The only checkable claim in the answer is supported (S). The first observed loss sits between collection and context.",
-      "boundary": "Do not infer why content is missing: check the ranked retrieval list and context construction. Expert ratings were not collected."
+      "boundary": "Do not infer why content is missing: check the ranked retrieval list and context construction. Expert ratings were not collected.",
+      "task.essentialQualifications": "Exception condition E and channel Y under condition E are essential information facets in addition to the ordinary channel X.",
+      "task.temporalScope": "No separate present-time limit in this example.",
+      "facet.A_f1.label": "F1 · Ordinary channel X",
+      "facet.A_f1.reason": "Available in the collection; present in the context and the answer.",
+      "facet.A_f2.label": "F2 · Exception condition E",
+      "facet.A_f2.reason": "Available in the collection; absent from the context and the answer. The first observed loss sits between collection and context; a technical cause is not inferred.",
+      "facet.A_f3.label": "F3 · Channel Y under condition E",
+      "facet.A_f3.reason": "Available in the collection; absent from the context and the answer.",
+      "answer.A_ans.label": "Answer with the ordinary channel only",
+      "answer.A_ans.text": "The contact channel is X.",
+      "answer.A_ans.note": "A fully supported stated claim may still belong to an incomplete task answer.",
+      "passage.A_p_f1.text": "Ordinary channel X.",
+      "display.A_display.label": "Basic answer display",
+      "display.A_display.note": "Claim support and display are separate checks.",
+      "context.A_ctx.label": "Supplied context (F1 only)",
+      "context.A_ctx.note": "F2 and F3 are absent from the context.",
+      "claimAnn.A_claim_s.label": "Only checkable claim",
+      "claimAnn.A_claim_s.statement": "The contact channel is X.",
+      "claimAnn.A_claim_s.reason": "The only checkable claim in the answer is supported (S). This does not guarantee task coverage.",
+      "snap.A_src_collection.label": "Collection guidance",
+      "snap.A_src_collection.note": "Constructed source snapshot; not an empirical run.",
+      "column.0": "Information facet",
+      "column.1": "Collection",
+      "column.2": "Context",
+      "column.3": "Answer",
+      "row.0.0": "F1 · Ordinary channel X",
+      "row.0.1": "Available",
+      "row.0.2": "Present",
+      "row.0.3": "Present",
+      "row.1.0": "F2 · Exception condition E",
+      "row.1.1": "Available",
+      "row.1.2": "Absent",
+      "row.1.3": "Absent",
+      "row.2.0": "F3 · Channel Y under condition E",
+      "row.2.1": "Available",
+      "row.2.2": "Absent",
+      "row.2.3": "Absent"
     },
     "B": {
       "title": "B · Same evidence, different locatability",
       "task": "The task is to determine whether an acknowledgement is sent for a referral request. The same claim and supporting passage are held constant across both displays.",
       "taskStatement": "The task is to determine whether an acknowledgement is sent for a referral request. The same claim and supporting passage are held constant across both displays.",
       "interpretation": "The difference concerns precision of the source display. A document citation is not classed as incorrect if the document contains the support. P2 proposes a later comparison of perceived verifiability.",
-      "boundary": "A missing locator does not show that verification could not succeed, for example by document search."
+      "boundary": "A missing locator does not show that verification could not succeed, for example by document search.",
+      "task.essentialQualifications": "Whether an acknowledgement is sent for a referral request.",
+      "task.temporalScope": "No separate temporal alternative in this example.",
+      "facet.B_f_support.label": "Claim source support",
+      "facet.B_f_support.reason": "Full support under both display conditions.",
+      "facet.B_f_id.label": "Source identifier and version",
+      "facet.B_f_id.reason": "Visible in both displays.",
+      "facet.B_f_pass.label": "Exact source passage",
+      "facet.B_f_pass.reason": "The document citation has no direct locator; with the passage link, P7 opens directly. The difference is display precision, not claim support.",
+      "answer.B_ans_doc.label": "Answer with document citation",
+      "answer.B_ans_doc.text": "An acknowledgement is sent for a referral request.",
+      "answer.B_ans_doc.note": "Same claim support as with the passage link.",
+      "answer.B_ans_pass.label": "Answer with passage link",
+      "answer.B_ans_pass.text": "An acknowledgement is sent for a referral request.",
+      "answer.B_ans_pass.note": "Same claim support as with the document citation.",
+      "passage.B_p7.text": "An acknowledgement is sent for a referral request.",
+      "display.B_doc.label": "Document citation",
+      "display.B_doc.note": "No direct passage locator. A document citation is not classed as incorrect if the document contains the support.",
+      "display.B_pass.label": "Passage link",
+      "display.B_pass.note": "P7 opens directly.",
+      "context.B_ctx.label": "Same supplied context",
+      "context.B_ctx.note": "Display conditions do not change claim support.",
+      "claimAnn.B_claim.label": "Claim source support",
+      "claimAnn.B_claim.statement": "An acknowledgement is sent for a referral request.",
+      "claimAnn.B_claim.reason": "Full support in both displays. Claim support and display locatability are not interchangeable stages.",
+      "snap.B_src_doc.label": "Referral guidance",
+      "snap.B_src_doc.note": "Same source snapshot for both display conditions.",
+      "column.0": "Item under check",
+      "column.1": "Document citation",
+      "column.2": "Passage link",
+      "row.0.0": "Claim source support",
+      "row.0.1": "Full support",
+      "row.0.2": "Full support",
+      "row.1.0": "Source identifier and version",
+      "row.1.1": "Visible",
+      "row.1.2": "Visible",
+      "row.2.0": "Exact source passage",
+      "row.2.1": "No direct locator",
+      "row.2.2": "P7 opens directly",
+      "row.3.0": "Perceived verifiability",
+      "row.3.1": "Not measured",
+      "row.3.2": "Not measured",
+      "row.4.0": "Verification success or time",
+      "row.4.1": "Not measured",
+      "row.4.2": "Not measured"
     },
     "C": {
       "title": "C · Older source for a present-time task",
       "task": "The question asks for the current contact channel. D3-2024 names channel X; its replacement D3-2026 names channel Y. The context holds only the older version.",
       "taskStatement": "The question asks for the current contact channel. D3-2024 names channel X; its replacement D3-2026 names channel Y. The context holds only the older version.",
       "interpretation": "A historical claim may be supported and factually correct yet insufficient for a present-time task. A present-tense claim needs separate temporal support. Conflict with an independent current reference is recorded separately from context support.",
-      "boundary": "Do not use a blanket class “fully grounded in sources but wrong” without examining claim wording and temporal scope. No inference about clinical safety."
+      "boundary": "Do not use a blanket class “fully grounded in sources but wrong” without examining claim wording and temporal scope. No inference about clinical safety.",
+      "task.essentialQualifications": "The current contact channel at the time of the task.",
+      "task.temporalScope": "Present time; a historical claim is not enough for a present-time task without separate temporal support.",
+      "facet.C_f_answer.label": "Answer for the present-time task",
+      "facet.C_f_answer.reason": "A3a: the current channel is absent. A3b: the current channel is stated incorrectly relative to the given current reference.",
+      "facet.C_f_support.label": "Support from the supplied older context",
+      "facet.C_f_support.reason": "A3a supported; A3b without present-time support.",
+      "facet.C_f_audit.label": "Separate source audit",
+      "facet.C_f_audit.reason": "The older version is replaced in both variants; recorded separately from context support.",
+      "answer.C_a3a.label": "Historical claim A3a",
+      "answer.C_a3a.text": "In the 2024 guidance the channel is X.",
+      "answer.C_a3a.note": "Historically supported; coverage for the present-time task is missing.",
+      "answer.C_a3b.label": "Present-time claim A3b",
+      "answer.C_a3b.text": "The current channel is X.",
+      "answer.C_a3b.note": "A present-tense claim needs separate temporal support and a current-reference audit.",
+      "passage.C_p_old.text": "The channel is X.",
+      "passage.C_p_new.text": "The channel is Y.",
+      "display.C_disp.label": "Answer display",
+      "display.C_disp.note": "The separate source audit is recorded apart from context support.",
+      "context.C_ctx_old.label": "Context with the older version only",
+      "context.C_ctx_old.note": "Current reference D3-2026 is not in the context.",
+      "claimAnn.C_claim_a3a.label": "Support from the older context (A3a)",
+      "claimAnn.C_claim_a3a.statement": "In the 2024 guidance the channel is X.",
+      "claimAnn.C_claim_a3a.reason": "The historical claim is supported by the supplied older context. The current channel is missing for the task.",
+      "claimAnn.C_claim_a3b.label": "Support from the older context (A3b)",
+      "claimAnn.C_claim_a3b.statement": "The current channel is X.",
+      "claimAnn.C_claim_a3b.reason": "The present-tense claim is not supported by the older context; unclear if fitness is unresolved. Separate source audit: older version replaced.",
+      "snap.C_d3_2024.label": "D3-2024",
+      "snap.C_d3_2024.note": "Older version; replaced. A historical claim may receive support from this snapshot.",
+      "snap.C_d3_2026.label": "D3-2026",
+      "snap.C_d3_2026.note": "Version acceptable for the present-time task; names channel Y.",
+      "column.0": "Appraisal target",
+      "column.1": "Historical claim A3a",
+      "column.2": "Present-time claim A3b",
+      "row.0.0": "Answer",
+      "row.0.1": "In the 2024 guidance the channel is X.",
+      "row.0.2": "The current channel is X.",
+      "row.1.0": "Support from the supplied older context",
+      "row.1.1": "Historical claim supported",
+      "row.1.2": "Present-tense claim unsupported; unclear if fitness unresolved",
+      "row.2.0": "Coverage for the present-time task",
+      "row.2.1": "Current channel absent",
+      "row.2.2": "Current channel stated incorrectly relative to the given current reference",
+      "row.3.0": "Separate source audit",
+      "row.3.1": "Older version replaced",
+      "row.3.2": "Older version replaced"
     }
   },
   "propositions": {
@@ -442,6 +568,52 @@
     "e_32": {
       "label": "motivates the construct",
       "rationale": "Provisional adaptation based on a distinction described in the documents."
+    }
+  },
+  "claims": {
+    "claim_jarvelin15": {
+      "statement": "Tasks, information activities, system outputs and task outcomes are distinguished from one another.",
+      "limitations": "An answer rating does not show success in the real work task."
+    },
+    "claim_blueprint24": {
+      "statement": "Task and user characteristics and the dimensions of relevance, overlap and usability structure appraisal.",
+      "limitations": "This workspace’s coverage rule is an own proposal; it is not presented as a validated Blueprint metric."
+    },
+    "claim_hilligoss08": {
+      "statement": "Credibility appraisal is structured by constructs, heuristics and situated interaction.",
+      "limitations": "The source does not yield a validated scale for Finnish healthcare experts."
+    },
+    "claim_sittig10": {
+      "statement": "Content, user interface, people and organisation are interdependent conditions of healthcare information technology.",
+      "limitations": "The workspace does not appraise all eight dimensions or implementation safety."
+    },
+    "claim_thomas26": {
+      "statement": "Appraisal must define the intended quality and the inferences a measurement result warrants.",
+      "limitations": "Agreement among measures or assessors alone does not show validity of interpretation."
+    },
+    "claim_ragas24": {
+      "statement": "Claim support, answer relevance and context relevance are separate technical appraisal targets.",
+      "limitations": "Does not show validity for Finnish-language healthcare, clinical correctness or expert trust."
+    },
+    "claim_ares24": {
+      "statement": "Appraisal judges and human annotations can be used to calibrate system-level scores.",
+      "limitations": "Human validation of a judge is not a measurement of user trust."
+    },
+    "claim_ragchecker24": {
+      "statement": "Claim-level diagnostics separate retrieval and generation problems.",
+      "limitations": "This does not by itself validate this study’s Finnish-language sociotechnical appraisal model."
+    },
+    "claim_liu23": {
+      "statement": "Support relations between answer content and cited sources are examined separately.",
+      "limitations": "Citation support does not show source currency or successful human verification."
+    },
+    "claim_lajewska24": {
+      "statement": "Explanation quality and presentation can be studied separately from answer quality.",
+      "limitations": "Does not show that a passage link causes successful verification in healthcare."
+    },
+    "claim_saukkoriipi26": {
+      "statement": "Variation among meaning-equivalent Finnish wordings motivates robustness checks in a related setting.",
+      "limitations": "A patient-record retrieval-free long-context setting does not isolate morphology and does not show an effect for guidance-based RAG retrieval."
     }
   }
 }

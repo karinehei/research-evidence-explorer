@@ -58,7 +58,7 @@ export function translateResearchField(
     return {
       text: original,
       source: 'fallback-original',
-      notice: t('en', 'research.missingTranslation')
+      notice: t('en', 'research.missingTranslationFi')
     };
   }
   if (!options.hashMatches) {
@@ -69,6 +69,17 @@ export function translateResearchField(
     };
   }
   return { text: translated, source: 'translation', notice: '' };
+}
+
+/** Nested or top-level case field lookup; never mutates the workspace. */
+export function caseField(
+  locale: Locale,
+  caseId: string,
+  field: string,
+  original: string,
+  hashMatches: boolean
+): DisplayText {
+  return translateResearchField(locale, 'cases', caseId, field, original, { hashMatches });
 }
 
 /** Prefer English display label for graph/matrix when available; never mutates the workspace. */

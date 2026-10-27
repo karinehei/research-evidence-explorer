@@ -6,6 +6,6 @@ export {
   isLocale, readStoredLocale, resolveInitialLocale, writeStoredLocale, type Locale
 } from './locale.ts';
 export {
-  displayRecordLabel, researchTranslationManifest, researchTranslationsCurrent, translateResearchField,
+  caseField, displayRecordLabel, researchTranslationManifest, researchTranslationsCurrent, translateResearchField,
   type DisplayText, type ResearchBundle
 } from './research.ts';

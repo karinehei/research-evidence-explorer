@@ -1,7 +1,7 @@
 export type Locale = 'fi' | 'en';
 
 export const LOCALE_STORAGE_KEY = 'research-evidence-explorer-locale-v1';
-export const TRANSLATION_RESOURCE_VERSION = '1.0.0';
+export const TRANSLATION_RESOURCE_VERSION = '1.1.0';
 
 export function isLocale(value: unknown): value is Locale {
   return value === 'fi' || value === 'en';

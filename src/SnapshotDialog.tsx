@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  AUDIT_DISCLAIMER, CANONICALISATION_PROCEDURE, HASH_DISCLAIMER, LOCAL_SAVE_DISCLAIMER,
   applySnapshotImport, compareSnapshots, contentHash, createSnapshot, layoutHash,
   loadPreImportBackup, previewImport, storePreImportBackup, type ImportPreview, type SnapshotComparison
 } from './snapshots.ts';
@@ -44,19 +43,19 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
         setContent(await contentHash(model));
         setLayout(await layoutHash(model));
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : 'Tiivisteen laskenta epäonnistui.');
+        setMessage(error instanceof Error ? error.message : t('snapshot.hashFailed'));
       }
     })();
-  }, [open, model]);
+  }, [open, model, t]);
 
   async function exportSnapshot() {
     setBusy(true);
     try {
       const snapshot = await createSnapshot(model);
       downloadText('research-snapshot.json', JSON.stringify(snapshot, null, 2));
-      setMessage(`Tilannekuva vietiin. Sisältötiiviste ${snapshot.contentHash}. ${HASH_DISCLAIMER}`);
+      setMessage(t('snapshot.exportOk', { hash: snapshot.contentHash, disclaimer: t('snapshot.hashDisclaimer') }));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Vienti epäonnistui.');
+      setMessage(error instanceof Error ? error.message : t('snapshot.exportFail'));
     } finally {
       setBusy(false);
     }
@@ -111,14 +110,14 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
   }
 
   return <Modal open={open} title={t('snapshot.title')} onClose={onClose} className="snapshot-dialog">
-    <p className="subtle">{LOCAL_SAVE_DISCLAIMER}</p>
-    <p className="subtle">{HASH_DISCLAIMER}</p>
-    <p className="subtle">{AUDIT_DISCLAIMER}</p>
+    <p className="subtle">{t('snapshot.localSave')}</p>
+    <p className="subtle">{t('snapshot.hashDisclaimer')}</p>
+    <p className="subtle">{t('snapshot.auditDisclaimer')}</p>
     <p className="subtle">{t('snapshot.actorSession', { label: actorLabel.trim() || t('snapshot.actorNone') })}</p>
     <h3>{t('snapshot.hashes')}</h3>
     <p className="subtle">{t('snapshot.content', { hash: content || '…' })}</p>
     <p className="subtle">{t('snapshot.layout', { hash: layout || '…' })}</p>
-    <details><summary>{t('snapshot.canonSummary')}</summary><p className="subtle">{CANONICALISATION_PROCEDURE}</p></details>
+    <details><summary>{t('snapshot.canonSummary')}</summary><p className="subtle">{t('snapshot.canonProcedure')}</p></details>
     <div className="actions">
       <button type="button" className="primary" disabled={busy} onClick={() => void exportSnapshot()}>{t('snapshot.export')}</button>
       <label className="file-button">{t('snapshot.import')}
@@ -139,20 +138,24 @@ function PreviewBlock({ preview, compare }: { preview: ImportPreview; compare: S
     <p className="subtle">{preview.note}</p>
     {!preview.ok && <p className="error">{preview.error}</p>}
     {preview.ok && <>
-      <p className="subtle">Lisättävät: {preview.addedIds.join(', ') || '—'}</p>
-      <p className="subtle">Poistuvat: {preview.removedIds.join(', ') || '—'}</p>
-      <p className="subtle">Ratkaisemattomat versionOf (ei poisteta automaattisesti): {preview.unresolvedVersionOf.join(', ') || 'ei (validointi estää rikkinäiset ketjut)'}</p>
-      <ChangeList title="Muuttuneet määritelmät" rows={preview.changedDefinitions} />
-      <ChangeList title="Muuttuneet kriteerit" rows={preview.changedCriteria} />
-      <ChangeList title="Muuttuneet näyttöviitteet" rows={preview.changedEvidenceLinks} />
-      <ChangeList title="Muuttuneet propositiot" rows={preview.changedPropositions} />
-      {compare && <p className="subtle">Sisältötiiviste sama: {compare.contentHashEqual ? 'kyllä' : 'ei'} · Asettelutiiviste sama: {compare.layoutHashEqual ? 'kyllä' : 'ei'}</p>}
+      <p className="subtle">{t('snapshot.addedIds', { ids: preview.addedIds.join(', ') || t('snapshot.none') })}</p>
+      <p className="subtle">{t('snapshot.removedIds', { ids: preview.removedIds.join(', ') || t('snapshot.none') })}</p>
+      <p className="subtle">{t('snapshot.unresolvedVersionOf', { ids: preview.unresolvedVersionOf.join(', ') || t('snapshot.unresolvedNone') })}</p>
+      <ChangeList title={t('snapshot.changedDefinitions')} rows={preview.changedDefinitions} />
+      <ChangeList title={t('snapshot.changedCriteria')} rows={preview.changedCriteria} />
+      <ChangeList title={t('snapshot.changedEvidence')} rows={preview.changedEvidenceLinks} />
+      <ChangeList title={t('snapshot.changedPropositions')} rows={preview.changedPropositions} />
+      {compare && <p className="subtle">{t('snapshot.hashCompare', {
+        content: compare.contentHashEqual ? t('snapshot.yes') : t('snapshot.no'),
+        layout: compare.layoutHashEqual ? t('snapshot.yes') : t('snapshot.no')
+      })}</p>}
     </>}
   </div>;
 }
 
 function ChangeList({ title, rows }: { title: string; rows: { id: string; label: string; before: string; after: string }[] }) {
-  if (!rows.length) return <p className="subtle">{title}: ei muutoksia.</p>;
+  const { t } = useI18n();
+  if (!rows.length) return <p className="subtle">{t('snapshot.noChanges', { title })}</p>;
   return <>
     <h4>{title}</h4>
     <ul>{rows.map(row => <li key={row.id}><strong>{row.label || row.id}</strong><pre className="history-pre">{`− ${row.before}\n+ ${row.after}`}</pre></li>)}</ul>

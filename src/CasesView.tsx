@@ -4,7 +4,7 @@ import {
   exportConstructedCase, layerCoverage, missingEssentialFacets, type CoverageLayer
 } from './cases.ts';
 import { useDraft, type DirtyApi } from './draft.ts';
-import { useI18n, translateResearchField } from './i18n/index.ts';
+import { useI18n, caseField, translateResearchField } from './i18n/index.ts';
 import type { ConstructedCase, FacetState, Workspace } from './types.ts';
 
 function downloadText(name: string, text: string, type: string) {
@@ -18,6 +18,15 @@ function downloadText(name: string, text: string, type: string) {
 
 function cloneCase(record: ConstructedCase): ConstructedCase {
   return JSON.parse(JSON.stringify(record));
+}
+
+function OriginalFinnish({ show, original }: { show: boolean; original: string }) {
+  const { t } = useI18n();
+  if (!show || !original) return null;
+  return <details className="original-fi">
+    <summary>{t('research.showOriginalFi')}</summary>
+    <p>{original}</p>
+  </details>;
 }
 
 export function CasesView({ model, selectedId, onSelect, onSave, guard, onEditModeChange, onLeave }: {
@@ -58,6 +67,7 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
     answer: t('cases.layerAnswer')
   } as const;
   const facetOptions = Object.entries(facetStateLabel).map(([id, label]) => ({ id, label }));
+  const yesNo = (value: boolean) => (value ? t('cases.yes') : t('cases.no'));
   const [leftVariantId, setLeftVariantId] = useState('');
   const [rightVariantId, setRightVariantId] = useState('');
   const [editMode, setEditMode] = useState(false);
@@ -69,10 +79,14 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
     if (ok) setEditMode(false);
     return ok;
   }, { active: editMode, onReset: () => setEditMode(false) });
-  const titleDisplay = translateResearchField(locale, 'cases', draft.id, 'title', draft.title, { hashMatches });
-  const taskDisplay = translateResearchField(locale, 'cases', draft.id, 'task', draft.taskReference.statement || draft.task, { hashMatches });
-  const interpretationDisplay = translateResearchField(locale, 'cases', draft.id, 'interpretation', draft.interpretation, { hashMatches });
-  const boundaryDisplay = translateResearchField(locale, 'cases', draft.id, 'boundary', draft.boundary, { hashMatches });
+
+  const cf = (field: string, original: string) => caseField(locale, draft.id, field, original, hashMatches);
+  const titleDisplay = cf('title', draft.title);
+  const taskDisplay = cf('task', draft.taskReference.statement || draft.task);
+  const essentialDisplay = cf('task.essentialQualifications', draft.taskReference.essentialQualifications);
+  const temporalDisplay = cf('task.temporalScope', draft.taskReference.temporalScope);
+  const interpretationDisplay = cf('interpretation', draft.interpretation);
+  const boundaryDisplay = cf('boundary', draft.boundary);
 
   useEffect(() => {
     const answers = selected.answerVariants;
@@ -155,24 +169,28 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
       </> : <>
         <p className="case-task">{taskDisplay.text}</p>
         {taskDisplay.notice ? <p className="subtle translation-notice" role="note">{taskDisplay.notice}</p> : null}
-        <p><strong>{t('cases.essentialQual')}:</strong> {draft.taskReference.essentialQualifications || t('common.notRecorded')}</p>
-        <p><strong>{t('cases.temporalScope')}:</strong> {draft.taskReference.temporalScope || t('common.notRecorded')}</p>
+        <p><strong>{t('cases.essentialQual')}:</strong> {essentialDisplay.text || t('common.notRecorded')}</p>
+        {essentialDisplay.notice ? <p className="subtle translation-notice" role="note">{essentialDisplay.notice}</p> : null}
+        <p><strong>{t('cases.temporalScope')}:</strong> {temporalDisplay.text || t('common.notRecorded')}</p>
+        {temporalDisplay.notice ? <p className="subtle translation-notice" role="note">{temporalDisplay.notice}</p> : null}
       </>}
       <div className="case-source-list">
-        <h4>Hyväksyttävät lähdeversiot tehtävään</h4>
-        {draft.sourceSnapshots.length === 0 && <p className="subtle">Lähdevedosta ei kirjattu.</p>}
+        <h4>{t('cases.acceptableSources')}</h4>
+        {draft.sourceSnapshots.length === 0 && <p className="subtle">{t('cases.noSourceSnap')}</p>}
         {draft.sourceSnapshots.map(snap => {
           const acceptable = draft.taskReference.acceptableSourceVersionIds.includes(snap.id);
+          const label = editMode ? snap.label : cf(`snap.${snap.id}.label`, snap.label).text;
+          const note = editMode ? snap.note : cf(`snap.${snap.id}.note`, snap.note).text;
           return <article key={snap.id} className={`case-card${acceptable ? ' acceptable' : ''}`}>
-            <p><strong>{snap.label}</strong> · versio {snap.version || 'ei kirjattu'} · id: {snap.id}</p>
-            <p className="subtle">{acceptable ? 'Hyväksyttävä nykyiseen tehtäväviitteeseen' : 'Ei listattu hyväksyttäväksi nykyiseen tehtävään'}</p>
+            <p><strong>{label}</strong> · {t('cases.versionLabel', { version: snap.version || t('cases.notRecorded') })} · id: {snap.id}</p>
+            <p className="subtle">{acceptable ? t('cases.acceptable') : t('cases.notAcceptable')}</p>
             {editMode ? <>
-              <label>Versio<input value={snap.version} onChange={event => patchDraft(current => {
+              <label>{t('cases.versionField')}<input value={snap.version} onChange={event => patchDraft(current => {
                 const item = current.sourceSnapshots.find(entry => entry.id === snap.id);
                 if (item) item.version = event.target.value;
                 return current;
               })} /></label>
-              <label>Huomio<textarea value={snap.note} onChange={event => patchDraft(current => {
+              <label>{t('cases.noteField')}<textarea value={snap.note} onChange={event => patchDraft(current => {
                 const item = current.sourceSnapshots.find(entry => entry.id === snap.id);
                 if (item) item.note = event.target.value;
                 return current;
@@ -182,8 +200,8 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
                 if (event.target.checked) set.add(snap.id); else set.delete(snap.id);
                 current.taskReference.acceptableSourceVersionIds = current.sourceSnapshots.map(entry => entry.id).filter(id => set.has(id));
                 return current;
-              })} /> Hyväksyttävä tehtävään</label>
-            </> : <p>{snap.note || 'Huomiota ei kirjattu.'}</p>}
+              })} /> {t('cases.acceptableCheck')}</label>
+            </> : <p>{note || t('cases.noteNotRecorded')}</p>}
           </article>;
         })}
       </div>
@@ -191,7 +209,10 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
 
     {missing.length > 0 && <div className="case-alert" role="status">
       <strong>{t('cases.missingEssential')}</strong>
-      <ul>{missing.map(item => <li key={item.id}>{item.label}: {coverageLayerLabel.collection} {facetStateLabel[item.collection]}, {coverageLayerLabel.context} {facetStateLabel[item.context]}, {coverageLayerLabel.answer} {facetStateLabel[item.answer]}</li>)}</ul>
+      <ul>{missing.map(item => {
+        const label = editMode ? item.label : cf(`facet.${item.id}.label`, item.label).text;
+        return <li key={item.id}>{label}: {coverageLayerLabel.collection} {facetStateLabel[item.collection]}, {coverageLayerLabel.context} {facetStateLabel[item.context]}, {coverageLayerLabel.answer} {facetStateLabel[item.answer]}</li>;
+      })}</ul>
     </div>}
 
     <section className="case-section">
@@ -201,9 +222,16 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
         {layers.map(layer => <article key={layer.layer} className="case-card">
           <h4>{coverageLayerLabel[layer.layer]}</h4>
           <p className="coverage-ratio">{layer.fullRatioLabel}</p>
-          <p className="subtle">{layer.policy}</p>
-          <p className="subtle">Osittainen {layer.counts.partial} · ristiriitainen {layer.counts.conflicting} · puuttuu {layer.counts.absent} · ratkaisematon {layer.counts.unresolved}</p>
-          {layer.missingEssential.length > 0 && <p className="error-text">Olennaiset ei-täydet: {layer.missingEssential.map(item => item.label).join('; ')}</p>}
+          <p className="subtle">{t('cases.coveragePolicy')}</p>
+          <p className="subtle">{t('cases.partialCounts', {
+            partial: layer.counts.partial,
+            conflicting: layer.counts.conflicting,
+            absent: layer.counts.absent,
+            unresolved: layer.counts.unresolved
+          })}</p>
+          {layer.missingEssential.length > 0 && <p className="error-text">{t('cases.missingEssentialNotFull', {
+            labels: layer.missingEssential.map(item => (editMode ? item.label : cf(`facet.${item.id}.label`, item.label).text)).join('; ')
+          })}</p>}
         </article>)}
       </div>
     </section>
@@ -215,42 +243,52 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
         <thead><tr>
           {[t('cases.facetsTitle'), t('cases.essentialQual'), coverageLayerLabel.collection, coverageLayerLabel.context, coverageLayerLabel.answer, t('inspector.evidenceRefs'), t('inspector.rationale')].map(column => <th key={column} scope="col">{column}</th>)}
         </tr></thead>
-        <tbody>{draft.facets.map(facet => <tr key={facet.id}>
-          <th scope="row">{facet.label}<p className="subtle">id: {facet.id}</p></th>
-          <td>{facet.essential ? t('cases.yes') : t('cases.no')}</td>
-          {(['collection', 'context', 'answer'] as const).map(layer => <td key={layer}>
-            {editMode
-              ? <select value={facet[layer]} onChange={event => patchDraft(current => {
+        <tbody>{draft.facets.map(facet => {
+          const facetLabel = editMode ? facet.label : cf(`facet.${facet.id}.label`, facet.label).text;
+          const facetReason = editMode ? facet.reason : cf(`facet.${facet.id}.reason`, facet.reason).text;
+          return <tr key={facet.id}>
+            <th scope="row">{facetLabel}<p className="subtle">id: {facet.id}</p></th>
+            <td>{facet.essential ? t('cases.yes') : t('cases.no')}</td>
+            {(['collection', 'context', 'answer'] as const).map(layer => <td key={layer}>
+              {editMode
+                ? <select value={facet[layer]} onChange={event => patchDraft(current => {
+                  const item = current.facets.find(entry => entry.id === facet.id);
+                  if (item) item[layer] = event.target.value as FacetState;
+                  return current;
+                })}>{facetOptions.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
+                : facetStateLabel[facet[layer]]}
+            </td>)}
+            <td>{facet.evidenceRefs.join(', ') || t('cases.notRecorded')}</td>
+            <td>{editMode
+              ? <textarea value={facet.reason} onChange={event => patchDraft(current => {
                 const item = current.facets.find(entry => entry.id === facet.id);
-                if (item) item[layer] = event.target.value as FacetState;
+                if (item) item.reason = event.target.value;
                 return current;
-              })}>{facetOptions.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}</select>
-              : facetStateLabel[facet[layer]]}
-          </td>)}
-          <td>{facet.evidenceRefs.join(', ') || 'Ei kirjattu'}</td>
-          <td>{editMode
-            ? <textarea value={facet.reason} onChange={event => patchDraft(current => {
-              const item = current.facets.find(entry => entry.id === facet.id);
-              if (item) item.reason = event.target.value;
-              return current;
-            })} />
-            : (facet.reason || 'Ei kirjattu.')}</td>
-        </tr>)}</tbody>
+              })} />
+              : (facetReason || t('cases.notRecordedPeriod'))}</td>
+          </tr>;
+        })}</tbody>
       </table></div>
     </section>
 
     <section className="case-section">
       <h3>{t('cases.compareTitle')}</h3>
-      <p className="subtle">Valitse kaksi varianttia. Väitetuki ja näytön paikannettavuus näkyvät erikseen; tarkistuksen onnistumista, aikaa tai asiantuntija-arvioita ei ole mitattu.</p>
+      <p className="subtle">{t('cases.compareNote')}</p>
       <div className="variant-pickers">
-        <label>Vasen variantti
+        <label>{t('cases.leftVariant')}
           <select value={leftVariantId} onChange={event => setLeftVariantId(event.target.value)}>
-            {draft.answerVariants.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+            {draft.answerVariants.map(item => {
+              const label = editMode ? item.label : cf(`answer.${item.id}.label`, item.label).text;
+              return <option key={item.id} value={item.id}>{label}</option>;
+            })}
           </select>
         </label>
-        <label>Oikea variantti
+        <label>{t('cases.rightVariant')}
           <select value={rightVariantId} onChange={event => setRightVariantId(event.target.value)}>
-            {draft.answerVariants.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+            {draft.answerVariants.map(item => {
+              const label = editMode ? item.label : cf(`answer.${item.id}.label`, item.label).text;
+              return <option key={item.id} value={item.id}>{label}</option>;
+            })}
           </select>
         </label>
       </div>
@@ -258,54 +296,91 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
         {[left, right].map((answer, index) => {
           const display = index === 0 ? leftDisplay : rightDisplay;
           const claims = draft.claimAnnotations.filter(item => answer && item.answerVariantIds.includes(answer.id));
+          const answerLabel = !answer ? t('cases.noVariant')
+            : editMode ? answer.label : cf(`answer.${answer.id}.label`, answer.label).text;
+          const answerText = !answer ? t('cases.notRecordedPeriod')
+            : editMode ? answer.text : cf(`answer.${answer.id}.text`, answer.text).text;
+          const answerNote = !answer || !answer.note ? ''
+            : editMode ? answer.note : cf(`answer.${answer.id}.note`, answer.note).text;
+          const answerTranslated = Boolean(answer && !editMode && locale === 'en'
+            && caseField(locale, draft.id, `answer.${answer.id}.text`, answer.text, hashMatches).source === 'translation');
+          const displayLabel = !display ? t('cases.notRecorded')
+            : editMode ? display.label : cf(`display.${display.id}.label`, display.label).text;
+          const displayNote = !display || !display.note ? ''
+            : editMode ? display.note : cf(`display.${display.id}.note`, display.note).text;
           return <article key={answer?.id || index} className="case-card">
-            <h4>{answer?.label || 'Varianttia ei valittu'}</h4>
-            <p>{answer?.text || 'Ei kirjattu.'}</p>
-            <p className="subtle">{answer?.note || ''}</p>
-            <h5>Näyttöehto</h5>
-            <p>{display?.label || 'Ei kirjattu'}</p>
-            <p className="subtle">Viitetiedot näkyvissä: {display ? (display.citationVisible ? 'kyllä' : 'ei') : 'ei kirjattu'} · Katkelmapaikannin: {display ? (display.passageLocatorVisible ? 'kyllä' : 'ei') : 'ei kirjattu'}</p>
-            <p className="subtle">{display?.note || ''}</p>
-            <h5>Väiteannotaatiot (erillinen auditointi)</h5>
-            {claims.length ? claims.map(claim => <div key={claim.id} className="matrix-block">
-              <p><strong>{claim.label}</strong> · tuki {facetStateLabel[claim.support]}</p>
-              <p>{claim.statement}</p>
-              <p className="subtle">{claim.reason}</p>
-              <p className="subtle">Näyttöviitteet: {claim.evidenceRefs.join(', ') || 'ei kirjattu'}</p>
-            </div>) : <p className="subtle">Väiteannotaatiota ei kirjattu tälle variantille.</p>}
-            <p className="tag">Tarkistuksen onnistuminen: ei mitattu</p>
-            <p className="tag">Tarkistuksen aika: ei mitattu</p>
-            <p className="tag">Asiantuntija-arviot: ei mitattu</p>
+            <h4>{answerLabel}</h4>
+            <p>{answerText}</p>
+            <OriginalFinnish show={answerTranslated} original={answer?.text || ''} />
+            <p className="subtle">{answerNote}</p>
+            <h5>{t('cases.displayCondition')}</h5>
+            <p>{displayLabel}</p>
+            <p className="subtle">{t('cases.citationVisible', { value: display ? yesNo(display.citationVisible) : t('cases.notRecorded') })} · {t('cases.passageLocator', { value: display ? yesNo(display.passageLocatorVisible) : t('cases.notRecorded') })}</p>
+            <p className="subtle">{displayNote}</p>
+            <h5>{t('cases.claimAnnsTitle')}</h5>
+            {claims.length ? claims.map(claim => {
+              const claimLabel = editMode ? claim.label : cf(`claimAnn.${claim.id}.label`, claim.label).text;
+              const claimStatement = editMode ? claim.statement : cf(`claimAnn.${claim.id}.statement`, claim.statement).text;
+              const claimReason = editMode ? claim.reason : cf(`claimAnn.${claim.id}.reason`, claim.reason).text;
+              const claimTranslated = !editMode && locale === 'en'
+                && caseField(locale, draft.id, `claimAnn.${claim.id}.statement`, claim.statement, hashMatches).source === 'translation';
+              return <div key={claim.id} className="matrix-block">
+                <p><strong>{claimLabel}</strong> · {t('cases.claimSupport', { state: facetStateLabel[claim.support] })}</p>
+                <p>{claimStatement}</p>
+                <OriginalFinnish show={claimTranslated} original={claim.statement} />
+                <p className="subtle">{claimReason}</p>
+                <p className="subtle">{t('inspector.evidenceRefs')}: {claim.evidenceRefs.join(', ') || t('cases.notRecorded')}</p>
+              </div>;
+            }) : <p className="subtle">{t('cases.noClaimAnns')}</p>}
+            <p className="tag">{t('cases.verificationSuccessNotMeasured')}</p>
+            <p className="tag">{t('cases.verificationTimeNotMeasured')}</p>
+            <p className="tag">{t('cases.expertRatingsNotMeasured')}</p>
           </article>;
         })}
       </div>
     </section>
 
     <section className="case-section">
-      <h3>Tallennettu konteksti ja katkelmat</h3>
-      {draft.savedContexts.map(ctx => <article key={ctx.id} className="case-card">
-        <p><strong>{ctx.label}</strong></p>
-        <p>{ctx.note || 'Huomiota ei kirjattu.'}</p>
-        <p className="subtle">Katkelmat: {ctx.passageIds.join(', ') || 'ei kirjattu'}</p>
-      </article>)}
+      <h3>{t('cases.contextsPassagesTitle')}</h3>
+      {draft.savedContexts.map(ctx => {
+        const ctxLabel = editMode ? ctx.label : cf(`context.${ctx.id}.label`, ctx.label).text;
+        const ctxNote = editMode ? (ctx.note || t('cases.noteNotRecorded'))
+          : (cf(`context.${ctx.id}.note`, ctx.note).text || t('cases.noteNotRecorded'));
+        return <article key={ctx.id} className="case-card">
+          <p><strong>{ctxLabel}</strong></p>
+          <p>{ctxNote}</p>
+          <p className="subtle">{t('cases.passagesList', { ids: ctx.passageIds.join(', ') || t('cases.notRecorded') })}</p>
+        </article>;
+      })}
       <div className="table-wrap" tabIndex={0}><table>
-        <caption>Tallennetut katkelmat rakennetussa esimerkissä. Leveä taulukko vierii kehyksessään.</caption>
-        <thead><tr>{['Katkelma', 'Lähdevedos', 'Paikannin', 'Teksti'].map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
-        <tbody>{draft.passages.map(passage => <tr key={passage.id}>
-          <th scope="row">{passage.id}</th>
-          <td>{passage.sourceSnapshotId}</td>
-          <td>{passage.locator || 'Ei kirjattu'}</td>
-          <td>{passage.text || 'Ei kirjattu'}</td>
-        </tr>)}</tbody>
+        <caption>{t('cases.passagesCaption')}</caption>
+        <thead><tr>{[t('cases.passageColId'), t('cases.passageColSnapshot'), t('cases.passageColLocator'), t('cases.passageColText')].map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
+        <tbody>{draft.passages.map(passage => {
+          const passageText = editMode ? passage.text : cf(`passage.${passage.id}.text`, passage.text).text;
+          const passageTranslated = !editMode && locale === 'en'
+            && caseField(locale, draft.id, `passage.${passage.id}.text`, passage.text, hashMatches).source === 'translation';
+          return <tr key={passage.id}>
+            <th scope="row">{passage.id}</th>
+            <td>{passage.sourceSnapshotId}</td>
+            <td>{passage.locator || t('cases.notRecorded')}</td>
+            <td>
+              {passageText || t('cases.notRecorded')}
+              <OriginalFinnish show={passageTranslated} original={passage.text} />
+            </td>
+          </tr>;
+        })}</tbody>
       </table></div>
     </section>
 
     <section className="case-section">
-      <h3>Yhteenvetotaulukko (lähtöaineisto)</h3>
+      <h3>{t('cases.summaryTitle')}</h3>
       <div className="table-wrap" tabIndex={0}><table>
-        <caption>Yhteenvetotaulukko lähtöaineistosta. Rakennettu esimerkki, ei mittaustulos. Leveä taulukko vierii kehyksessään.</caption>
-        <thead><tr>{draft.columns.map(column => <th key={column} scope="col">{column}</th>)}</tr></thead>
-        <tbody>{draft.rows.map((row, index) => <tr key={index}>{row.map((cell, cellIndex) => cellIndex === 0 ? <th key={cellIndex} scope="row">{cell}</th> : <td key={cellIndex}>{cell}</td>)}</tr>)}</tbody>
+        <caption>{t('cases.summaryCaption')}</caption>
+        <thead><tr>{draft.columns.map((column, index) => <th key={index} scope="col">{editMode ? column : cf(`column.${index}`, column).text}</th>)}</tr></thead>
+        <tbody>{draft.rows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => {
+          const text = editMode ? cell : cf(`row.${rowIndex}.${cellIndex}`, cell).text;
+          return cellIndex === 0 ? <th key={cellIndex} scope="row">{text}</th> : <td key={cellIndex}>{text}</td>;
+        })}</tr>)}</tbody>
       </table></div>
     </section>
 
