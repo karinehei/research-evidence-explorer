@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import seed from '../data/research.json';
 import { csv, graphNodes, load, locate, path, planRemoval, validate } from './model.ts';
 import { figureGraphvizDot } from './figures.ts';
 import { formatHash, parseHash, type Route, type View } from './hash.ts';
 import { visibleIds } from './graph.ts';
-import { formatTrace, traceLimitation } from './trace.ts';
+import { formatTrace } from './trace.ts';
+import { labelsFor } from './labels.ts';
 import { clone, newId } from './edit.ts';
 import { graphSvg } from './svg.ts';
 import { FlowMap, type FlowApi } from './FlowMap.tsx';
@@ -15,22 +16,17 @@ import { HistoryView } from './HistoryView.tsx';
 import { SnapshotDialog } from './SnapshotDialog.tsx';
 import { FigureExportDialog } from './FigureExportDialog.tsx';
 import { Modal } from './Modal.tsx';
-import { AUDIT_DISCLAIMER, LOCAL_SAVE_DISCLAIMER, prepareCommit, prepareUndo } from './snapshots.ts';
+import { prepareCommit, prepareUndo } from './snapshots.ts';
+import { I18nProvider, LanguageSelector, useI18n, displayRecordLabel } from './i18n/index.ts';
 import type { DirtyApi } from './draft.ts';
 import type { EditEventKind, Workspace } from './types.ts';
 
 const KEY = 'research-evidence-explorer-v1';
 const ACTOR_KEY = 'research-evidence-explorer-actor-label-v1';
-const STORED_STATE = 'Tallennettu tähän selaimeen';
-const MEMORY_STATE = 'Muutokset vain muistissa';
-const MEMORY_NOTE = 'Muutokset ovat vain muistissa. Paikallinen tallennus ei onnistunut. Vie JSON säilyttääksesi ne.';
-const descriptions: Record<View, [string, string]> = {
-  graph: ['Lähteistä arviointikriteereihin', 'Tutki, mihin käsitteet ja omat menetelmävalinnat perustuvat.'],
-  matrix: ['Arviointimatriisi', 'Käsitteet, kriteerit, näyttö ja päätelmien rajat samassa näkymässä.'],
-  cases: ['Tehtävästä näyttöön', 'Rakennetut tapaukset A–C erottavat kattavuuden, väitetuen ja näytön. Näkymä ei ole validoitu kausaalimalli.'],
-  questions: ['Oletukset ja avoimet kysymykset', 'Propositiot ja alustavat arviointiprotokollat ilman inventoituja havaintoja tai yhdistelmäpistettä.'],
-  history: ['Muokkaushistoria ja tilannekuvat', 'Liitettävä paikallinen päätösloki ja siirrettävät tilannekuvat. Ei peukaloinnin kestävä auditointi.']
-};
+
+type SaveKind = 'local' | 'stored' | 'memory';
+type Mode = { type: 'record' } | { type: 'add-node' } | { type: 'add-edge'; sourceId: string };
+type Removal = { id: string; model: Workspace; effects: { label?: string; id: string; reason: string }[] };
 
 function here(hash: string): string {
   return `${location.pathname}${location.search}${hash}`;
@@ -49,14 +45,14 @@ function resolveId(route: Route, model: Workspace): string {
   return '';
 }
 
-function openWorkspace(): { model: Workspace; warning: string } {
+function openWorkspace(): { model: Workspace; storageUnread: boolean } {
   const curated = load(seed) as Workspace;
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return { model: curated, warning: '' };
-    return { model: load(JSON.parse(raw)) as Workspace, warning: '' };
+    if (!raw) return { model: curated, storageUnread: false };
+    return { model: load(JSON.parse(raw)) as Workspace, storageUnread: false };
   } catch {
-    return { model: curated, warning: 'Paikallista tallennetta ei voitu lukea. Lähtömalli avattiin; tallenne säilyy koskemattomana seuraavaan muokkaukseen asti.' };
+    return { model: curated, storageUnread: true };
   }
 }
 
@@ -68,22 +64,30 @@ function download(content: string, name: string, type: string) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-type Mode = { type: 'record' } | { type: 'add-node' } | { type: 'add-edge'; sourceId: string };
-type Removal = { id: string; model: Workspace; effects: { label?: string; id: string; reason: string }[] };
-
 export function App() {
   const opened = useState(openWorkspace)[0];
   const [model, setModel] = useState(opened.model);
+  return <I18nProvider model={model}><AppShell opened={opened} model={model} setModel={setModel} /></I18nProvider>;
+}
+
+function AppShell({ opened, model, setModel }: {
+  opened: { model: Workspace; storageUnread: boolean };
+  model: Workspace;
+  setModel: Dispatch<SetStateAction<Workspace>>;
+}) {
+  const { locale, t, hashMatches } = useI18n();
   const [route, setRoute] = useState(readRoute);
   const [edgeId, setEdgeId] = useState('');
   const [mode, setMode] = useState<Mode>({ type: 'record' });
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('all');
-  const [message, setMessage] = useState({ text: opened.warning, error: Boolean(opened.warning) });
-  const [saveState, setSaveState] = useState('Paikallinen työtila');
+  const [message, setMessage] = useState(() => opened.storageUnread
+    ? { text: t('top.storageUnread'), error: true }
+    : { text: '', error: false });
+  const [saveKind, setSaveKind] = useState<SaveKind>('local');
   const [undoCount, setUndoCount] = useState(0);
   const [trace, setTrace] = useState<{ nodes: string[]; edges: string[] } | null>(null);
-  const [traceText, setTraceText] = useState('Ketju seuraa suunnattuja yhteyksiä; se ei vahvista perustelujen pätevyyttä.');
+  const [traceText, setTraceText] = useState(() => t('graph.traceIdle'));
   const [traceStart, setTraceStart] = useState('blueprint24');
   const [traceEnd, setTraceEnd] = useState('p1');
   const [fitToken, setFitToken] = useState(0);
@@ -121,10 +125,29 @@ export function App() {
   if (route.view === 'graph') { graphReady.current = true; visibleRef.current = ids; }
   const records = [...model.sources, ...model.constructs, ...model.criteria, ...model.propositions];
   const [graphFilterNote, setGraphFilterNote] = useState('');
+  const saveState = saveKind === 'stored' ? t('top.stored') : saveKind === 'memory' ? t('top.memoryOnly') : t('top.localWorkspace');
+  const descriptions: Record<View, [string, string]> = {
+    graph: [t('views.graphTitle'), t('views.graphDesc')],
+    matrix: [t('views.matrixTitle'), t('views.matrixDesc')],
+    cases: [t('views.casesTitle'), t('views.casesDesc')],
+    questions: [t('views.questionsTitle'), t('views.questionsDesc')],
+    history: [t('views.historyTitle'), t('views.historyDesc')]
+  };
+  const navItems = [
+    ['graph', '01', t('nav.graph')],
+    ['matrix', '02', t('nav.matrix')],
+    ['cases', '03', t('nav.cases')],
+    ['questions', '04', t('nav.questions')],
+    ['history', '05', t('nav.history')]
+  ] as const;
   useEffect(() => {
     if (route.view !== 'graph') return;
-    setGraphFilterNote(`Kartan suodatus: ${ids.size} näkyvää kohdetta.`);
-  }, [query, status, route.view]);
+    setGraphFilterNote(t('graph.filterStatus', { count: ids.size }));
+  }, [query, status, route.view, ids.size, t, locale]);
+
+  useEffect(() => {
+    if (!trace) setTraceText(t('graph.traceIdle'));
+  }, [locale, t, trace]);
 
   function commit(next: Workspace, success = '', options: { reason?: string; actorLabel?: string; kind?: EditEventKind; skipAutoLog?: boolean; summary?: string } = {}): boolean {
     try {
@@ -149,16 +172,16 @@ export function App() {
       try {
         localStorage.setItem(KEY, JSON.stringify(clean));
         storedRef.current = true;
-        setSaveState(STORED_STATE);
+        setSaveKind('stored');
         if (success) setMessage({ text: success, error: false });
       } catch {
         storedRef.current = false;
-        setSaveState(MEMORY_STATE);
-        setMessage({ text: MEMORY_NOTE, error: true });
+        setSaveKind('memory');
+        setMessage({ text: t('top.memoryNote'), error: true });
       }
       return true;
     } catch (error) {
-      setMessage({ text: error instanceof Error ? error.message : 'Muutos hylättiin.', error: true });
+      setMessage({ text: error instanceof Error ? error.message : t('top.changeRejected'), error: true });
       return false;
     }
   }
@@ -219,10 +242,10 @@ export function App() {
     try {
       restored = validate(prepareUndo(modelRef.current, previous, {
         actorLabel,
-        reason: 'Käyttöliittymän Kumoa — historiaa ei kirjoiteta uudelleen.'
+        reason: t('top.undoReason')
       })) as Workspace;
     } catch (error) {
-      setMessage({ text: error instanceof Error ? error.message : 'Kumoaminen hylättiin; nykyinen työtila säilyi.', error: true });
+      setMessage({ text: error instanceof Error ? error.message : t('top.undoRejected'), error: true });
       undoRef.current = [...undoRef.current, previous];
       setUndoCount(undoRef.current.length);
       return;
@@ -235,12 +258,12 @@ export function App() {
     try {
       localStorage.setItem(KEY, JSON.stringify(restored));
       storedRef.current = true;
-      setSaveState(STORED_STATE);
-      setMessage({ text: 'Edellinen muutos kumottiin. Kumoustapahtuma jäi historiaan.', error: false });
+      setSaveKind('stored');
+      setMessage({ text: t('top.undoSuccess'), error: false });
     } catch {
       storedRef.current = false;
-      setSaveState(MEMORY_STATE);
-      setMessage({ text: 'Edellinen muutos kumottiin ja on vain muistissa. Paikallinen tallennus ei onnistunut. Vie JSON säilyttääksesi työtilan.', error: true });
+      setSaveKind('memory');
+      setMessage({ text: t('top.undoMemoryNote'), error: true });
     }
     if (route.id && !locate(restored, route.id)) location.hash = formatHash(route.view, resolveId({ ...route, id: '' }, restored), route.scope);
   }
@@ -272,10 +295,10 @@ export function App() {
       try {
         const plan = planRemoval(modelRef.current, id) as Removal & { needsConfirmation: boolean; effects: Removal['effects'] };
         const kind = locate(modelRef.current, id)?.kind;
-        const quiet = kind === 'relationship' ? 'Yhteys poistettiin. Toiminnon voi kumota.' : plan.effects.some(effect => effect.reason.includes('päättyy')) ? 'Kohde poistettiin yhteyksineen. Toiminnon voi kumota.' : 'Kohde poistettiin. Toiminnon voi kumota.';
+        const quiet = kind === 'relationship' ? t('top.relationshipRemoved') : plan.effects.some(effect => effect.reason.includes('päättyy')) ? t('top.recordRemovedWithLinks') : t('top.recordRemoved');
         if (!plan.needsConfirmation) { if (commit(plan.model, quiet)) setEdgeId(''); return; }
         setRemoval({ id, model: plan.model, effects: plan.effects });
-      } catch (error) { setMessage({ text: error instanceof Error ? error.message : 'Poisto ei onnistunut.', error: true }); }
+      } catch (error) { setMessage({ text: error instanceof Error ? error.message : t('top.removeFailed'), error: true }); }
     });
   }
 
@@ -283,7 +306,7 @@ export function App() {
     const pendingRemoval = removal;
     setRemoval(null);
     if (!pendingRemoval) return;
-    if (!commit(pendingRemoval.model, 'Kohde poistettiin ja viitteet irrotettiin yhdessä toiminnossa. Toiminnon voi kumota.')) return;
+    if (!commit(pendingRemoval.model, t('top.recordRemovedDetached'))) return;
     setEdgeId('');
     if (!locate(modelRef.current, selectedId)) assignHash(formatHash(route.view, resolveId({ ...route, id: '' }, modelRef.current), route.scope));
   }
@@ -293,7 +316,7 @@ export function App() {
       const copy = clone(modelRef.current);
       const id = newId(copy, 'claim');
       copy.claims.push({ id, sourceId, statement: '', methodContext: '', locator: '', limitations: '', provenance: 'imported-summary', appraisal: 'not-appraised', basis: '', epistemicStatus: 'reported', reviewState: 'proposed', notes: '' });
-      if (commit(copy, 'Tuotu yhteenveto lisättiin. Se ei ole alkuperäisvarmennus.')) selectRecord(id);
+      if (commit(copy, t('top.claimAdded'))) selectRecord(id);
     });
   }
 
@@ -301,8 +324,8 @@ export function App() {
     guarded(() => {
       const copy = clone(modelRef.current);
       const id = newId(copy, 'decision');
-      copy.decisions.push({ id, label: 'Uusi päätös', statement: '', scope: '', rationale: '', epistemicStatus: 'adaptation', reviewState: 'proposed', recordIds: [] });
-      if (commit(copy, 'Tutkimuspäätös lisättiin ehdotuksena.')) selectRecord(id);
+      copy.decisions.push({ id, label: t('top.newDecisionLabel'), statement: '', scope: '', rationale: '', epistemicStatus: 'adaptation', reviewState: 'proposed', recordIds: [] });
+      if (commit(copy, t('top.decisionAdded'))) selectRecord(id);
     });
   }
 
@@ -316,7 +339,7 @@ export function App() {
     });
     if (!ok) return false;
     if (!storedRef.current) return true;
-    if (undoRef.current.length === before) setMessage({ text: 'Tuonti vastasi nykyistä työtilaa. Muutoksia ei tehty.', error: false });
+    if (undoRef.current.length === before) setMessage({ text: t('top.importNoChange'), error: false });
     setEdgeId('');
     setMode({ type: 'record' });
     const first = (graphNodes(modelRef.current)[0]?.id as string) || 'sufficiency';
@@ -331,69 +354,79 @@ export function App() {
   }
 
   function exportDot() {
-    if (!graphReady.current) { setMessage({ text: 'DOT-vienti käyttää graafissa näkyvää rajausta. Avaa kartta ja vie uudelleen.', error: true }); return; }
-    if (route.view !== 'graph') setMessage({ text: 'DOT-vienti käyttää graafin viimeksi näkyvissä ollutta rajausta.', error: false });
-    download(figureGraphvizDot(model, visibleRef.current), 'research-map.dot', 'text/vnd.graphviz');
+    if (!graphReady.current) { setMessage({ text: t('graph.dotNeedGraph'), error: true }); return; }
+    if (route.view !== 'graph') setMessage({ text: t('graph.dotUsesLast'), error: false });
+    download(figureGraphvizDot(model, visibleRef.current, {
+      locale,
+      hashMatches,
+      resolveLabel: (id, fallback) => displayRecordLabel(locale, model, id, hashMatches) || fallback
+    }), 'research-map.dot', 'text/vnd.graphviz');
   }
 
   function exportSvg() {
-    if (route.view !== 'graph') { setMessage({ text: 'SVG-vienti koskee graafia. Muita näkymiä voi tulostaa tai tallentaa PDF:nä selaimessa.', error: true }); return; }
-    download(graphSvg(model, ids, selectedId), 'research-map.svg', 'image/svg+xml;charset=utf-8');
+    if (route.view !== 'graph') { setMessage({ text: t('graph.svgWrongView'), error: true }); return; }
+    download(graphSvg(model, ids, selectedId, locale, {
+      hashMatches,
+      resolveLabel: (id, fallback) => displayRecordLabel(locale, model, id, hashMatches) || fallback
+    }), 'research-map.svg', 'image/svg+xml;charset=utf-8');
   }
 
   const [title, description] = descriptions[route.view];
-  return <><a className="skip" href="#workspace">Siirry sisältöön</a>
-    <header className="topbar"><div className="identity"><span className="mark" aria-hidden="true">R</span><div><strong>Research Evidence Explorer</strong><span>Finnish healthcare RAG · Käsitteellisen mallin työtila</span></div></div>
-      <div className="top-actions"><span className="save-state" role="status">{saveState}</span><button type="button" disabled={!undoCount} onClick={() => { if (guard.current?.isDirty()) { setDirtyKind('undo'); setDirtyOpen(true); setGuardTick(value => value + 1); } else performUndo(); }}>Kumoa</button><button type="button" className="primary" onClick={() => download(JSON.stringify(model, null, 2), 'research-workspace.json', 'application/json')}>Vie JSON</button><button type="button" onClick={() => guarded(() => setSnapshotOpen(true))}>Tilannekuva / tuo</button><button type="button" onClick={() => guarded(() => setCslOpen(true))}>Tuo Zotero CSL</button></div></header>
-    <div className="shell"><aside className="sidebar"><div className="section-label">TUTKIMUSTYÖTILA</div><nav aria-label="Näkymät">{([['graph', '01', 'Lähteistä kriteereihin'], ['matrix', '02', 'Arviointimatriisi'], ['cases', '03', 'Rakennetut tapaukset'], ['questions', '04', 'Oletukset ja kysymykset'], ['history', '05', 'Historia ja tilannekuvat']] as const).map(([view, number, label]) => <button type="button" key={view} className={route.view === view ? 'nav active' : 'nav'} aria-current={route.view === view ? 'page' : undefined} onClick={() => assignHash(formatHash(view, selectedId, view === 'graph' ? route.scope : 'focus'))}>{number} <span>{label}</span></button>)}</nav>
-      <div className="sidebar-bottom"><div className="section-label">TUTKIMUKSEN VAIHE</div><strong>Käsitteellinen kehittäminen</strong><p>Omat sovellukset ja testaamattomat oletukset on erotettu kirjallisuuden sisällöstä.</p><button type="button" className="quiet" onClick={() => setAboutOpen(true)}>Tietomallista ja käytöstä</button></div></aside>
-      <main id="workspace" tabIndex={-1}><div className="page-head"><div><div className="eyebrow">VUODEN 1 ARTIKKELI</div><h1>{title}</h1><p>{description}</p></div><button type="button" onClick={() => setExportOpen(true)}>Vie näkymä</button></div>
+  return <><a className="skip" href="#workspace">{t('brand.skip')}</a>
+    <header className="topbar"><div className="identity"><span className="mark" aria-hidden="true">R</span><div><strong>Research Evidence Explorer</strong><span>{t('brand.tagline')}</span></div></div>
+      <div className="top-actions"><LanguageSelector /><span className="save-state" role="status">{saveState}</span><button type="button" disabled={!undoCount} onClick={() => { if (guard.current?.isDirty()) { setDirtyKind('undo'); setDirtyOpen(true); setGuardTick(value => value + 1); } else performUndo(); }}>{t('top.undo')}</button><button type="button" className="primary" onClick={() => download(JSON.stringify(model, null, 2), 'research-workspace.json', 'application/json')}>{t('top.exportJson')}</button><button type="button" onClick={() => guarded(() => setSnapshotOpen(true))}>{t('top.snapshot')}</button><button type="button" onClick={() => guarded(() => setCslOpen(true))}>{t('top.csl')}</button></div></header>
+    <div className="shell"><aside className="sidebar"><div className="section-label">{t('brand.workspace')}</div><nav aria-label={t('nav.aria')}>{navItems.map(([view, number, label]) => <button type="button" key={view} className={route.view === view ? 'nav active' : 'nav'} aria-current={route.view === view ? 'page' : undefined} onClick={() => assignHash(formatHash(view, selectedId, view === 'graph' ? route.scope : 'focus'))}>{number} <span>{label}</span></button>)}</nav>
+      <div className="sidebar-bottom"><div className="section-label">{t('brand.phase')}</div><strong>{t('brand.phaseTitle')}</strong><p>{t('brand.phaseBody')}</p><button type="button" className="quiet" onClick={() => setAboutOpen(true)}>{t('top.about')}</button></div></aside>
+      <main id="workspace" tabIndex={-1}><div className="page-head"><div><div className="eyebrow">{t('brand.eyebrow')}</div><h1>{title}</h1><p>{description}</p></div><button type="button" onClick={() => setExportOpen(true)}>{t('top.exportView')}</button></div>
         <div id="message" role="status" aria-live="polite" className={message.error ? 'error' : ''}>{message.text}</div>
         <p id="graph-filter-status" className="sr-only" aria-live="polite">{route.view === 'graph' ? graphFilterNote : ''}</p>
-        {route.view === 'graph' && <div className="toolbar"><label>Hae kohdetta<input type="search" value={query} placeholder="Esim. riittävyys tai Järvelin" onChange={event => { setQuery(event.target.value); setTrace(null); }} /></label><label>Näyttöä koskeva tila<select value={status} onChange={event => { setStatus(event.target.value); setTrace(null); }}><option value="all">Kaikki tilat</option><option value="reported">Raportoitu, ei itsenäisesti varmennettu</option><option value="adaptation">Oma sovellus</option><option value="hypothesis">Testaamaton oletus</option></select></label><button type="button" onClick={() => assignHash(formatHash('graph', selectedId, route.scope === 'map' ? 'focus' : 'map'))}>{route.scope === 'map' ? 'Näytä valitun kohteen ketjut' : 'Näytä koko kartta'}</button><button type="button" onClick={() => flowApi.current?.zoomIn()}>Lähennä</button><button type="button" onClick={() => flowApi.current?.zoomOut()}>Loitonna</button><button type="button" onClick={() => flowApi.current?.fit()}>Sovita näkymään</button><button type="button" onClick={() => flowApi.current?.home()}>Alkuun</button><button type="button" onClick={() => guarded(() => { const copy = clone(modelRef.current); for (const key of ['sources', 'claims', 'constructs', 'criteria', 'propositions'] as const) copy[key].forEach(record => { delete record.position; }); commit(copy, 'Sarakkeiden järjestys palautettiin.'); setFitToken(value => value + 1); })}>Jäsennä sarakkeisiin</button><button type="button" onClick={() => guarded(() => { setEdgeId(''); setMode({ type: 'add-node' }); })}>Lisää kohde</button></div>}
+        {route.view === 'graph' && <div className="toolbar"><label>{t('graph.search')}<input type="search" value={query} placeholder={t('graph.searchPlaceholder')} onChange={event => { setQuery(event.target.value); setTrace(null); }} /></label><label>{t('graph.status')}<select value={status} onChange={event => { setStatus(event.target.value); setTrace(null); }}><option value="all">{t('graph.statusAll')}</option><option value="reported">{t('graph.statusReported')}</option><option value="adaptation">{t('graph.statusAdaptation')}</option><option value="hypothesis">{t('graph.statusHypothesis')}</option></select></label><button type="button" onClick={() => assignHash(formatHash('graph', selectedId, route.scope === 'map' ? 'focus' : 'map'))}>{route.scope === 'map' ? t('graph.showFocus') : t('graph.showMap')}</button><button type="button" onClick={() => flowApi.current?.zoomIn()}>{t('graph.zoomIn')}</button><button type="button" onClick={() => flowApi.current?.zoomOut()}>{t('graph.zoomOut')}</button><button type="button" onClick={() => flowApi.current?.fit()}>{t('graph.fit')}</button><button type="button" onClick={() => flowApi.current?.home()}>{t('graph.home')}</button><button type="button" onClick={() => guarded(() => { const copy = clone(modelRef.current); for (const key of ['sources', 'claims', 'constructs', 'criteria', 'propositions'] as const) copy[key].forEach(record => { delete record.position; }); commit(copy, t('graph.reflowDone')); setFitToken(value => value + 1); })}>{t('graph.reflow')}</button><button type="button" onClick={() => guarded(() => { setEdgeId(''); setMode({ type: 'add-node' }); })}>{t('graph.addNode')}</button></div>}
         <div className={route.view === 'graph' ? 'graph-workspace' : 'split-workspace'}>
-          {route.view === 'graph' && <section className="graph-area" aria-label="Lähteiden ja kriteerien yhteyskaavio"><div className="lane-heads"><span>Lähteet</span><span>Lähdeväitteet</span><span>Käsitteet</span><span>Arviointikriteerit</span><span>Avoimet kysymykset</span></div>
-            <FlowMap model={model} ids={ids} selectedId={edgeId ? '' : selectedId} selectedEdge={edgeId} trace={trace} fitToken={fitToken} guardTick={guardTick} api={flowApi} onSelectNode={selectRecord} onSelectEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onMove={(id, position) => { const copy = clone(modelRef.current); const found = locate(copy, id) as { record?: { position?: { x: number; y: number } } } | null; if (found?.record) found.record.position = position; commit(copy); }} />
-            <div className="legend" aria-label="Tiedollisen tilan selite"><span><i className="line solid" aria-hidden="true" />Raportoitu, ei varmennettu</span><span><i className="line dashed" aria-hidden="true" />Oma sovellus</span><span><i className="line dotted" aria-hidden="true" />Testaamaton oletus</span><span><i className="line membership" aria-hidden="true" />Lähdeviite, ei kausaalinuoli</span></div>
-            <div className="graph-foot"><p>Yhteydet kuvaavat perusteluja ja ehdotuksia. Viivatyyppi, väri ja teksti kertovat tiedollisen tilan — tilaa ei merkitä pelkällä värillä. Graafi ei osoita syy-seuraussuhteita. Tiheässä kartassa rajaa ketjuun, käytä hakua/suodatusta tai zoomaa.</p><p className="keyboard-help">Näppäimistö: sarkain kohteeseen, Enter tai välilyönti valitsee, nuolet siirtävät valittua kohdetta ja Vaihto pidentää askelta, Escape peruu valinnan. Poisto- tai askelpalautin ei poista kohdetta. Täysi nimi ja rajaus ovat tarkastelijassa ja listassa Näkyvät kohteet tekstinä, eivät pelkkä osoitinvinkki.</p></div>
-            <details className="visible-list"><summary>Näkyvät kohteet tekstinä ({ids.size})</summary><ul className="plain-list">{[...ids].sort().map(id => { const hit = locate(model, id); const label = (hit?.record as { label?: string; statement?: string; title?: string } | undefined)?.label || (hit?.record as { statement?: string } | undefined)?.statement || (hit?.record as { title?: string } | undefined)?.title || id; return <li key={id}><button type="button" className="quiet" onClick={() => selectRecord(id)}>{label} <span className="subtle">({id})</span></button></li>; })}</ul></details></section>}
+          {route.view === 'graph' && <section className="graph-area" aria-label={t('graph.canvasAria')}><div className="lane-heads"><span>{t('graph.laneSources')}</span><span>{t('graph.laneClaims')}</span><span>{t('graph.laneConstructs')}</span><span>{t('graph.laneCriteria')}</span><span>{t('graph.lanePropositions')}</span></div>
+            <FlowMap model={model} ids={ids} selectedId={edgeId ? '' : selectedId} selectedEdge={edgeId} trace={trace} fitToken={fitToken} guardTick={guardTick} api={flowApi} locale={locale} resolveLabel={id => displayRecordLabel(locale, model, id, hashMatches)} onSelectNode={selectRecord} onSelectEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onMove={(id, position) => { const copy = clone(modelRef.current); const found = locate(copy, id) as { record?: { position?: { x: number; y: number } } } | null; if (found?.record) found.record.position = position; commit(copy); }} />
+            <div className="legend" aria-label={t('graph.legendAria')}><span><i className="line solid" aria-hidden="true" />{t('graph.legendReported')}</span><span><i className="line dashed" aria-hidden="true" />{t('graph.legendAdaptation')}</span><span><i className="line dotted" aria-hidden="true" />{t('graph.legendHypothesis')}</span><span><i className="line membership" aria-hidden="true" />{t('graph.legendMembership')}</span></div>
+            <div className="graph-foot"><p>{t('graph.foot')}</p><p className="keyboard-help">{t('graph.keyboardHelp')}</p></div>
+            <details className="visible-list"><summary>{t('graph.visibleList')} ({ids.size})</summary><ul className="plain-list">{[...ids].sort().map(id => {
+              const label = displayRecordLabel(locale, model, id, hashMatches) || id;
+              return <li key={id}><button type="button" className="quiet" onClick={() => selectRecord(id)}>{label} <span className="subtle">({id})</span></button></li>;
+            })}</ul></details></section>}
           {route.view === 'matrix' && <MatrixView model={model} selectedId={selectedId} onSelect={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onCsv={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')} />}
-          {route.view === 'cases' && <CasesView model={model} selectedId={selectedId} onSelect={selectRecord} onSave={commit} guard={guard} onEditModeChange={setCaseEditing} onLeave={guarded} />}
+          {route.view === 'cases' && <CasesView model={model} selectedId={selectedId} onSave={commit} guard={guard} onEditModeChange={setCaseEditing} onLeave={guarded} onSelect={selectRecord} />}
           {route.view === 'questions' && <QuestionsView model={model} selectedId={selectedId} onSelect={selectRecord} onTrace={id => assignHash(formatHash('graph', id, 'focus'))} onAddDecision={addDecision} onSave={commit} />}
           {route.view === 'history' && <HistoryView model={model} actorLabel={actorLabel} onActorLabel={updateActorLabel} />}
           {route.view !== 'history' && <Inspector model={model} selectedId={selectedId} edgeId={edgeId} mode={mode} guard={guard} caseDraftPaused={route.view === 'cases' && caseEditing} onSave={commit} onMessage={text => setMessage({ text, error: true })} onOpen={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onAddEdge={sourceId => guarded(() => { setEdgeId(''); setMode({ type: 'add-edge', sourceId }); })} onAddClaim={addClaim} onRemove={requestRemove} />}
         </div>
-        {route.view === 'graph' && <details className="trace"><summary>Jäljitä perusteluketju</summary><p>{traceLimitation}</p><div className="trace-controls"><label>Lähtökohta<select value={traceStart} onChange={event => setTraceStart(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{record.label}</option>)}</select></label><label>Päätepiste<select value={traceEnd} onChange={event => setTraceEnd(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{record.label}</option>)}</select></label><button type="button" onClick={() => { setQuery(''); setStatus('all'); setFitToken(value => value + 1); const result = path(model, traceStart, traceEnd) as { nodes: string[]; edges: string[] } | null; setTrace(result); setTraceText(formatTrace(model, result)); if (route.scope !== 'map') assignHash(formatHash('graph', selectedId, 'map')); }}>Näytä ketju</button><button type="button" onClick={() => { setTrace(null); setTraceText('Ketju seuraa suunnattuja yhteyksiä; se ei vahvista perustelujen pätevyyttä.'); }}>Tyhjennä valinta</button></div><p aria-live="polite">{traceText}</p></details>}
-        <footer>Työversio · Lähtöaineisto: käyttäjän kirjallisuusmatriisi ja artikkelisuunnitelma 26.10.2026 · Ei alkuperäislähteiden uutta kokotekstiarviointia</footer>
+        {route.view === 'graph' && <details className="trace"><summary>{t('graph.traceSummary')}</summary><p>{labelsFor(locale).traceLimitation}</p><div className="trace-controls"><label>{t('graph.traceStart')}<select value={traceStart} onChange={event => setTraceStart(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{displayRecordLabel(locale, model, record.id, hashMatches) || record.label}</option>)}</select></label><label>{t('graph.traceEnd')}<select value={traceEnd} onChange={event => setTraceEnd(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{displayRecordLabel(locale, model, record.id, hashMatches) || record.label}</option>)}</select></label><button type="button" onClick={() => { setQuery(''); setStatus('all'); setFitToken(value => value + 1); const result = path(model, traceStart, traceEnd) as { nodes: string[]; edges: string[] } | null; setTrace(result); setTraceText(formatTrace(model, result)); if (route.scope !== 'map') assignHash(formatHash('graph', selectedId, 'map')); }}>{t('graph.showTrace')}</button><button type="button" onClick={() => { setTrace(null); setTraceText(t('graph.traceIdle')); }}>{t('graph.clearTrace')}</button></div><p aria-live="polite">{traceText}</p></details>}
+        <footer>{t('brand.footer')}</footer>
       </main></div>
-    <Modal open={dirtyOpen} title={dirtyKind === 'undo' ? 'Kumoaminen hylkää lomakkeen muutokset' : 'Tallentamattomia muutoksia'} onClose={() => { pending.current = null; attempted.current = ''; setDirtyOpen(false); }}>
-      <p>{dirtyKind === 'undo' ? 'Lomakkeessa on muutoksia, joita ei ole tallennettu. Kumoaminen hylkää ne.' : 'Lomakkeessa on muutoksia, joita ei ole tallennettu. Siirtyminen hylkää ne, jos et tallenna.'}</p>
-      <div className="actions">{dirtyKind === 'navigate' && <button type="button" className="primary" onClick={() => { const ok = guard.current?.save() ?? false; if (!ok) { setDirtyOpen(false); return; } setDirtyOpen(false); finishPending(); }}>Tallenna ja jatka</button>}<button type="button" onClick={() => { guard.current?.reset(); setDirtyOpen(false); if (dirtyKind === 'undo') performUndo(); else finishPending(); }}>{dirtyKind === 'undo' ? 'Hylkää ja kumoa' : 'Hylkää muutokset'}</button><button type="button" onClick={() => { pending.current = null; attempted.current = ''; setDirtyOpen(false); }}>Peruuta</button></div>
+    <Modal open={dirtyOpen} title={dirtyKind === 'undo' ? t('dialog.dirtyUndoTitle') : t('dialog.dirtyTitle')} onClose={() => { pending.current = null; attempted.current = ''; setDirtyOpen(false); }}>
+      <p>{dirtyKind === 'undo' ? t('dialog.dirtyUndoBody') : t('dialog.dirtyBody')}</p>
+      <div className="actions">{dirtyKind === 'navigate' && <button type="button" className="primary" onClick={() => { const ok = guard.current?.save() ?? false; if (!ok) { setDirtyOpen(false); return; } setDirtyOpen(false); finishPending(); }}>{t('dialog.saveContinue')}</button>}<button type="button" onClick={() => { guard.current?.reset(); setDirtyOpen(false); if (dirtyKind === 'undo') performUndo(); else finishPending(); }}>{dirtyKind === 'undo' ? t('dialog.discardUndo') : t('dialog.discard')}</button><button type="button" onClick={() => { pending.current = null; attempted.current = ''; setDirtyOpen(false); }}>{t('dialog.cancel')}</button></div>
     </Modal>
-    <Modal open={exportOpen} title="Vie nykyinen työ" onClose={() => setExportOpen(false)}>
-      <p>JSON säilyttää muokkaukset. Siirrettävä tilannekuva sisältää tiivisteet ja historian. Toistettavat kuviot käyttävät rajattuja esiasetuksia ja sivumanifestia. Julkaistu sivusto sisältää vain kuratoidun lähtömallin — ei tämän selaimen paikallista työtilaa eikä liitteitä.</p>
-      <div className="export-options"><button type="button" onClick={() => download(JSON.stringify(model, null, 2), 'research-workspace.json', 'application/json')}>Työtila JSON</button><button type="button" onClick={() => { setExportOpen(false); setSnapshotOpen(true); }}>Tilannekuva (tiivisteet)</button><button type="button" onClick={() => { setExportOpen(false); setFigureOpen(true); }}>Toistettava kuvio</button><button type="button" onClick={exportSvg}>Pikainen graafi-SVG</button><button type="button" onClick={exportDot}>Pikainen Graphviz DOT</button><button type="button" onClick={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')}>Kohteet CSV</button><button type="button" onClick={() => { setExportOpen(false); window.print(); }}>Tulosta nykyinen näkymä</button></div>
+    <Modal open={exportOpen} title={t('dialog.exportTitle')} onClose={() => setExportOpen(false)}>
+      <p>{t('dialog.exportBody')}</p>
+      <div className="export-options"><button type="button" onClick={() => download(JSON.stringify(model, null, 2), 'research-workspace.json', 'application/json')}>{t('dialog.exportWorkspace')}</button><button type="button" onClick={() => { setExportOpen(false); setSnapshotOpen(true); }}>{t('dialog.exportSnapshot')}</button><button type="button" onClick={() => { setExportOpen(false); setFigureOpen(true); }}>{t('dialog.exportFigure')}</button><button type="button" onClick={exportSvg}>{t('dialog.exportSvg')}</button><button type="button" onClick={exportDot}>{t('dialog.exportDot')}</button><button type="button" onClick={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')}>{t('dialog.exportCsv')}</button><button type="button" onClick={() => { setExportOpen(false); window.print(); }}>{t('dialog.exportPrint')}</button></div>
     </Modal>
-    <Modal open={aboutOpen} title="Jäljitettävä tutkimustyötila" onClose={() => setAboutOpen(false)}>
-      <p>Tämä aloitusmalli sisältää valikoituja, käsin jäsennettyjä yhteyksiä kahdesta toimittamastasi asiakirjasta. Se ei ole koko kirjallisuusmatriisin automaattinen muunnos eikä valmis katsaus.</p>
-      <p>Schema 2 erottaa lähteen, tuodun yhteenvedon ja tutkijan päätöksen. Kirjallisuusmerkintä ei ole itsenäinen varmennus. Preprint- tai kokotekstitieto ei ole laadunarvio.</p>
-      <p>Lukemistieto tarkoittaa asiakirjoissa raportoitua tarkastelutasoa. Alkuperäisiä tutkimuksia ei ole arvioitu uudelleen tätä työtilaa varten. Tyhjä yhteys ei osoita tutkimusaukkoa.</p>
-      <p>Zotero CSL-JSON -tuonti on tutkijan käynnistämä ja esikatsellaan ennen hyväksyntää. Se voi luoda lähteitä, mutta ei keksi väitteitä, menetelmiä tai lukemistilaa. Liitteet säilytetään vain metatietona. Ulkoista tekoälypalvelua ei käytetä, eikä yksityisiä muistiinpanoja lähetetä.</p>
-      <p>Kehitysversio käynnistyy paikallisella palvelimella komennolla npm run dev. Julkaistu versio on Vite-koonti, jota palvelee paikallinen palvelin tai GitHub Pages. Selain ei avaa moduulikoontia suoraan tiedostona (file://).</p>
-      <p>Tämä on staattinen, selainkohtainen työtila — ei jaettu tietokanta eikä monikäyttäjäyhteistyöpalvelu.</p>
-      <p>{LOCAL_SAVE_DISCLAIMER}</p>
-      <p>{AUDIT_DISCLAIMER}</p>
-      <p>Muokkausajankohdat erotetaan bibliografisista julkaisutiedoista. Kumoa kirjaa peruutuksen uutena tapahtumana. Tilannekuvan sisältötiiviste tunnistaa kanonisen sisällön; se ei validoi tutkimusta.</p>
-      <p>Lisää kohteita ja yhteyksiä graafissa. Yhteydelle valitaan merkitys erikseen. Matriisi muodostuu samoista tiedoista. Tapaukset A–C ovat rakennettuja esimerkkejä; asiantuntija-arvioita tai tutkimustuloksia ei ole keksitty.</p>
-      <button type="button" className="primary" onClick={() => setAboutOpen(false)}>Sulje</button>
+    <Modal open={aboutOpen} title={t('dialog.aboutTitle')} onClose={() => setAboutOpen(false)}>
+      <p>{t('dialog.aboutP1')}</p>
+      <p>{t('dialog.aboutP2')}</p>
+      <p>{t('dialog.aboutP3')}</p>
+      <p>{t('dialog.aboutP4')}</p>
+      <p>{t('dialog.aboutP5')}</p>
+      <p>{t('dialog.aboutP6')}</p>
+      <p>{t('dialog.localSaveDisclaimer')}</p>
+      <p>{t('dialog.auditDisclaimer')}</p>
+      <p>{t('dialog.aboutP7')}</p>
+      <p>{t('dialog.aboutP8')}</p>
+      <button type="button" className="primary" onClick={() => setAboutOpen(false)}>{t('dialog.close')}</button>
     </Modal>
     <CslImportDialog open={cslOpen} model={model} onClose={() => setCslOpen(false)} onApply={(next, text) => commit(next, text, { kind: 'csl-import', reason: text, actorLabel })} />
     <SnapshotDialog model={model} open={snapshotOpen} onClose={() => setSnapshotOpen(false)} onReplace={replaceFromSnapshot} actorLabel={actorLabel} />
     <FigureExportDialog model={model} open={figureOpen} onClose={() => setFigureOpen(false)} visibleIds={ids} selectedId={selectedId} focusId={selectedId} />
-    <Modal open={Boolean(removal)} title="Poisto irrottaa viitteet" onClose={() => setRemoval(null)}>
-      <p>Poisto ja viitteiden irrotus tehdään yhtenä kumottavana toiminnona. Peruuta, jos nykyinen työtila säilytetään.</p>
+    <Modal open={Boolean(removal)} title={t('dialog.removalTitle')} onClose={() => setRemoval(null)}>
+      <p>{t('dialog.removalBody')}</p>
       <ul>{removal?.effects.map(effect => <li key={`${effect.id}-${effect.reason}`}>{(effect.label || effect.id)} — {effect.reason}</li>)}</ul>
-      <div className="actions"><button type="button" onClick={() => setRemoval(null)}>Peruuta</button><button type="button" className="primary" onClick={confirmRemoval}>Poista ja irrota viitteet</button></div>
+      <div className="actions"><button type="button" onClick={() => setRemoval(null)}>{t('dialog.cancel')}</button><button type="button" className="primary" onClick={confirmRemoval}>{t('dialog.removalConfirm')}</button></div>
     </Modal>
   </>;
 }

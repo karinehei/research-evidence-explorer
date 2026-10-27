@@ -1,21 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { StagedItem, StageAction } from './cslImport.ts';
 import { applyCslImport, stageCslImport, suggestVersionLinks } from './cslImport.ts';
+import { useI18n } from './i18n/index.ts';
 import { Modal } from './Modal.tsx';
 import type { Workspace } from './types.ts';
-
-const actionLabel: Record<StageAction, string> = {
-  create: 'Luo uusi lähde',
-  skip: 'Ohita',
-  link: 'Linkitä olemassa olevaan'
-};
-
-const matchLabel = {
-  new: 'Uusi',
-  doi: 'DOI-osumaa',
-  identifier: 'Tunnisteosuma',
-  'title-year': 'Mahdollinen kaksoiskappale (otsikko/vuosi)'
-} as const;
 
 export function CslImportDialog({ open, model, onClose, onApply }: {
   open: boolean;
@@ -23,8 +11,19 @@ export function CslImportDialog({ open, model, onClose, onApply }: {
   onClose: () => void;
   onApply: (next: Workspace, message: string) => boolean;
 }) {
-  const [stage, setStage] = useState<StagedItem[] | null>(null);
-  const [error, setError] = useState('');
+  const { t } = useI18n();
+  const actionLabel: Record<StageAction, string> = {
+    create: t('csl.actionCreate'),
+    skip: t('csl.actionSkip'),
+    link: t('csl.actionLink')
+  };
+  const matchLabel = {
+    new: t('csl.matchNew'),
+    doi: t('csl.matchDoi'),
+    identifier: t('csl.matchId'),
+    'title-year': t('csl.matchTitle')
+  } as const;
+  const [stage, setStage] = useState<StagedItem[] | null>(null);  const [error, setError] = useState('');
   const [fileName, setFileName] = useState('');
 
   useEffect(() => {
@@ -39,7 +38,7 @@ export function CslImportDialog({ open, model, onClose, onApply }: {
     setFileName(file.name);
     if (file.size > 2 * 1024 * 1024) {
       setStage(null);
-      setError('Tiedosto ylittää 2 Mt:n tuontirajan.');
+      setError(t('csl.tooLarge'));
       return;
     }
     const text = await file.text();
@@ -79,9 +78,9 @@ export function CslImportDialog({ open, model, onClose, onApply }: {
     }
   }
 
-  return <Modal open={open} title="Tuo Zotero CSL-JSON" onClose={onClose} className="wide-modal">
-    <p>Tuonti on tutkijan käynnistämä. Esikatselu näyttää osumat ennen tallennusta. Bibliografinen tuonti voi luoda lähteitä, mutta se ei keksi löydöksiä, menetelmiä, väitteitä eikä lukemistilaa. Liitteet säilytetään vain metatietona.</p>
-    <label className="file-pick">Valitse CSL-JSON-tiedosto
+  return <Modal open={open} title={t('csl.title')} onClose={onClose} className="wide-modal">
+    <p>{t('csl.body')}</p>
+    <label className="file-pick">{t('csl.pick')}
       <input type="file" accept=".json,application/json" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; void onFile(file); }} />
     </label>
     {fileName && <p className="subtle">Tiedosto: {fileName}</p>}
@@ -126,8 +125,8 @@ export function CslImportDialog({ open, model, onClose, onApply }: {
       </article>)}
     </div>}
     <div className="actions">
-      <button type="button" className="primary" disabled={!stage?.length} onClick={accept}>Hyväksy tuonti</button>
-      <button type="button" onClick={onClose}>Peruuta</button>
+      <button type="button" className="primary" disabled={!stage?.length} onClick={accept}>{t('csl.accept')}</button>
+      <button type="button" onClick={onClose}>{t('dialog.cancel')}</button>
     </div>
   </Modal>;
 }

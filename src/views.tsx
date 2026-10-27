@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { epistemicLabel } from './labels.ts';
+import { labelsFor } from './labels.ts';
+import { useI18n, translateResearchField, displayRecordLabel } from './i18n/index.ts';
 import {
   PROTOCOL_DISCLAIMER, claimKindLabel, exportAssessmentProtocol, reviseAnchor, validationFocusLabel
 } from './protocols.ts';
@@ -25,6 +26,8 @@ export function QuestionsView({ model, selectedId, onSelect, onTrace, onAddDecis
   onAddDecision: () => void;
   onSave: (next: Workspace, message: string) => boolean;
 }) {
+  const { locale, t, hashMatches } = useI18n();
+  const L = labelsFor(locale);
   const selectedProtocol = model.protocols.find(item => item.id === selectedId)
     || model.protocols.find(item => model.propositions.find(p => p.id === selectedId)?.protocolIds.includes(item.id))
     || model.protocols[0];
@@ -63,7 +66,7 @@ export function QuestionsView({ model, selectedId, onSelect, onTrace, onAddDecis
     const bundle = exportAssessmentProtocol(model, protocol.id);
     if (!bundle) return;
     downloadText(`${protocol.id}-assessment-protocol.json`, JSON.stringify(bundle, null, 2), 'application/json');
-    setMessage('Protokolla viety ilman inventoituja havaintoja tai yhdistelmäpistettä.');
+    setMessage(t('questions.exportOk'));
   }
 
   function applyAnchorRevision() {
@@ -76,49 +79,59 @@ export function QuestionsView({ model, selectedId, onSelect, onTrace, onAddDecis
       copy.protocols[index] = nextProtocol;
       if (onSave(copy, 'Ankkurin sanamuoto päivitettiin kirjatuilla perusteluilla.')) {
         setAnchorRationale('');
-        setMessage('Ankkuri päivitetty; rubriikki pysyy alustavana.');
+        setMessage(t('questions.anchorSaved'));
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Ankkurin päivitys epäonnistui.');
+      setMessage(error instanceof Error ? error.message : t('questions.anchorFailed'));
     }
   }
 
   return <section>
-    <p className="subtle">Propositiot ovat testaamattomia oletuksia. Näkymä ei esitä niiden tueksi tuloksia.</p>
+    <p className="subtle">{t('questions.intro')}</p>
     <p className="subtle">{PROTOCOL_DISCLAIMER}</p>
     <div className="question-list">{model.propositions.map(item => {
-      const criteria = item.criterionIds.map(id => model.criteria.find(criterion => criterion.id === id)?.label).filter(Boolean).join('; ');
-      const constructs = (item.constructIds || []).map(id => model.constructs.find(entry => entry.id === id)?.label).filter(Boolean).join('; ');
-      const protocols = (item.protocolIds || []).map(id => model.protocols.find(entry => entry.id === id)?.label).filter(Boolean).join('; ');
+      const criteria = item.criterionIds.map(id => displayRecordLabel(locale, model, id, hashMatches)).filter(Boolean).join('; ');
+      const constructs = (item.constructIds || []).map(id => displayRecordLabel(locale, model, id, hashMatches)).filter(Boolean).join('; ');
+      const protocols = (item.protocolIds || []).map(id => displayRecordLabel(locale, model, id, hashMatches)).filter(Boolean).join('; ');
+      const label = translateResearchField(locale, 'propositions', item.id, 'label', item.label, { hashMatches });
+      const statement = translateResearchField(locale, 'propositions', item.id, 'statement', item.statement, { hashMatches });
+      const boundary = translateResearchField(locale, 'propositions', item.id, 'boundary', item.boundary, { hashMatches });
+      const intended = translateResearchField(locale, 'propositions', item.id, 'intendedClaim', item.intendedClaim, { hashMatches });
+      const design = translateResearchField(locale, 'propositions', item.id, 'proposedDesign', item.proposedDesign, { hashMatches });
       return <article key={item.id} className={`question-record${item.id === selectedId ? ' selected' : ''}`}>
-        <span className={`tag ${item.epistemicStatus}`}>{epistemicLabel[item.epistemicStatus]}</span>
+        <span className={`tag ${item.epistemicStatus}`}>{L.epistemicLabel[item.epistemicStatus]}</span>
         <span className="tag">{claimKindLabel[item.intendedClaimKind]}</span>
-        <h2>{item.label}</h2>
-        <p>{item.statement}</p>
-        <p className="subtle">{item.boundary}</p>
-        <p className="subtle">{item.intendedClaim || 'Ehdotettua väitelajia ei ole vielä täsmennetty.'}</p>
-        <p className="subtle">{item.proposedDesign || 'Ehdotettua asetelmaa ei ole vielä kirjattu.'}</p>
-        <p className="subtle">{criteria ? `Kriteeriviitteet: ${criteria}` : 'Kriteeriviitettä ei ole kirjattu.'}</p>
-        <p className="subtle">{constructs ? `Käsiteviitteet: ${constructs}` : 'Käsiteviitettä ei ole kirjattu.'}</p>
-        <p className="subtle">{protocols ? `Protokollat: ${protocols}` : 'Protokollaviitettä ei ole kirjattu.'}</p>
-        <button type="button" onClick={() => onSelect(item.id)}>Tarkastele kirjausta</button>{' '}
-        <button type="button" onClick={() => onTrace(item.id)}>Tutki perusteluketjua</button>
-        {(item.protocolIds || []).map(id => <button key={id} type="button" onClick={() => { setProtocolId(id); onSelect(id); }}>Avaa protokolla {id}</button>)}
+        <h2>{label.text}</h2>
+        {label.notice ? <p className="subtle translation-notice" role="note">{label.notice}</p> : null}
+        <p>{statement.text}</p>
+        {statement.notice ? <p className="subtle translation-notice" role="note">{statement.notice}</p> : null}
+        <p className="subtle">{boundary.text}</p>
+        <p className="subtle">{intended.text || t('questions.noIntended')}</p>
+        <p className="subtle">{design.text || t('questions.noDesign')}</p>
+        <p className="subtle">{criteria ? t('questions.criteriaRefs', { list: criteria }) : t('questions.noCriteria')}</p>
+        <p className="subtle">{constructs ? t('questions.constructRefs', { list: constructs }) : t('questions.noConstructs')}</p>
+        <p className="subtle">{protocols ? t('questions.protocolRefs', { list: protocols }) : t('questions.noProtocolRefs')}</p>
+        <button type="button" onClick={() => onSelect(item.id)}>{t('questions.inspect')}</button>{' '}
+        <button type="button" onClick={() => onTrace(item.id)}>{t('questions.trace')}</button>
+        {(item.protocolIds || []).map(id => <button key={id} type="button" onClick={() => { setProtocolId(id); onSelect(id); }}>{t('questions.openProtocol', { id })}</button>)}
       </article>;
     })}</div>
 
-    <h2>Arviointiprotokollat (alustava rubriikki)</h2>
-    {!model.protocols.length && <p className="subtle">Protokollia ei ole vielä kirjattu.</p>}
-    <div className="question-list">{model.protocols.map(item => (
-      <article key={item.id} className={`question-record${item.id === selectedId || item.id === protocolId ? ' selected' : ''}`}>
+    <h2>{t('questions.protocolsTitle')}</h2>
+    {!model.protocols.length && <p className="subtle">{t('questions.noProtocols')}</p>}
+    <div className="question-list">{model.protocols.map(item => {
+      const label = translateResearchField(locale, 'protocols', item.id, 'label', item.label, { hashMatches });
+      const summary = translateResearchField(locale, 'protocols', item.id, 'designSummary', item.designSummary, { hashMatches });
+      return <article key={item.id} className={`question-record${item.id === selectedId || item.id === protocolId ? ' selected' : ''}`}>
         <span className="tag hypothesis">provisional-draft</span>
         <span className="tag">{claimKindLabel[item.designKind]}</span>
-        <h3>{item.label}</h3>
-        <p>{item.designSummary}</p>
-        <p className="subtle">Havaintoja: {item.observations.length}. Yhdistelmäpiste: {item.compositeTrustScore}.</p>
-        <button type="button" onClick={() => { setProtocolId(item.id); onSelect(item.id); }}>Tarkastele protokolla</button>
-      </article>
-    ))}</div>
+        <h3>{label.text}</h3>
+        {label.notice ? <p className="subtle translation-notice" role="note">{label.notice}</p> : null}
+        <p>{summary.text}</p>
+        <p className="subtle">{t('questions.observations', { count: item.observations.length, score: String(item.compositeTrustScore) })}</p>
+        <button type="button" onClick={() => { setProtocolId(item.id); onSelect(item.id); }}>{t('questions.inspectProtocol')}</button>
+      </article>;
+    })}</div>
 
     {protocol && <ProtocolPanel
       model={model}
@@ -147,9 +160,13 @@ export function QuestionsView({ model, selectedId, onSelect, onTrace, onAddDecis
       onSelect={onSelect}
     />}
 
-    <h2>Tutkimuspäätökset</h2>
-    {model.decisions.map(item => <article key={item.id} className={`question-record${item.id === selectedId ? ' selected' : ''}`}><span className={`tag ${item.epistemicStatus}`}>{epistemicLabel[item.epistemicStatus]}</span> <span className="tag">{item.reviewState === 'imported' ? 'Tuotu aineistosta' : item.reviewState === 'reviewed' ? 'Arvioitu' : 'Ehdotettu'}</span><h3>{item.label}</h3><p>{item.statement}</p><button type="button" onClick={() => onSelect(item.id)}>Muokkaa päätöstä</button></article>)}
-    <button type="button" onClick={onAddDecision}>Lisää tutkimuspäätös</button>
+    <h2>{t('questions.decisionsTitle')}</h2>
+    {model.decisions.map(item => {
+      const label = translateResearchField(locale, 'decisions', item.id, 'label', item.label, { hashMatches });
+      const statement = translateResearchField(locale, 'decisions', item.id, 'statement', item.statement, { hashMatches });
+      return <article key={item.id} className={`question-record${item.id === selectedId ? ' selected' : ''}`}><span className={`tag ${item.epistemicStatus}`}>{L.epistemicLabel[item.epistemicStatus]}</span> <span className="tag">{L.reviewLabel[item.reviewState]}</span><h3>{label.text}</h3><p>{statement.text}</p><button type="button" onClick={() => onSelect(item.id)}>{t('questions.editDecision')}</button></article>;
+    })}
+    <button type="button" onClick={onAddDecision}>{t('questions.addDecision')}</button>
   </section>;
 }
 
@@ -169,14 +186,18 @@ function ProtocolPanel({ model, protocol, dimensionId, anchorId, anchorWording, 
   onExport: () => void;
   onSelect: (id: string) => void;
 }) {
+  const { locale, t, hashMatches } = useI18n();
   const dimension = protocol.dimensions.find(item => item.id === dimensionId);
+  const label = translateResearchField(locale, 'protocols', protocol.id, 'label', protocol.label, { hashMatches });
+  const summary = translateResearchField(locale, 'protocols', protocol.id, 'designSummary', protocol.designSummary, { hashMatches });
   return <div className="protocol-panel">
-    <h2>{protocol.label}</h2>
+    <h2>{label.text}</h2>
+    {label.notice ? <p className="subtle translation-notice" role="note">{label.notice}</p> : null}
     <p className="subtle">Tila: {protocol.status}. Rubriikki on alustava kunnes validointinäyttö tukee vahvempaa kieltä.</p>
-    <p>{protocol.designSummary}</p>
+    <p>{summary.text}</p>
     <p className="subtle">Väitelaji: {claimKindLabel[protocol.designKind]}</p>
-    <p className="subtle">Propositiot: {protocol.propositionIds.map(id => model.propositions.find(item => item.id === id)?.label || id).join('; ') || '—'}</p>
-    <p className="subtle">Kriteerit: {protocol.criterionIds.map(id => model.criteria.find(item => item.id === id)?.label || id).join('; ') || '—'}</p>
+    <p className="subtle">Propositiot: {protocol.propositionIds.map(id => displayRecordLabel(locale, model, id, hashMatches)).join('; ') || '—'}</p>
+    <p className="subtle">Kriteerit: {protocol.criterionIds.map(id => displayRecordLabel(locale, model, id, hashMatches)).join('; ') || '—'}</p>
     <p className="subtle">Kohteet (vastaus × näyttö): {protocol.targets.length
       ? protocol.targets.map(target => `${target.caseId}/${target.answerVariantId}/${target.displayConditionId}`).join('; ')
       : 'Ei kohdetta kirjattu.'}</p>
@@ -186,29 +207,35 @@ function ProtocolPanel({ model, protocol, dimensionId, anchorId, anchorWording, 
     <p className="subtle">Toistot: {protocol.procedure.repeatedObservations || '—'}</p>
     <p className="subtle">Eroavuudet: {protocol.procedure.disagreementHandling || '—'}</p>
     <p className="subtle">{protocol.procedure.independenceNote}</p>
-    <h3>Viisi erillistä asiantuntijaulottuvuutta</h3>
-    <ul>{protocol.dimensions.map(item => <li key={item.id}><strong>{item.label}</strong> — {item.draftWording} ({item.cannotAssessLabel}; provisional)</li>)}</ul>
-    <h3>Erilliset auditointitehtävät</h3>
+    <h3>{t('questions.fiveDimensions')}</h3>
+    <ul>{protocol.dimensions.map(item => {
+      const dimLabel = translateResearchField(locale, 'protocols', protocol.id, `dim.${item.id}.label`, item.label, { hashMatches });
+      return <li key={item.id}><strong>{dimLabel.text}</strong> — {item.draftWording} ({item.cannotAssessLabel}; provisional)</li>;
+    })}</ul>
+    <h3>{t('questions.separateAudits')}</h3>
     <ul>{protocol.separateAudits.map(item => <li key={item.id}>{item.kind}: {item.statement}</li>)}</ul>
-    <h3>Validointitarkistukset</h3>
+    <h3>{t('questions.validationChecks')}</h3>
     <ul>{protocol.validationChecks.map(item => <li key={item.id}>{item.label} ({validationFocusLabel[item.focus]}): {item.question}</li>)}</ul>
-    <h3>Ankkurin muutos (kirjattu perustelu pakollinen)</h3>
-    <label>Ulottuvuus
+    <h3>{t('questions.reviseAnchor')}</h3>
+    <label>{t('questions.dimension')}
       <select value={dimensionId} onChange={event => onDimension(event.target.value)}>
-        {protocol.dimensions.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+        {protocol.dimensions.map(item => <option key={item.id} value={item.id}>{translateResearchField(locale, 'protocols', protocol.id, `dim.${item.id}.label`, item.label, { hashMatches }).text}</option>)}
       </select>
     </label>
-    <label>Ankkuri
+    <label>{t('questions.anchor')}
       <select value={anchorId} onChange={event => onAnchor(event.target.value)}>
-        {(dimension?.anchors || []).map(item => <option key={item.id} value={item.id}>{item.category}: {item.wording}</option>)}
+        {(dimension?.anchors || []).map(item => {
+          const wording = translateResearchField(locale, 'protocols', protocol.id, `anchor.${item.id}.wording`, item.wording, { hashMatches });
+          return <option key={item.id} value={item.id}>{item.category}: {wording.text}</option>;
+        })}
       </select>
     </label>
-    <label>Uusi sanamuoto<textarea value={anchorWording} onChange={event => onWording(event.target.value)} rows={3} /></label>
-    <label>Perustelu<textarea value={anchorRationale} onChange={event => onRationale(event.target.value)} rows={2} /></label>
+    <label>{t('questions.newWording')}<textarea value={anchorWording} onChange={event => onWording(event.target.value)} rows={3} /></label>
+    <label>{t('questions.rationale')}<textarea value={anchorRationale} onChange={event => onRationale(event.target.value)} rows={2} /></label>
     <div className="actions">
-      <button type="button" onClick={onRevise}>Tallenna ankkurin muutos</button>
-      <button type="button" onClick={onExport}>Vie arviointiprotokolla JSON</button>
-      {protocol.propositionIds.map(id => <button key={id} type="button" onClick={() => onSelect(id)}>Avaa propositio {id}</button>)}
+      <button type="button" onClick={onRevise}>{t('questions.saveAnchor')}</button>
+      <button type="button" onClick={onExport}>{t('questions.exportProtocol')}</button>
+      {protocol.propositionIds.map(id => <button key={id} type="button" onClick={() => onSelect(id)}>{t('questions.openProposition', { id })}</button>)}
     </div>
     {message && <p className="subtle" role="status">{message}</p>}
   </div>;

@@ -1,9 +1,12 @@
 import { useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
 import { access, appraisal, epistemic, locate, provenance, relations, reviewStates } from './model.ts';
-import { accessLabel, appraisalLabel, epistemicLabel, meaningLabel, provenanceLabel, publicationLabel, researchRoleLabel, reviewLabel } from './labels.ts';
+import {
+  accessLabel, appraisalLabel, epistemicLabel, meaningLabel, provenanceLabel, publicationLabel, researchRoleLabel, reviewLabel, labelsFor
+} from './labels.ts';
 import { clone, newId, requireConnection } from './edit.ts';
 import { useDraft, type DirtyApi } from './draft.ts';
 import { Checks, SelectField, TextField } from './fields.tsx';
+import { useI18n, displayRecordLabel, translateResearchField } from './i18n/index.ts';
 import { appendStatementRevision, claimKindLabel, PROTOCOL_DISCLAIMER } from './protocols.ts';
 import type { Access, Appraisal, ConstructedCase, Criterion, Decision, EpistemicStatus, IntendedClaimKind, Meaning, Provenance, PublicationStatus, Relationship, ResearchRole, ReviewState, Source, Workspace } from './types.ts';
 
@@ -15,9 +18,16 @@ const epistemicOptions = option(asList(epistemic), epistemicLabel);
 const reviewOptions = option(asList(reviewStates), reviewLabel);
 const meaningOptions = option(asList(relations), meaningLabel);
 
-function titleOf(model: Workspace, id: string): string {
-  const item = locate(model, id) as { record?: { label?: string; statement?: string; title?: string } } | null;
-  return item?.record?.label || item?.record?.statement || item?.record?.title || id;
+function titleOf(model: Workspace, id: string, locale: 'fi' | 'en' = 'fi', hashMatches = true): string {
+  return displayRecordLabel(locale, model, id, hashMatches) || (() => {
+    const item = locate(model, id) as { record?: { label?: string; statement?: string; title?: string } } | null;
+    return item?.record?.label || item?.record?.statement || item?.record?.title || id;
+  })();
+}
+
+function TranslationNotice({ notice }: { notice: string }) {
+  if (!notice) return null;
+  return <p className="subtle translation-notice" role="note">{notice}</p>;
 }
 
 function FormShell({ submit, label, children }: { submit: () => boolean; label: string; children: ReactNode }) {
@@ -25,20 +35,24 @@ function FormShell({ submit, label, children }: { submit: () => boolean; label: 
 }
 
 function Links({ model, id, onEdge, onAddEdge }: { model: Workspace; id: string; onEdge: (id: string) => void; onAddEdge: (id: string) => void }) {
+  const { locale, t, hashMatches } = useI18n();
+  const L = labelsFor(locale);
   const links = model.relationships.filter(link => link.source === id || link.target === id);
   return <>
-    <div className="field-title">Suorat yhteydet</div>
+    <div className="field-title">{t('inspector.links')}</div>
     <div className="record-list">{links.length ? links.map(link => {
       const other = link.source === id ? link.target : link.source;
-      return <button type="button" key={link.id} onClick={() => onEdge(link.id)}>{link.source === id ? '→ ' : '← '}{titleOf(model, other)} · {(link.label || '').trim() || meaningLabel[link.meaning]}</button>;
-    }) : <p className="subtle">Ei kirjattuja yhteyksiä. Tämä ei osoita tutkimusaukkoa.</p>}</div>
-    <button type="button" onClick={() => onAddEdge(id)}>Lisää yhteys tästä kohteesta</button>
-    <p className="subtle">Tunniste: {id}</p>
+      const linkLabel = translateResearchField(locale, 'relationships', link.id, 'label', (link.label || '').trim() || L.meaningLabel[link.meaning], { hashMatches });
+      return <button type="button" key={link.id} onClick={() => onEdge(link.id)}>{link.source === id ? '→ ' : '← '}{titleOf(model, other, locale, hashMatches)} · {linkLabel.text}</button>;
+    }) : <p className="subtle">{t('inspector.noLinks')}</p>}</div>
+    <button type="button" onClick={() => onAddEdge(id)}>{t('inspector.addLink')}</button>
+    <p className="subtle">{t('inspector.idLabel', { id })}</p>
   </>;
 }
 
 function Remove({ id, onRemove }: { id: string; onRemove: (id: string) => void }) {
-  return <button type="button" className="delete" onClick={() => onRemove(id)}>Poista kohde ja sen yhteydet</button>;
+  const { t } = useI18n();
+  return <button type="button" className="delete" onClick={() => onRemove(id)}>{t('inspector.removeRecord')}</button>;
 }
 
 export function Inspector({ model, selectedId, edgeId, mode, guard, onSave, onMessage, onOpen, onEdge, onAddEdge, onAddClaim, onRemove, caseDraftPaused = false }: {
@@ -46,13 +60,14 @@ export function Inspector({ model, selectedId, edgeId, mode, guard, onSave, onMe
   onSave: Save; onMessage: (text: string) => void; onOpen: (id: string) => void; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onAddClaim: (sourceId: string) => void; onRemove: (id: string) => void;
   caseDraftPaused?: boolean;
 }) {
+  const { t } = useI18n();
   if (mode.type === 'add-node') return <AddNode model={model} guard={guard} onSave={onSave} onMessage={onMessage} onOpen={onOpen} />;
   if (mode.type === 'add-edge') return <AddEdge model={model} sourceId={mode.sourceId} guard={guard} onSave={onSave} onMessage={onMessage} onEdge={onEdge} />;
   if (edgeId.startsWith('link:')) return <Membership model={model} edgeId={edgeId} onOpen={onOpen} />;
   if (edgeId) return <RelationshipForm model={model} edgeId={edgeId} guard={guard} onSave={onSave} onRemove={onRemove} />;
   const item = locate(model, selectedId) as { kind: string; record: Source & Criterion & Relationship & ConstructedCase & Decision & { statement?: string } } | null;
-  if (!item) return <aside className="inspector" aria-label="Valitun kohteen tiedot"><h2>Valitse kohde</h2><p className="subtle">Valinta säilyy kartan ja matriisin välillä. Sarkain ja Enter valitsevat kartan kohteen. Pitkät nimet ja rajaukset ovat tässä tekstinä — kartta ei kutista kaikkia nimikkeitä.</p></aside>;
-  return <aside className="inspector" aria-label="Valitun kohteen tiedot">
+  if (!item) return <aside className="inspector" aria-label={t('inspector.aria')}><h2>{t('inspector.pickTitle')}</h2><p className="subtle">{t('inspector.pickBody')}</p></aside>;
+  return <aside className="inspector" aria-label={t('inspector.aria')}>
     {item.kind === 'source' && <SourceForm model={model} source={item.record} guard={guard} onSave={onSave} onOpen={onOpen} onEdge={onEdge} onAddEdge={onAddEdge} onAddClaim={onAddClaim} onRemove={onRemove} />}
     {item.kind === 'claim' && <ClaimForm model={model} claimId={item.record.id} guard={guard} onSave={onSave} onOpen={onOpen} onRemove={onRemove} />}
     {item.kind === 'construct' && <ConstructForm model={model} recordId={item.record.id} guard={guard} onSave={onSave} onEdge={onEdge} onAddEdge={onAddEdge} onRemove={onRemove} />}
@@ -65,12 +80,18 @@ export function Inspector({ model, selectedId, edgeId, mode, guard, onSave, onMe
 }
 
 function Membership({ model, edgeId, onOpen }: { model: Workspace; edgeId: string; onOpen: (id: string) => void }) {
+  const { t } = useI18n();
   const claimId = edgeId.slice(5);
   const claim = model.claims.find(item => item.id === claimId);
-  return <aside className="inspector" aria-label="Valitun kohteen tiedot"><div className="eyebrow">LÄHDEVIITE</div><h2>Lähdeviite, ei kausaalinuoli</h2><p>Viiva liittää lähdeväitteen lähteeseensä. Se ei ole tyypitetty tutkimuksellinen yhteys eikä syy-seurausnuoli.</p>{claim && <button type="button" onClick={() => onOpen(claim.sourceId)}>Avaa lähde</button>}</aside>;
+  return <aside className="inspector" aria-label={t('inspector.aria')}><div className="eyebrow">{t('inspector.membershipEyebrow')}</div><h2>{t('inspector.membershipTitle')}</h2><p>{t('inspector.membershipBody')}</p>{claim && <button type="button" onClick={() => onOpen(claim.sourceId)}>{t('inspector.openSource')}</button>}</aside>;
 }
 
 function RelationshipForm({ model, edgeId, guard, onSave, onRemove }: { model: Workspace; edgeId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onRemove: (id: string) => void }) {
+  const { locale, t, hashMatches } = useI18n();
+  const L = labelsFor(locale);
+  const epistemicOptions = option(asList(epistemic), L.epistemicLabel);
+  const reviewOptions = option(asList(reviewStates), L.reviewLabel);
+  const meaningOptions = option(asList(relations), L.meaningLabel);
   const edge = model.relationships.find(item => item.id === edgeId);
   const saved: Relationship = edge || { id: edgeId, meaning: 'motivates', source: '', target: '', label: '', rationale: '', locator: '', claimIds: [], sourceIds: [], epistemicStatus: 'adaptation', reviewState: 'proposed', reviewNote: '' };
   const { draft, setDraft, persist } = useDraft(saved, guard, next => {
@@ -82,32 +103,36 @@ function RelationshipForm({ model, edgeId, guard, onSave, onRemove }: { model: W
   });
   if (!edge) return null;
   const patch = <K extends keyof Relationship>(key: K, value: Relationship[K]) => setDraft(current => ({ ...current, [key]: value }));
-  const claimNames = edge.claimIds.map(id => titleOf(model, id));
-  const sourceNames = edge.sourceIds.map(id => titleOf(model, id));
-  return <aside className="inspector" aria-label="Valitun kohteen tiedot">
-    <div className="eyebrow">YHTEYDEN PERUSTELU</div>
-    <h2>{(edge.label || '').trim() || meaningLabel[edge.meaning]}</h2>
-    <p>{titleOf(model, edge.source)} → {titleOf(model, edge.target)}</p>
-    <span className={`tag ${edge.epistemicStatus}`}>{epistemicLabel[edge.epistemicStatus]}</span> <span className="tag">{reviewLabel[edge.reviewState]}</span>
+  const claimNames = edge.claimIds.map(id => titleOf(model, id, locale, hashMatches));
+  const sourceNames = edge.sourceIds.map(id => titleOf(model, id, locale, hashMatches));
+  const labelDisplay = translateResearchField(locale, 'relationships', edge.id, 'label', (edge.label || '').trim() || L.meaningLabel[edge.meaning], { hashMatches });
+  const rationaleDisplay = translateResearchField(locale, 'relationships', edge.id, 'rationale', edge.rationale, { hashMatches });
+  return <aside className="inspector" aria-label={t('inspector.aria')}>
+    <div className="eyebrow">{t('inspector.linkEyebrow')}</div>
+    <h2>{labelDisplay.text}</h2>
+    <TranslationNotice notice={labelDisplay.notice} />
+    <p>{titleOf(model, edge.source, locale, hashMatches)} → {titleOf(model, edge.target, locale, hashMatches)}</p>
+    <span className={`tag ${edge.epistemicStatus}`}>{L.epistemicLabel[edge.epistemicStatus]}</span> <span className="tag">{L.reviewLabel[edge.reviewState]}</span>
     <dl className="fact-list">
-      <div><dt>Merkitys</dt><dd>{meaningLabel[edge.meaning]}. Nuoli ei tarkoita kausaliteettia.</dd></div>
-      <div><dt>Perustelu</dt><dd>{edge.rationale.trim() || 'Ei kirjattu.'}</dd></div>
-      <div><dt>Näyttöviitteet</dt><dd>{claimNames.length || sourceNames.length ? [...claimNames, ...sourceNames].join('; ') : 'Ei kirjattu.'} {edge.locator.trim() ? `Lähdekohta: ${edge.locator}` : ''}</dd></div>
-      <div><dt>Tiedollinen tila</dt><dd>{epistemicLabel[edge.epistemicStatus]}</dd></div>
-      <div><dt>Rajaus</dt><dd>{edge.rationale.trim() || 'Soveltamisen rajaus ei ole kirjattu.'} {edge.reviewNote.trim() ? `Arvioinnin muistiinpano: ${edge.reviewNote}` : ''}</dd></div>
+      <div><dt>{t('inspector.meaning')}</dt><dd>{L.meaningLabel[edge.meaning]}. {t('inspector.notCausal')}</dd></div>
+      <div><dt>{t('inspector.rationale')}</dt><dd>{rationaleDisplay.text.trim() || t('inspector.notRecorded')}</dd></div>
+      <div><dt>{t('inspector.evidenceRefs')}</dt><dd>{claimNames.length || sourceNames.length ? [...claimNames, ...sourceNames].join('; ') : t('inspector.notRecorded')} {edge.locator.trim() ? t('inspector.locatorPrefix', { value: edge.locator }) : ''}</dd></div>
+      <div><dt>{t('inspector.epistemic')}</dt><dd>{L.epistemicLabel[edge.epistemicStatus]}</dd></div>
+      <div><dt>{t('inspector.boundary')}</dt><dd>{rationaleDisplay.text.trim() || t('inspector.boundaryUnset')} {edge.reviewNote.trim() ? t('inspector.reviewNotePrefix', { value: edge.reviewNote }) : ''}</dd></div>
     </dl>
-    <FormShell submit={persist} label="Tallenna yhteys">
-      <TextField label="Näkyvä nimi" value={draft.label} onChange={value => patch('label', value)} />
-      <SelectField label="Yhteyden merkitys" value={draft.meaning} onChange={value => patch('meaning', value as Meaning)} options={meaningOptions} />
-      <SelectField label="Tiedollinen tila" value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
-      <SelectField label="Kirjauksen tila" value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
-      <TextField label="Perustelu ja soveltamisen rajaus" value={draft.rationale} onChange={value => patch('rationale', value)} area />
-      <TextField label="Lähdekohta tai päätösmuistio" value={draft.locator} onChange={value => patch('locator', value)} area />
-      <TextField label="Arvioinnin muistiinpano" value={draft.reviewNote} onChange={value => patch('reviewNote', value)} area />
-      <Checks title="Väiteviitteet" records={model.claims.map(claim => ({ id: claim.id, label: claim.statement.slice(0, 80) || claim.id }))} selected={draft.claimIds} onChange={ids => patch('claimIds', ids)} />
-      <Checks title="Lähdeviitteet" records={model.sources.map(source => ({ id: source.id, label: source.label }))} selected={draft.sourceIds} onChange={ids => patch('sourceIds', ids)} />
+    <TranslationNotice notice={rationaleDisplay.notice} />
+    <FormShell submit={persist} label={t('inspector.saveLink')}>
+      <TextField label={t('inspector.visibleName')} value={draft.label} onChange={value => patch('label', value)} />
+      <SelectField label={t('inspector.linkMeaning')} value={draft.meaning} onChange={value => patch('meaning', value as Meaning)} options={meaningOptions} />
+      <SelectField label={t('inspector.epistemic')} value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
+      <SelectField label={t('inspector.review')} value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
+      <TextField label={t('inspector.rationaleBoundary')} value={draft.rationale} onChange={value => patch('rationale', value)} area />
+      <TextField label={t('inspector.locatorNote')} value={draft.locator} onChange={value => patch('locator', value)} area />
+      <TextField label={t('inspector.reviewNote')} value={draft.reviewNote} onChange={value => patch('reviewNote', value)} area />
+      <Checks title={t('inspector.claimRefs')} records={model.claims.map(claim => ({ id: claim.id, label: claim.statement.slice(0, 80) || claim.id }))} selected={draft.claimIds} onChange={ids => patch('claimIds', ids)} />
+      <Checks title={t('inspector.sourceRefs')} records={model.sources.map(source => ({ id: source.id, label: source.label }))} selected={draft.sourceIds} onChange={ids => patch('sourceIds', ids)} />
     </FormShell>
-    <button type="button" className="delete" onClick={() => onRemove(edge.id)}>Poista yhteys</button>
+    <button type="button" className="delete" onClick={() => onRemove(edge.id)}>{t('inspector.removeLink')}</button>
   </aside>;
 }
 
@@ -255,6 +280,8 @@ function ClaimForm({ model, claimId, guard, onSave, onOpen, onRemove }: { model:
 }
 
 function ConstructForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRemove }: { model: Workspace; recordId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onRemove: (id: string) => void }) {
+  const { locale, t, hashMatches } = useI18n();
+  const L = labelsFor(locale);
   const record = model.constructs.find(item => item.id === recordId)!;
   const { draft, setDraft, persist } = useDraft(record, guard, next => {
     const copy = clone(model);
@@ -265,12 +292,17 @@ function ConstructForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
     return onSave(copy, 'Käsitteen tiedot tallennettiin.');
   });
   const patch = <K extends keyof typeof record>(key: K, value: (typeof record)[K]) => setDraft(current => ({ ...current, [key]: value }));
+  const labelDisplay = translateResearchField(locale, 'constructs', record.id, 'label', record.label, { hashMatches });
+  const definitionDisplay = translateResearchField(locale, 'constructs', record.id, 'definition', record.definition, { hashMatches });
   return <>
-    <div className="eyebrow">KÄSITE</div><h2>{record.label}</h2>
-    <span className={`tag ${record.epistemicStatus}`}>{epistemicLabel[record.epistemicStatus]}</span> <span className="tag">{reviewLabel[record.reviewState]}</span>
-    <FormShell submit={persist} label="Tallenna muutokset">
-      <TextField label="Nimi" value={draft.label} onChange={value => patch('label', value)} />
-      <TextField label="Määritelmä" value={draft.definition} onChange={value => patch('definition', value)} area />
+    <div className="eyebrow">{t('inspector.constructEyebrow')}</div><h2>{labelDisplay.text}</h2>
+    <TranslationNotice notice={labelDisplay.notice} />
+    <p className="subtle">{definitionDisplay.text}</p>
+    <TranslationNotice notice={definitionDisplay.notice} />
+    <span className={`tag ${record.epistemicStatus}`}>{L.epistemicLabel[record.epistemicStatus]}</span> <span className="tag">{L.reviewLabel[record.reviewState]}</span>
+    <FormShell submit={persist} label={t('inspector.save')}>
+      <TextField label={t('inspector.name')} value={draft.label} onChange={value => patch('label', value)} />
+      <TextField label={t('inspector.definition')} value={draft.definition} onChange={value => patch('definition', value)} area />
       <TextField label="Määritelmän kohde" value={draft.object} onChange={value => patch('object', value)} />
       <TextField label="Yksikkö" value={draft.unit} onChange={value => patch('unit', value)} />
       <TextField label="Ala" value={draft.scope} onChange={value => patch('scope', value)} area />
@@ -288,6 +320,8 @@ function ConstructForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
 }
 
 function CriterionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRemove }: { model: Workspace; recordId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onRemove: (id: string) => void }) {
+  const { locale, t, hashMatches } = useI18n();
+  const L = labelsFor(locale);
   const record = model.criteria.find(item => item.id === recordId)!;
   const { draft, setDraft, persist } = useDraft(record, guard, next => {
     const copy = clone(model);
@@ -298,12 +332,17 @@ function CriterionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
     return onSave(copy, 'Kriteerin tiedot tallennettiin.');
   });
   const patch = <K extends keyof Criterion>(key: K, value: Criterion[K]) => setDraft(current => ({ ...current, [key]: value }));
+  const labelDisplay = translateResearchField(locale, 'criteria', record.id, 'label', record.label, { hashMatches });
+  const evidenceDisplay = translateResearchField(locale, 'criteria', record.id, 'evidenceRequirements', record.evidenceRequirements, { hashMatches });
   return <>
-    <div className="eyebrow">KRITEERI</div><h2>{record.label}</h2>
-    <span className={`tag ${record.epistemicStatus}`}>{epistemicLabel[record.epistemicStatus]}</span> <span className="tag">{reviewLabel[record.reviewState]}</span>
-    <FormShell submit={persist} label="Tallenna muutokset">
-      <TextField label="Nimi" value={draft.label} onChange={value => patch('label', value)} />
-      <Checks title="Käsiteviitteet" records={model.constructs.map(item => ({ id: item.id, label: item.label }))} selected={draft.constructIds} onChange={ids => patch('constructIds', ids)} />
+    <div className="eyebrow">{t('inspector.criterionEyebrow')}</div><h2>{labelDisplay.text}</h2>
+    <TranslationNotice notice={labelDisplay.notice} />
+    <p className="subtle">{evidenceDisplay.text}</p>
+    <TranslationNotice notice={evidenceDisplay.notice} />
+    <span className={`tag ${record.epistemicStatus}`}>{L.epistemicLabel[record.epistemicStatus]}</span> <span className="tag">{L.reviewLabel[record.reviewState]}</span>
+    <FormShell submit={persist} label={t('inspector.save')}>
+      <TextField label={t('inspector.name')} value={draft.label} onChange={value => patch('label', value)} />
+      <Checks title="Käsiteviitteet" records={model.constructs.map(item => ({ id: item.id, label: titleOf(model, item.id, locale, hashMatches) }))} selected={draft.constructIds} onChange={ids => patch('constructIds', ids)} />
       <TextField label="Näyttövaatimus" value={draft.evidenceRequirements} onChange={value => patch('evidenceRequirements', value)} area />
       <TextField label="Arvioija" value={draft.assessor} onChange={value => patch('assessor', value)} />
       <TextField label="Päätössääntö" value={draft.decisionRule} onChange={value => patch('decisionRule', value)} area />
@@ -322,6 +361,8 @@ function CriterionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
 }
 
 function PropositionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRemove, onOpen }: { model: Workspace; recordId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onEdge: (id: string) => void; onAddEdge: (id: string) => void; onRemove: (id: string) => void; onOpen: (id: string) => void }) {
+  const { locale, t, hashMatches } = useI18n();
+  const L = labelsFor(locale);
   const record = model.propositions.find(item => item.id === recordId)!;
   const [statementRationale, setStatementRationale] = useState('');
   const { draft, setDraft, persist } = useDraft({ ...record, statementRationale: '' }, guard, next => {
@@ -349,15 +390,23 @@ function PropositionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, on
   });
   const patch = <K extends keyof typeof draft>(key: K, value: (typeof draft)[K]) => setDraft(current => ({ ...current, [key]: value }));
   const claimKindOptions = (['association', 'controlled-comparison', 'paired-coverage', 'other'] as IntendedClaimKind[]).map(id => ({ id, label: claimKindLabel[id] }));
+  const labelDisplay = translateResearchField(locale, 'propositions', record.id, 'label', record.label, { hashMatches });
+  const statementDisplay = translateResearchField(locale, 'propositions', record.id, 'statement', record.statement, { hashMatches });
+  const boundaryDisplay = translateResearchField(locale, 'propositions', record.id, 'boundary', record.boundary, { hashMatches });
   return <>
-    <div className="eyebrow">PROPOSITIO</div><h2>{record.label}</h2>
-    <span className={`tag ${record.epistemicStatus}`}>{epistemicLabel[record.epistemicStatus]}</span> <span className="tag">{reviewLabel[record.reviewState]}</span>
+    <div className="eyebrow">{t('inspector.propositionEyebrow')}</div><h2>{labelDisplay.text}</h2>
+    <TranslationNotice notice={labelDisplay.notice} />
+    <p>{statementDisplay.text}</p>
+    <TranslationNotice notice={statementDisplay.notice} />
+    <p className="subtle">{boundaryDisplay.text}</p>
+    <TranslationNotice notice={boundaryDisplay.notice} />
+    <span className={`tag ${record.epistemicStatus}`}>{L.epistemicLabel[record.epistemicStatus]}</span> <span className="tag">{L.reviewLabel[record.reviewState]}</span>
     <span className="tag">{claimKindLabel[record.intendedClaimKind]}</span>
     <FormShell submit={() => {
       if (draft.statement !== record.statement && !(draft.statementRationale || statementRationale).trim()) return false;
       return persist();
-    }} label="Tallenna muutokset">
-      <TextField label="Nimi" value={draft.label} onChange={value => patch('label', value)} />
+    }} label={t('inspector.save')}>
+      <TextField label={t('inspector.name')} value={draft.label} onChange={value => patch('label', value)} />
       <TextField label="Väite" value={draft.statement} onChange={value => patch('statement', value)} area />
       {draft.statement !== record.statement && <TextField label="Väitteen muutoksen perustelu (pakollinen)" value={draft.statementRationale || statementRationale} onChange={value => { setStatementRationale(value); patch('statementRationale', value); }} area />}
       <TextField label="Mitä tästä ei voi päätellä" value={draft.boundary} onChange={value => patch('boundary', value)} area />
@@ -386,26 +435,35 @@ function PropositionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, on
 }
 
 function ProtocolForm({ model, recordId, onOpen }: { model: Workspace; recordId: string; onOpen: (id: string) => void }) {
+  const { locale, t, hashMatches } = useI18n();
   const record = model.protocols.find(item => item.id === recordId);
   if (!record) return <p className="subtle">Protokollaa ei löydy.</p>;
+  const labelDisplay = translateResearchField(locale, 'protocols', record.id, 'label', record.label, { hashMatches });
+  const summaryDisplay = translateResearchField(locale, 'protocols', record.id, 'designSummary', record.designSummary, { hashMatches });
   return <>
-    <div className="eyebrow">ARVIOINTIPROTOKOLLA</div><h2>{record.label}</h2>
+    <div className="eyebrow">{t('inspector.protocolEyebrow')}</div><h2>{labelDisplay.text}</h2>
+    <TranslationNotice notice={labelDisplay.notice} />
     <span className="tag hypothesis">{record.status}</span>
     <span className="tag">{claimKindLabel[record.designKind]}</span>
     <p className="subtle">{PROTOCOL_DISCLAIMER}</p>
-    <p>{record.designSummary}</p>
-    <p className="subtle">Havaintoja: {record.observations.length}. Yhdistelmäpiste: {record.compositeTrustScore}.</p>
+    <p>{summaryDisplay.text}</p>
+    <TranslationNotice notice={summaryDisplay.notice} />
+    <p className="subtle">{t('questions.observations', { count: record.observations.length, score: String(record.compositeTrustScore) })}</p>
     <div className="field-title">Linkitetyt propositiot</div>
-    {record.propositionIds.map(id => <button key={id} type="button" onClick={() => onOpen(id)}>{model.propositions.find(item => item.id === id)?.label || id}</button>)}
+    {record.propositionIds.map(id => <button key={id} type="button" onClick={() => onOpen(id)}>{titleOf(model, id, locale, hashMatches)}</button>)}
     <div className="field-title">Kriteerit</div>
-    <p className="subtle">{record.criterionIds.map(id => model.criteria.find(item => item.id === id)?.label || id).join('; ') || '—'}</p>
-    <div className="field-title">Ulottuvuudet (alustava)</div>
-    <ul>{record.dimensions.map(item => <li key={item.id}>{item.label}: {item.draftWording}</li>)}</ul>
+    <p className="subtle">{record.criterionIds.map(id => titleOf(model, id, locale, hashMatches)).join('; ') || '—'}</p>
+    <div className="field-title">{t('questions.fiveDimensions')}</div>
+    <ul>{record.dimensions.map(item => {
+      const dimLabel = translateResearchField(locale, 'protocols', record.id, `dim.${item.id}.label`, item.label, { hashMatches });
+      return <li key={item.id}>{dimLabel.text}: {item.draftWording}{dimLabel.notice ? ` (${dimLabel.notice})` : ''}</li>;
+    })}</ul>
     <p className="subtle">Muokkaa ankkureita ja vie protokolla kysymysnäkymässä.</p>
   </>;
 }
 
 function CaseForm({ model, recordId, guard, onSave, paused }: { model: Workspace; recordId: string; guard: RefObject<DirtyApi | null>; onSave: Save; paused: boolean }) {
+  const { locale, t, hashMatches } = useI18n();
   const record = model.cases.find(item => item.id === recordId)!;
   const saved = { propositionIds: record.propositionIds, criterionIds: record.criterionIds, decisionIds: record.decisionIds };
   const idleGuard = useRef<DirtyApi | null>(null);
@@ -417,22 +475,26 @@ function CaseForm({ model, recordId, guard, onSave, paused }: { model: Workspace
     item.propositionIds = next.propositionIds; item.criterionIds = next.criterionIds; item.decisionIds = next.decisionIds;
     return onSave(copy, 'Esimerkin viitteet tallennettiin. Esimerkki pysyy rakennettuna.');
   });
+  const titleDisplay = translateResearchField(locale, 'cases', record.id, 'title', record.title, { hashMatches });
   return <>
-    <div className="eyebrow">RAKENNETTU TAPAUS</div><h2>{record.title}</h2>
-    <span className="tag hypothesis">Rakennettu analyyttinen esimerkki</span>
+    <div className="eyebrow">{t('inspector.caseEyebrow')}</div><h2>{titleDisplay.text}</h2>
+    <TranslationNotice notice={titleDisplay.notice} />
+    <span className="tag hypothesis">{t('research.constructedShort')}</span>
     <p className="subtle">Tehtävä–näyttö-muokkaus on tapausten näkymässä. Tähän kirjataan vain erilliset viitteet. Niitä ei päätelty tekstistä. Empiirinen tapaus vaatisi erillisen tietuetyypin.</p>
     {paused && <p className="subtle" role="status">Tapausnäkymän muokkaus on auki — tallentamattomat muutokset suojataan sieltä.</p>}
     <p className="subtle">analyticLabel: {record.analyticLabel}</p>
-    <FormShell submit={persist} label="Tallenna esimerkin viitteet">
-      <Checks title="Propositioviitteet" records={model.propositions.map(item => ({ id: item.id, label: item.label }))} selected={draft.propositionIds} onChange={ids => setDraft(current => ({ ...current, propositionIds: ids }))} />
-      <Checks title="Kriteeriviitteet" records={model.criteria.map(item => ({ id: item.id, label: item.label }))} selected={draft.criterionIds} onChange={ids => setDraft(current => ({ ...current, criterionIds: ids }))} />
-      <Checks title="Tutkimuspäätökset" records={model.decisions.map(item => ({ id: item.id, label: item.label }))} selected={draft.decisionIds} onChange={ids => setDraft(current => ({ ...current, decisionIds: ids }))} />
+    <FormShell submit={persist} label={t('inspector.saveCaseRefs')}>
+      <Checks title="Propositioviitteet" records={model.propositions.map(item => ({ id: item.id, label: titleOf(model, item.id, locale, hashMatches) }))} selected={draft.propositionIds} onChange={ids => setDraft(current => ({ ...current, propositionIds: ids }))} />
+      <Checks title="Kriteeriviitteet" records={model.criteria.map(item => ({ id: item.id, label: titleOf(model, item.id, locale, hashMatches) }))} selected={draft.criterionIds} onChange={ids => setDraft(current => ({ ...current, criterionIds: ids }))} />
+      <Checks title="Tutkimuspäätökset" records={model.decisions.map(item => ({ id: item.id, label: titleOf(model, item.id, locale, hashMatches) }))} selected={draft.decisionIds} onChange={ids => setDraft(current => ({ ...current, decisionIds: ids }))} />
       <p className="subtle">Tyhjä lista ei osoita, ettei yhteyttä voisi myöhemmin kirjata.</p>
     </FormShell>
   </>;
 }
 
 function DecisionForm({ model, recordId, guard, onSave, onRemove }: { model: Workspace; recordId: string; guard: RefObject<DirtyApi | null>; onSave: Save; onRemove: (id: string) => void }) {
+  const { locale, t, hashMatches } = useI18n();
+  const L = labelsFor(locale);
   const record = model.decisions.find(item => item.id === recordId)!;
   const { draft, setDraft, persist } = useDraft(record, guard, next => {
     const copy = clone(model);
@@ -442,11 +504,16 @@ function DecisionForm({ model, recordId, guard, onSave, onRemove }: { model: Wor
     return onSave(copy, 'Tutkimuspäätös tallennettiin.');
   });
   const patch = <K extends keyof Decision>(key: K, value: Decision[K]) => setDraft(current => ({ ...current, [key]: value }));
+  const labelDisplay = translateResearchField(locale, 'decisions', record.id, 'label', record.label, { hashMatches });
+  const statementDisplay = translateResearchField(locale, 'decisions', record.id, 'statement', record.statement, { hashMatches });
   return <>
-    <div className="eyebrow">TUTKIMUSPÄÄTÖS</div><h2>{record.label}</h2>
-    <span className={`tag ${record.epistemicStatus}`}>{epistemicLabel[record.epistemicStatus]}</span> <span className="tag">{reviewLabel[record.reviewState]}</span>
-    <FormShell submit={persist} label="Tallenna päätös">
-      <TextField label="Nimi" value={draft.label} onChange={value => patch('label', value)} />
+    <div className="eyebrow">{t('inspector.decisionEyebrow')}</div><h2>{labelDisplay.text}</h2>
+    <TranslationNotice notice={labelDisplay.notice} />
+    <p>{statementDisplay.text}</p>
+    <TranslationNotice notice={statementDisplay.notice} />
+    <span className={`tag ${record.epistemicStatus}`}>{L.epistemicLabel[record.epistemicStatus]}</span> <span className="tag">{L.reviewLabel[record.reviewState]}</span>
+    <FormShell submit={persist} label={t('inspector.saveDecision')}>
+      <TextField label={t('inspector.name')} value={draft.label} onChange={value => patch('label', value)} />
       <TextField label="Päätös" value={draft.statement} onChange={value => patch('statement', value)} area />
       <TextField label="Ala" value={draft.scope} onChange={value => patch('scope', value)} />
       <TextField label="Perustelu" value={draft.rationale} onChange={value => patch('rationale', value)} area />

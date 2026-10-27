@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { AriaLabelConfig } from '@xyflow/system';
 import {
   Background, BaseEdge, EdgeLabelRenderer, Handle, MarkerType, Position, ReactFlow,
@@ -6,19 +6,11 @@ import {
   type EdgeChange, type EdgeProps, type NodeChange, type NodeProps
 } from '@xyflow/react';
 import { buildFlow, type LinkEdge, type RecordNode } from './graph.ts';
+import { useI18n, displayRecordLabel } from './i18n/index.ts';
+import type { Locale } from './i18n/locale.ts';
 import type { Workspace } from './types.ts';
 
 export interface FlowApi { zoomIn: () => void; zoomOut: () => void; fit: () => void; home: () => void }
-
-const directionFi: Record<string, string> = { left: 'vasemmalle', right: 'oikealle', up: 'ylös', down: 'alas' };
-const nodeKeys = 'Sarkain kohteeseen. Enter tai välilyönti valitsee. Nuolinäppäimet siirtävät valittua kohdetta; Vaihto pidentää askelta. Escape peruu valinnan. Poisto- tai askelpalautin ei poista kohdetta. Täysi nimi on tarkastelijassa ja näkyvien kohteiden listassa.';
-const flowAria = {
-  'node.a11yDescription.default': nodeKeys,
-  'node.a11yDescription.keyboardDisabled': nodeKeys,
-  'node.a11yDescription.ariaLiveMessage': ({ direction, x, y }: { direction: string; x: number; y: number }) =>
-    `Valittua kohdetta siirrettiin ${directionFi[direction] || direction}. Sijainti x ${x}, y ${y}.`,
-  'edge.a11yDescription.default': 'Enter tai välilyönti valitsee yhteyden. Escape peruu valinnan. Poisto- tai askelpalautin ei poista yhteyttä. Merkitys ja rajaus ovat tarkastelijassa.'
-} satisfies Partial<AriaLabelConfig>;
 
 function motionMs(ms: number) {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : ms;
@@ -46,15 +38,38 @@ function EpistemicEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition,
 const nodeTypes = { record: RecordCard };
 const edgeTypes = { epistemic: EpistemicEdge };
 
-export function FlowMap({ model, ids, selectedId, selectedEdge, trace, fitToken, guardTick, api, onSelectNode, onSelectEdge, onMove }: {
+export function FlowMap({ model, ids, selectedId, selectedEdge, trace, fitToken, guardTick, api, locale, resolveLabel, onSelectNode, onSelectEdge, onMove }: {
   model: Workspace; ids: Set<string>; selectedId: string; selectedEdge: string; trace: { nodes: string[] } | null;
   fitToken: number; guardTick: number; api: RefObject<FlowApi | null>;
+  locale?: Locale;
+  resolveLabel?: (id: string, fallback: string) => string;
   onSelectNode: (id: string) => void; onSelectEdge: (id: string) => void; onMove: (id: string, position: { x: number; y: number }) => void;
 }) {
+  const { t, locale: contextLocale, hashMatches } = useI18n();
+  const activeLocale = locale ?? contextLocale;
+  const resolveRef = useRef(resolveLabel);
+  resolveRef.current = resolveLabel;
   const visibleKey = [...ids].sort().join('|');
   const traceKey = trace?.nodes.join('|') || '';
+  const flowAria = useMemo(() => ({
+    'node.a11yDescription.default': t('flowAria.nodeKeys'),
+    'node.a11yDescription.keyboardDisabled': t('flowAria.nodeKeys'),
+    'node.a11yDescription.ariaLiveMessage': ({ direction, x, y }: { direction: string; x: number; y: number }) => {
+      const dirKey = direction === 'left' || direction === 'right' || direction === 'up' || direction === 'down'
+        ? (`flowAria.${direction}` as const)
+        : null;
+      const dirLabel = dirKey ? t(dirKey) : direction;
+      return t('flowAria.moved', { direction: dirLabel, x, y });
+    },
+    'edge.a11yDescription.default': t('flowAria.edgeKeys')
+  } satisfies Partial<AriaLabelConfig>), [t, activeLocale]);
   const built = useMemo(() => {
-    const flow = buildFlow(model, ids, selectedId, selectedEdge);
+    const resolve = resolveRef.current
+      || ((id: string, fallback: string) => displayRecordLabel(activeLocale, model, id, hashMatches) || fallback);
+    const flow = buildFlow(model, ids, selectedId, selectedEdge, {
+      locale: activeLocale,
+      resolveLabel: resolve
+    });
     const edges = flow.edges.map(edge => {
       const marked = edge.data?.pattern === 'membership' ? edge : { ...edge, markerEnd: { type: MarkerType.ArrowClosed, color: edge.data?.color || '#315cd7', width: 16, height: 16 } };
       return trace && !(trace.nodes.includes(edge.source) && trace.nodes.includes(edge.target)) ? { ...marked, className: 'dim-edge' } : marked;
@@ -63,7 +78,7 @@ export function FlowMap({ model, ids, selectedId, selectedEdge, trace, fitToken,
       nodes: trace ? flow.nodes.map(node => ({ ...node, data: { ...node.data, dim: !trace.nodes.includes(node.id) } })) : flow.nodes,
       edges
     };
-  }, [model, visibleKey, selectedId, selectedEdge, traceKey]);
+  }, [model, visibleKey, selectedId, selectedEdge, traceKey, activeLocale, hashMatches, ids, trace]);
   const [nodes, setNodes] = useState(built.nodes);
   const [edges, setEdges] = useState(built.edges);
   useEffect(() => { setNodes(built.nodes); setEdges(built.edges); }, [built, guardTick]);
@@ -104,7 +119,7 @@ export function FlowMap({ model, ids, selectedId, selectedEdge, trace, fitToken,
   >
     <Background color="#d5dde8" gap={18} size={1} />
     <FlowBridge fitToken={fitToken} api={api} />
-  </ReactFlow>{nodes.length ? null : <p className="empty-map">Ei hakua tai suodatusta vastaavia kohteita.</p>}</div>;
+  </ReactFlow>{nodes.length ? null : <p className="empty-map">{t('graph.emptyMap')}</p>}</div>;
 }
 
 function FlowBridge({ fitToken, api }: { fitToken: number; api: RefObject<FlowApi | null> }) {

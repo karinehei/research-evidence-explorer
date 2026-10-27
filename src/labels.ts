@@ -1,41 +1,37 @@
+import { catalogFor } from './i18n/catalog.ts';
+import type { Locale } from './i18n/locale.ts';
 import type { Access, EpistemicStatus, Meaning, PublicationStatus, RecordKind, ResearchRole, ReviewState } from './types.ts';
 
-export const kindLabel: Record<RecordKind, string> = {
-  source: 'Lähde', claim: 'Lähdeväite', construct: 'Käsite', criterion: 'Kriteeri', proposition: 'Propositio',
-  relationship: 'Yhteys', case: 'Rakennettu tapaus', decision: 'Tutkimuspäätös', protocol: 'Arviointiprotokolla'
-};
-export const epistemicLabel: Record<EpistemicStatus, string> = {
-  reported: 'Raportoitu, ei varmennettu', adaptation: 'Oma sovellus', hypothesis: 'Testaamaton oletus'
-};
-export const epistemicShort: Record<EpistemicStatus, string> = { reported: 'raportoitu', adaptation: 'sovellus', hypothesis: 'ehdotus' };
-export const reviewLabel: Record<ReviewState, string> = { imported: 'Tuotu aineistosta', proposed: 'Ehdotettu', reviewed: 'Arvioitu' };
-export const meaningLabel: Record<Meaning, string> = {
-  motivates: 'Motivoi', operationalises: 'Operationalisoi', complements: 'Täydentää', questions: 'Kyseenalaistaa', proposes: 'Ehdottaa testattavaa yhteyttä'
-};
-export const accessLabel: Record<Access, string> = {
-  'reported-full-text': 'Asiakirjassa: käsikirjoituksen tekstiä tarkasteltu',
-  'reported-abstract': 'Asiakirjassa: abstrakti',
-  'not-recorded': 'Tarkastelutaso täsmennettävä',
-  'not-applicable': 'Ei sovellu'
-};
-export const publicationLabel: Record<PublicationStatus, string> = {
-  'not-recorded': 'Ei kirjattu', preprint: 'Preprint', published: 'Julkaistu', 'in-press': 'Painossa', manuscript: 'Käsikirjoitus', 'not-applicable': 'Ei sovellu'
-};
-export const provenanceLabel = { 'imported-summary': 'Tuotu yhteenveto', 'primary-inspection': 'Alkuperäislähteestä tarkastettu' };
-export const appraisalLabel = { 'not-appraised': 'Ei arvioitu', appraised: 'Arvioitu' };
-export const researchRoleLabel: Record<ResearchRole, string> = {
-  'not-recorded': 'Ei kirjattu',
-  conceptual: 'Käsitteellinen',
-  technical: 'Tekninen',
-  empirical: 'Empiirinen',
-  'tool-workflow': 'Työkalu / työnkulku'
-};
-export const chainKindLabel = {
-  'conceptual-ancestry': 'Käsitteellinen esivanhemmuus — ei suora empiirinen tuki',
-  'recorded-link': 'Kirjattu yhteys — ei automaattisesti empiirinen tuki',
-  'adaptation-step': 'Oma sovellus / operationalisointi',
-  counterevidence: 'Ristiriita tai kyseenalaistus',
-  missing: 'Puuttuva viite — tarkistettava'
-} as const;
+/** Default Finnish labels for non-React callers; React views should use useI18n().catalog.labels. */
+export const kindLabel: Record<RecordKind, string> = { ...catalogFor('fi').labels.kind };
+export const epistemicLabel: Record<EpistemicStatus, string> = { ...catalogFor('fi').labels.epistemic };
+export const epistemicShort: Record<EpistemicStatus, string> = { ...catalogFor('fi').labels.epistemicShort };
+export const reviewLabel: Record<ReviewState, string> = { ...catalogFor('fi').labels.review };
+export const meaningLabel: Record<Meaning, string> = { ...catalogFor('fi').labels.meaning };
+export const accessLabel: Record<Access, string> = { ...catalogFor('fi').labels.access };
+export const publicationLabel: Record<PublicationStatus, string> = { ...catalogFor('fi').labels.publication };
+export const provenanceLabel = { ...catalogFor('fi').labels.provenance };
+export const appraisalLabel = { ...catalogFor('fi').labels.appraisal };
+export const researchRoleLabel: Record<ResearchRole, string> = { ...catalogFor('fi').labels.researchRole };
+export const chainKindLabel = { ...catalogFor('fi').labels.chainKind };
 
 export const traceLimitation = 'Näytetty ketju on topologinen polku tallennettujen yhteyksien suunnassa. Se ei ole näytöllisesti perusteltu argumentti. Tuki ei siirry automaattisesti jokaisen edeltäjän kautta, eikä polku vahvista päätepisteen pätevyyttä.';
+export const traceLimitationEn = 'The shown path is a topological path along stored directed links. It is not an evidentially justified argument. Support does not transfer automatically through every predecessor, and the path does not confirm the validity of the endpoint.';
+
+export function labelsFor(locale: Locale) {
+  const labels = catalogFor(locale).labels;
+  return {
+    kindLabel: labels.kind as Record<RecordKind, string>,
+    epistemicLabel: labels.epistemic as Record<EpistemicStatus, string>,
+    epistemicShort: labels.epistemicShort as Record<EpistemicStatus, string>,
+    reviewLabel: labels.review as Record<ReviewState, string>,
+    meaningLabel: labels.meaning as Record<Meaning, string>,
+    accessLabel: labels.access as Record<Access, string>,
+    publicationLabel: labels.publication as Record<PublicationStatus, string>,
+    provenanceLabel: labels.provenance,
+    appraisalLabel: labels.appraisal,
+    researchRoleLabel: labels.researchRole as Record<ResearchRole, string>,
+    chainKindLabel: labels.chainKind,
+    traceLimitation: locale === 'en' ? traceLimitationEn : traceLimitation
+  };
+}

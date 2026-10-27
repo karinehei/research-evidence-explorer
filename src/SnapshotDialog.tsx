@@ -4,6 +4,7 @@ import {
   applySnapshotImport, compareSnapshots, contentHash, createSnapshot, layoutHash,
   loadPreImportBackup, previewImport, storePreImportBackup, type ImportPreview, type SnapshotComparison
 } from './snapshots.ts';
+import { useI18n } from './i18n/index.ts';
 import { Modal } from './Modal.tsx';
 import type { Workspace } from './types.ts';
 
@@ -23,6 +24,7 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
   onReplace: (next: Workspace, message: string, backup: Workspace, options?: { skipAutoLog?: boolean }) => boolean;
   actorLabel: string;
 }) {
+  const { t } = useI18n();
   const [content, setContent] = useState('');
   const [layout, setLayout] = useState('');
   const [preview, setPreview] = useState<ImportPreview | null>(null);
@@ -108,31 +110,32 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
     if (ok) onClose();
   }
 
-  return <Modal open={open} title="Tilannekuvat ja tuonti" onClose={onClose} className="snapshot-dialog">
+  return <Modal open={open} title={t('snapshot.title')} onClose={onClose} className="snapshot-dialog">
     <p className="subtle">{LOCAL_SAVE_DISCLAIMER}</p>
     <p className="subtle">{HASH_DISCLAIMER}</p>
     <p className="subtle">{AUDIT_DISCLAIMER}</p>
-    <p className="subtle">Valinnainen nimiö tässä istunnossa: {actorLabel.trim() || 'ei annettu'}.</p>
-    <h3>Nykyiset tiivisteet</h3>
-    <p className="subtle">Sisältö: {content || '…'}</p>
-    <p className="subtle">Asettelu: {layout || '…'}</p>
-    <details><summary>Kanonisointimenettely (toistettava)</summary><p className="subtle">{CANONICALISATION_PROCEDURE}</p></details>
+    <p className="subtle">{t('snapshot.actorSession', { label: actorLabel.trim() || t('snapshot.actorNone') })}</p>
+    <h3>{t('snapshot.hashes')}</h3>
+    <p className="subtle">{t('snapshot.content', { hash: content || '…' })}</p>
+    <p className="subtle">{t('snapshot.layout', { hash: layout || '…' })}</p>
+    <details><summary>{t('snapshot.canonSummary')}</summary><p className="subtle">{CANONICALISATION_PROCEDURE}</p></details>
     <div className="actions">
-      <button type="button" className="primary" disabled={busy} onClick={() => void exportSnapshot()}>Vie tilannekuva JSON</button>
-      <label className="file-button">Tuo tilannekuva / työtila
+      <button type="button" className="primary" disabled={busy} onClick={() => void exportSnapshot()}>{t('snapshot.export')}</button>
+      <label className="file-button">{t('snapshot.import')}
         <input type="file" accept=".json,application/json" onChange={event => { const file = event.target.files?.[0] || null; event.target.value = ''; void onFile(file); }} />
       </label>
-      <button type="button" onClick={restoreBackup}>Palauta tuontivarmuuskopio</button>
+      <button type="button" onClick={restoreBackup}>{t('snapshot.restore')}</button>
     </div>
     {preview && <PreviewBlock preview={preview} compare={compare} />}
-    {preview?.ok && <div className="actions"><button type="button" className="primary" onClick={confirmImport}>Hyväksy korvaava tuonti</button><button type="button" onClick={onClose}>Peruuta</button></div>}
+    {preview?.ok && <div className="actions"><button type="button" className="primary" onClick={confirmImport}>{t('snapshot.accept')}</button><button type="button" onClick={onClose}>{t('dialog.cancel')}</button></div>}
     {message && <p className="subtle" role="status">{message}</p>}
   </Modal>;
 }
 
 function PreviewBlock({ preview, compare }: { preview: ImportPreview; compare: SnapshotComparison | null }) {
+  const { t } = useI18n();
   return <div className="protocol-panel">
-    <h3>Tuonnin esikatselu</h3>
+    <h3>{t('snapshot.preview')}</h3>
     <p className="subtle">{preview.note}</p>
     {!preview.ok && <p className="error">{preview.error}</p>}
     {preview.ok && <>

@@ -34,8 +34,22 @@ test('justification preset exports parseable browser SVG with epistemic legend a
   assert.match(bundle.svg!, /raportoitu|oma sovellus|ehdotus/);
   assert.match(bundle.captionDraft, /ei kirjoita automaattisesti tieteellistä johtopäätöstä/i);
   assert.equal(bundle.manifest.exportType, 'research-figure-manifest');
+  assert.equal(bundle.manifest.displayLanguage, 'fi');
+  assert.ok(bundle.manifest.translationResourceVersion);
   assert.ok(selectionMatchesManifest(bundle.selection, bundle.manifest));
   assert.deepEqual(bundle.manifest.selectedRelationshipIds, selection.relationshipIds);
+});
+
+test('English figure export localises legend without changing content hash identity field role', async () => {
+  const bundle = await buildFigureBundle(model, {
+    mode: 'browser-layout',
+    preset: 'justification',
+    focusId: 'sufficiency',
+    locale: 'en'
+  });
+  assert.equal(bundle.manifest.displayLanguage, 'en');
+  assert.match(bundle.svg || '', /Legend|legend/i);
+  assert.match(bundle.svg || '', /reported|adaptation|proposal/i);
 });
 
 test('Graphviz DOT keeps epistemic status in labels and styles; missing dot does not claim PDF', async () => {

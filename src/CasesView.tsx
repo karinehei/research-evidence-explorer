@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState, type RefObject } from 'react';
 import {
-  ANALYTIC_CASE_LABEL, CASE_VIEW_DISCLAIMER, CONSTRUCTED_CASE_TAG, applyConstructedCaseDraft,
-  coverageLayerLabel, exportConstructedCase, facetStateLabel, layerCoverage, missingEssentialFacets, type CoverageLayer
+  ANALYTIC_CASE_LABEL, applyConstructedCaseDraft,
+  exportConstructedCase, layerCoverage, missingEssentialFacets, type CoverageLayer
 } from './cases.ts';
 import { useDraft, type DirtyApi } from './draft.ts';
+import { useI18n, translateResearchField } from './i18n/index.ts';
 import type { ConstructedCase, FacetState, Workspace } from './types.ts';
-
-const facetOptions = Object.entries(facetStateLabel).map(([id, label]) => ({ id, label }));
 
 function downloadText(name: string, text: string, type: string) {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -30,8 +29,9 @@ export function CasesView({ model, selectedId, onSelect, onSave, guard, onEditMo
   onEditModeChange?: (editing: boolean) => void;
   onLeave: (action: () => void) => void;
 }) {
+  const { t } = useI18n();
   const selected = model.cases.find(item => item.id === selectedId) || model.cases[0];
-  if (!selected) return <p>Ei rakennettuja tapauksia.</p>;
+  if (!selected) return <p>{t('cases.empty')}</p>;
   return <CaseEditor model={model} selected={selected} onSelect={onSelect} onSave={onSave} guard={guard} onEditModeChange={onEditModeChange} onLeave={onLeave} />;
 }
 
@@ -44,6 +44,20 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
   onEditModeChange?: (editing: boolean) => void;
   onLeave: (action: () => void) => void;
 }) {
+  const { locale, t, hashMatches } = useI18n();
+  const facetStateLabel = {
+    full: t('cases.facetFull'),
+    partial: t('cases.facetPartial'),
+    absent: t('cases.facetAbsent'),
+    conflicting: t('cases.facetConflicting'),
+    unresolved: t('cases.facetUnresolved')
+  } as const;
+  const coverageLayerLabel = {
+    collection: t('cases.layerCollection'),
+    context: t('cases.layerContext'),
+    answer: t('cases.layerAnswer')
+  } as const;
+  const facetOptions = Object.entries(facetStateLabel).map(([id, label]) => ({ id, label }));
   const [leftVariantId, setLeftVariantId] = useState('');
   const [rightVariantId, setRightVariantId] = useState('');
   const [editMode, setEditMode] = useState(false);
@@ -51,10 +65,14 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
     let copy: Workspace;
     try { copy = applyConstructedCaseDraft(model, next); }
     catch { return false; }
-    const ok = onSave(copy, 'Rakennettu tapaus tallennettiin. Esimerkki pysyy rakennettuna analyyttisenä esimerkkinä.');
+    const ok = onSave(copy, t('cases.saved'));
     if (ok) setEditMode(false);
     return ok;
   }, { active: editMode, onReset: () => setEditMode(false) });
+  const titleDisplay = translateResearchField(locale, 'cases', draft.id, 'title', draft.title, { hashMatches });
+  const taskDisplay = translateResearchField(locale, 'cases', draft.id, 'task', draft.taskReference.statement || draft.task, { hashMatches });
+  const interpretationDisplay = translateResearchField(locale, 'cases', draft.id, 'interpretation', draft.interpretation, { hashMatches });
+  const boundaryDisplay = translateResearchField(locale, 'cases', draft.id, 'boundary', draft.boundary, { hashMatches });
 
   useEffect(() => {
     const answers = selected.answerVariants;
@@ -97,46 +115,48 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
   }
 
   return <section className="cases-view" key={draft.id}>
-    <div className="case-tabs" aria-label="Rakennetut esimerkit">
-      {model.cases.map(item => <button type="button" key={item.id} aria-pressed={item.id === selected.id} onClick={() => onSelect(item.id)}>{item.title}</button>)}
+    <div className="case-tabs" aria-label={t('cases.tabsAria')}>
+      {model.cases.map(item => <button type="button" key={item.id} aria-pressed={item.id === selected.id} onClick={() => onSelect(item.id)}>{translateResearchField(locale, 'cases', item.id, 'title', item.title, { hashMatches }).text}</button>)}
     </div>
 
     <div className="table-intro">
       <div>
-        <span className="tag hypothesis">{CONSTRUCTED_CASE_TAG}</span>
+        <span className="tag hypothesis">{t('research.constructedTag')}</span>
         <span className="tag">{ANALYTIC_CASE_LABEL}</span>
-        <p>{CASE_VIEW_DISCLAIMER}</p>
+        <p>{t('cases.disclaimer')}</p>
       </div>
       <div className="matrix-export-actions">
-        <button type="button" onClick={() => onLeave(() => setEditMode(!editMode))}>{editMode ? 'Sulje muokkaus' : 'Muokkaa tapausta'}</button>
-        {editMode && <button type="button" className="primary" onClick={saveCase}>Tallenna tapaus</button>}
-        <button type="button" onClick={exportCase}>Vie rakennettu tapaus JSON</button>
+        <button type="button" onClick={() => onLeave(() => setEditMode(!editMode))}>{editMode ? t('cases.closeEdit') : t('cases.edit')}</button>
+        {editMode && <button type="button" className="primary" onClick={saveCase}>{t('cases.save')}</button>}
+        <button type="button" onClick={exportCase}>{t('cases.export')}</button>
       </div>
     </div>
 
-    <h2>{draft.title}</h2>
+    <h2>{editMode ? draft.title : titleDisplay.text}</h2>
+    {!editMode && titleDisplay.notice ? <p className="subtle translation-notice" role="note">{titleDisplay.notice}</p> : null}
     <p className="subtle">id: {draft.id} · {draft.analyticLabel}</p>
 
     <section className="case-section">
-      <h3>Tehtäväviite</h3>
+      <h3>{t('cases.taskRef')}</h3>
       {editMode ? <>
-        <label>Tehtävä<textarea value={draft.taskReference.statement} onChange={event => patchDraft(current => {
+        <label>{t('cases.task')}<textarea value={draft.taskReference.statement} onChange={event => patchDraft(current => {
           current.taskReference.statement = event.target.value;
           current.task = event.target.value;
           return current;
         })} /></label>
-        <label>Olennaiset rajaukset<textarea value={draft.taskReference.essentialQualifications} onChange={event => patchDraft(current => {
+        <label>{t('cases.essentialQual')}<textarea value={draft.taskReference.essentialQualifications} onChange={event => patchDraft(current => {
           current.taskReference.essentialQualifications = event.target.value;
           return current;
         })} /></label>
-        <label>Ajallinen ala<textarea value={draft.taskReference.temporalScope} onChange={event => patchDraft(current => {
+        <label>{t('cases.temporalScope')}<textarea value={draft.taskReference.temporalScope} onChange={event => patchDraft(current => {
           current.taskReference.temporalScope = event.target.value;
           return current;
         })} /></label>
       </> : <>
-        <p className="case-task">{draft.taskReference.statement || draft.task}</p>
-        <p><strong>Olennaiset rajaukset:</strong> {draft.taskReference.essentialQualifications || 'Ei kirjattu.'}</p>
-        <p><strong>Ajallinen ala:</strong> {draft.taskReference.temporalScope || 'Ei kirjattu.'}</p>
+        <p className="case-task">{taskDisplay.text}</p>
+        {taskDisplay.notice ? <p className="subtle translation-notice" role="note">{taskDisplay.notice}</p> : null}
+        <p><strong>{t('cases.essentialQual')}:</strong> {draft.taskReference.essentialQualifications || t('common.notRecorded')}</p>
+        <p><strong>{t('cases.temporalScope')}:</strong> {draft.taskReference.temporalScope || t('common.notRecorded')}</p>
       </>}
       <div className="case-source-list">
         <h4>Hyväksyttävät lähdeversiot tehtävään</h4>
@@ -170,14 +190,13 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
     </section>
 
     {missing.length > 0 && <div className="case-alert" role="status">
-      <strong>Olennaisia tietoasioita puuttuu tai ne eivät ole täysiä.</strong>
-      <ul>{missing.map(item => <li key={item.id}>{item.label}: kokoelma {facetStateLabel[item.collection]}, konteksti {facetStateLabel[item.context]}, vastaus {facetStateLabel[item.answer]}</li>)}</ul>
-      <p className="subtle">Keskiarvo tai pelkkä suhdeluku ei peitä näitä puutteita.</p>
+      <strong>{t('cases.missingEssential')}</strong>
+      <ul>{missing.map(item => <li key={item.id}>{item.label}: {coverageLayerLabel.collection} {facetStateLabel[item.collection]}, {coverageLayerLabel.context} {facetStateLabel[item.context]}, {coverageLayerLabel.answer} {facetStateLabel[item.answer]}</li>)}</ul>
     </div>}
 
     <section className="case-section">
-      <h3>Kattavuus kerroksittain</h3>
-      <p className="subtle">Kokoelma, annettu konteksti ja vastaus raportoidaan erikseen. Väitetuki ja näytetty viitetieto ovat linkitettyjä auditointeja, eivät vaihdettavia vaiheita tai taattuja tuloksia. Kliinistä turvallisuuspistettä ei lasketa.</p>
+      <h3>{t('cases.coverageTitle')}</h3>
+      <p className="subtle">{t('cases.coverageNote')}</p>
       <div className="coverage-grid">
         {layers.map(layer => <article key={layer.layer} className="case-card">
           <h4>{coverageLayerLabel[layer.layer]}</h4>
@@ -190,15 +209,15 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
     </section>
 
     <section className="case-section">
-      <h3>Tietoasiat</h3>
+      <h3>{t('cases.facetsTitle')}</h3>
       <div className="table-wrap" tabIndex={0}><table>
-        <caption>Tietoasiat ja kattavuuden tila kerroksittain. Rakennettu esimerkki, ei empiirinen tulos. Leveä taulukko vierii kehyksessään.</caption>
+        <caption>{t('cases.facetsCaption')}</caption>
         <thead><tr>
-          {['Tietoasia', 'Olennainen', 'Kokoelma', 'Konteksti', 'Vastaus', 'Näyttöviitteet', 'Perustelu'].map(column => <th key={column} scope="col">{column}</th>)}
+          {[t('cases.facetsTitle'), t('cases.essentialQual'), coverageLayerLabel.collection, coverageLayerLabel.context, coverageLayerLabel.answer, t('inspector.evidenceRefs'), t('inspector.rationale')].map(column => <th key={column} scope="col">{column}</th>)}
         </tr></thead>
         <tbody>{draft.facets.map(facet => <tr key={facet.id}>
           <th scope="row">{facet.label}<p className="subtle">id: {facet.id}</p></th>
-          <td>{facet.essential ? 'Kyllä' : 'Ei'}</td>
+          <td>{facet.essential ? t('cases.yes') : t('cases.no')}</td>
           {(['collection', 'context', 'answer'] as const).map(layer => <td key={layer}>
             {editMode
               ? <select value={facet[layer]} onChange={event => patchDraft(current => {
@@ -221,7 +240,7 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
     </section>
 
     <section className="case-section">
-      <h3>Vastaus- ja näyttövarianttien vertailu</h3>
+      <h3>{t('cases.compareTitle')}</h3>
       <p className="subtle">Valitse kaksi varianttia. Väitetuki ja näytön paikannettavuus näkyvät erikseen; tarkistuksen onnistumista, aikaa tai asiantuntija-arvioita ei ole mitattu.</p>
       <div className="variant-pickers">
         <label>Vasen variantti
@@ -291,19 +310,24 @@ function CaseEditor({ model, selected, onSelect, onSave, guard, onEditModeChange
     </section>
 
     <section className="case-section">
-      <h3>Mitä erottelu tekee näkyväksi</h3>
+      <h3>{t('cases.interpretation')}</h3>
       {editMode
         ? <textarea value={draft.interpretation} onChange={event => patchDraft(current => { current.interpretation = event.target.value; return current; })} />
-        : <p>{draft.interpretation}</p>}
+        : <>
+          <p>{interpretationDisplay.text}</p>
+          {interpretationDisplay.notice ? <p className="subtle translation-notice" role="note">{interpretationDisplay.notice}</p> : null}
+        </>}
     </section>
     <section className="case-section">
-      <h3>Tulkinnan rajat</h3>
+      <h3>{t('cases.limits')}</h3>
       {editMode
         ? <textarea value={draft.boundary} onChange={event => patchDraft(current => { current.boundary = event.target.value; return current; })} />
-        : <p>{draft.boundary}</p>}
+        : <>
+          <p>{boundaryDisplay.text}</p>
+          {boundaryDisplay.notice ? <p className="subtle translation-notice" role="note">{boundaryDisplay.notice}</p> : null}
+        </>}
       <p className="subtle">{draft.basis}</p>
-      <p className="subtle">Mittaamattomat: tarkistuksen onnistuminen, aika ja asiantuntija-arviot = not-measured. Empiirinen tapaus vaatisi erillisen tietuetyypin ja ajon provenienssin.</p>
     </section>
-    <p className="subtle">Ristiinviitteet propositioihin, kriteereihin ja päätöksiin kirjataan tarkastimessa. Tyhjä lista ei ole tutkimustulos.</p>
+    <p className="subtle">{t('cases.crossRefs')}</p>
   </section>;
 }

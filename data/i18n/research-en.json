@@ -1,0 +1,447 @@
+{
+  "constructs": {
+    "task": {
+      "label": "Task information requirements",
+      "definition": "What information and essential conditions does a defined information-work task require?",
+      "boundary": "The wording of a query alone does not define the whole task.",
+      "unit": "Task and information need"
+    },
+    "retrieval": {
+      "label": "Retrieval quality",
+      "definition": "How well do ranked retrieved passages match a defined information need according to relevance judgements?",
+      "boundary": "Retrieval relevance, collection coverage and context sufficiency are assessed as separate matters.",
+      "unit": "Query × ranked passage list"
+    },
+    "sufficiency": {
+      "label": "Evidence sufficiency",
+      "definition": "Does the evidence cover the information facets and essential limits required by the task?",
+      "boundary": "A topically related passage or a large citation count does not guarantee sufficiency.",
+      "unit": "Task information facet × appraisal stage"
+    },
+    "groundedness": {
+      "label": "Claim support",
+      "definition": "Do the passages given to the model support each claim under check?",
+      "boundary": "Claim support does not guarantee source currency or that the claim is correct.",
+      "unit": "Atomic claim × supplied context"
+    },
+    "transparency": {
+      "label": "Source transparency",
+      "definition": "Are the source, version and the link from claim to source passage visible?",
+      "boundary": "A visible citation does not yet show that the citation supports the claim.",
+      "unit": "Recorded source display"
+    },
+    "verification": {
+      "label": "Perceived verifiability",
+      "definition": "The assessor’s judgement of whether identifiable and reachable evidence exists for the main claims.",
+      "boundary": "The rating does not show successful verification, time spent or effort.",
+      "unit": "Appraisal event"
+    },
+    "credibility": {
+      "label": "Perceived trustworthiness",
+      "definition": "An expert rating of how credible the answer is for the defined task.",
+      "boundary": "Not the same as claim support, correctness or actual reliance on the answer.",
+      "unit": "Assessor × recorded answer"
+    },
+    "robustness": {
+      "label": "Finnish-language robustness",
+      "definition": "Stability of ratings and evidence coverage across meaning-equivalent query variants.",
+      "boundary": "Variants are not independent information needs; morphological effects require control.",
+      "unit": "Information need × variant pair"
+    },
+    "validity": {
+      "label": "Validity of inferences",
+      "definition": "What does an observation from this appraisal say about the intended quality construct?",
+      "boundary": "Association or rater agreement alone does not show validity or causation.",
+      "unit": "Criterion and the inference drawn from it"
+    }
+  },
+  "criteria": {
+    "facets": {
+      "label": "Facet-level coverage check",
+      "evidenceRequirements": "Mark required information facets separately for collection, supplied context and answer. Classes: full, partial, absent or conflicting support.",
+      "permittedInference": "Report missing essential conditions separately. Any proposed ratio is not a validated overall index.",
+      "unit": "Facet × stage"
+    },
+    "ranking": {
+      "label": "Retrieval relevance metrics",
+      "evidenceRequirements": "Use calibrated relevance judgements and predefined nDCG@k and Recall@k measures.",
+      "permittedInference": "Recall based on pooled judgements covers known relevant evidence; unjudged items are documented.",
+      "unit": "Query × ranked passage list"
+    },
+    "support": {
+      "label": "Claim-support labels S P C U A",
+      "evidenceRequirements": "S = fully supported; P = partially supported; C = conflicting; U = unsupported; A = unclear. Keep the supporting passage and all class counts.",
+      "permittedInference": "An unsupported claim is not necessarily false. Atomic claim boundaries and Finnish inference need piloting.",
+      "unit": "Atomic claim × context"
+    },
+    "display": {
+      "label": "Source-display inspection",
+      "evidenceRequirements": "Record source identifier, version, claim link and passage locator as separate fields.",
+      "permittedInference": "The check concerns visibility; citation support and source fitness are assessed separately.",
+      "unit": "Recorded display × answer"
+    },
+    "expert": {
+      "label": "Five separate expert ratings",
+      "evidenceRequirements": "Perceived trustworthiness, usefulness, source transparency, source sufficiency and perceived verifiability.",
+      "permittedInference": "Scales must be piloted; no composite trust score. No inference about success in the real work task.",
+      "unit": "Assessor × answer × display"
+    },
+    "pairs": {
+      "label": "Meaning-equivalent wording comparison",
+      "evidenceRequirements": "Check equivalence of wording. Compare paired changes in retrieval and evidence coverage under the same configuration.",
+      "permittedInference": "Several wording features may change together; an effect is not automatically labelled morphological.",
+      "unit": "Information need × variant pair"
+    },
+    "currency": {
+      "label": "Currency and fitness check",
+      "evidenceRequirements": "Record source version, temporal fitness and any replacing version. Correctness is judged against a defined reference standard.",
+      "permittedInference": "A source date alone does not settle correctness; without expertise or a reference standard, no rating is given.",
+      "unit": "Source version or task-bound claim"
+    }
+  },
+  "cases": {
+    "A": {
+      "title": "A · Supported claim, missing exception",
+      "task": "The task requires identifying the ordinary contact channel and exception condition E with its channel.",
+      "taskStatement": "The task requires identifying the ordinary contact channel and exception condition E with its channel.",
+      "interpretation": "Collection coverage 3/3; context and answer coverage 1/3. The only checkable claim in the answer is supported (S). The first observed loss sits between collection and context.",
+      "boundary": "Do not infer why content is missing: check the ranked retrieval list and context construction. Expert ratings were not collected."
+    },
+    "B": {
+      "title": "B · Same evidence, different locatability",
+      "task": "The task is to determine whether an acknowledgement is sent for a referral request. The same claim and supporting passage are held constant across both displays.",
+      "taskStatement": "The task is to determine whether an acknowledgement is sent for a referral request. The same claim and supporting passage are held constant across both displays.",
+      "interpretation": "The difference concerns precision of the source display. A document citation is not classed as incorrect if the document contains the support. P2 proposes a later comparison of perceived verifiability.",
+      "boundary": "A missing locator does not show that verification could not succeed, for example by document search."
+    },
+    "C": {
+      "title": "C · Older source for a present-time task",
+      "task": "The question asks for the current contact channel. D3-2024 names channel X; its replacement D3-2026 names channel Y. The context holds only the older version.",
+      "taskStatement": "The question asks for the current contact channel. D3-2024 names channel X; its replacement D3-2026 names channel Y. The context holds only the older version.",
+      "interpretation": "A historical claim may be supported and factually correct yet insufficient for a present-time task. A present-tense claim needs separate temporal support. Conflict with an independent current reference is recorded separately from context support.",
+      "boundary": "Do not use a blanket class “fully grounded in sources but wrong” without examining claim wording and temporal scope. No inference about clinical safety."
+    }
+  },
+  "propositions": {
+    "p1": {
+      "label": "P1 · Coverage and perceived sufficiency",
+      "statement": "Is full facet coverage of context associated with expert-rated sufficiency when a predefined retrieval metric and repeated questions and raters are taken into account?",
+      "boundary": "A future association check; not a demonstrated effect.",
+      "conceptualRationale": "Context facet coverage and expert-rated sufficiency are separate constructs; the association has not yet been measured.",
+      "intendedClaim": "Future association: context coverage × expert-rated sufficiency. Not a demonstrated positive effect.",
+      "proposedDesign": "Association design with a predefined retrieval metric; repeated questions and raters are recorded. Not a controlled causal test.",
+      "counterexamples": "Full coverage without a sufficiency rating; high sufficiency rating from incomplete context; rater disagreement.",
+      "evidenceNeeded": "Collected expert ratings on five separate dimensions plus coverage marks; no composite score."
+    },
+    "p2": {
+      "label": "P2 · Passage link and verifiability",
+      "statement": "Does an explicit claim–passage link receive a higher perceived-verifiability rating than a document citation when answer and evidence are held constant?",
+      "boundary": "Requires a separate controlled presentation comparison. Successful verification is not inferred from the rating.",
+      "conceptualRationale": "A presentation comparison holds answer and evidence constant; only the source display changes. Perceived verifiability ≠ successful verification.",
+      "intendedClaim": "Controlled presentation comparison (passage link vs document citation) for perceived verifiability. Not an established positive effect.",
+      "proposedDesign": "Same answer and same evidence; compare B_ans_doc/B_doc and B_ans_pass/B_pass. Randomise display order. Do not infer correctness from the rating.",
+      "counterexamples": "Display difference without rating change; rating changes but verification fails; answer or evidence leaks between conditions.",
+      "evidenceNeeded": "Paired expert ratings with fixed answer/evidence; separate audit for correctness and successful verification."
+    },
+    "p3": {
+      "label": "P3 · Wording and evidence loss",
+      "statement": "Is a drop in essential context coverage associated with a drop in answer coverage in meaning-equivalent variant pairs?",
+      "boundary": "Also study cases where generation compensates for a gap or fails despite sufficient context.",
+      "conceptualRationale": "Meaning-equivalent variant pairs separate wording effects on coverage; generation that compensates for a gap is a counterexample.",
+      "intendedClaim": "Paired coverage change in meaning-equivalent queries. Not an established causal effect.",
+      "proposedDesign": "Pair meaning-equivalent queries; measure context and answer coverage changes under the same configuration. Do not label an effect morphological without separate justification.",
+      "counterexamples": "Context coverage falls but the answer compensates; context is enough but the answer fails; pairs are not meaning-equivalent.",
+      "evidenceNeeded": "Paired coverage marks; wording-equivalence check; no composite score across expert dimensions."
+    },
+    "q_validity": {
+      "label": "How are the criteria validated?",
+      "statement": "Can assessors apply the definitions consistently, and do observations support the inferences drawn from them?",
+      "boundary": "Rater agreement or metric correlation alone is not enough to show validity.",
+      "conceptualRationale": "Criterion validation remains an open question. Inter-rater agreement is not construct validity.",
+      "intendedClaim": "Validation plan: construct interpretation, wording, annotation, rater error and task fitness.",
+      "proposedDesign": "Record concrete validation checks in the protocols. Do not infer validity from agreement or correlation alone.",
+      "counterexamples": "High agreement on a misunderstood construct; good task-level agreement without generalisability.",
+      "evidenceNeeded": "Validation-check results as separate records; no invented observations in this workspace."
+    }
+  },
+  "protocols": {
+    "proto_p1": {
+      "label": "P1 · Association protocol (provisional)",
+      "designSummary": "Future association check between context coverage and expert-rated sufficiency. Not a controlled causal test and not a demonstrated effect.",
+      "notes": "Provisional rubric. No invented observations.",
+      "dim.perceived_trustworthiness.label": "Perceived trustworthiness",
+      "anchor.perceived_trustworthiness_a1.wording": "Very weak (draft anchor)",
+      "anchor.perceived_trustworthiness_a2.wording": "Weak (draft anchor)",
+      "anchor.perceived_trustworthiness_a3.wording": "Moderate (draft anchor)",
+      "anchor.perceived_trustworthiness_a4.wording": "Strong (draft anchor)",
+      "anchor.perceived_trustworthiness_a5.wording": "Very strong (draft anchor)",
+      "dim.usefulness.label": "Usefulness",
+      "anchor.usefulness_a1.wording": "Very weak (draft anchor)",
+      "anchor.usefulness_a2.wording": "Weak (draft anchor)",
+      "anchor.usefulness_a3.wording": "Moderate (draft anchor)",
+      "anchor.usefulness_a4.wording": "Strong (draft anchor)",
+      "anchor.usefulness_a5.wording": "Very strong (draft anchor)",
+      "dim.source_transparency.label": "Source transparency",
+      "anchor.source_transparency_a1.wording": "Very weak (draft anchor)",
+      "anchor.source_transparency_a2.wording": "Weak (draft anchor)",
+      "anchor.source_transparency_a3.wording": "Moderate (draft anchor)",
+      "anchor.source_transparency_a4.wording": "Strong (draft anchor)",
+      "anchor.source_transparency_a5.wording": "Very strong (draft anchor)",
+      "dim.source_sufficiency.label": "Source sufficiency (expert-rated)",
+      "anchor.source_sufficiency_a1.wording": "Very weak (draft anchor)",
+      "anchor.source_sufficiency_a2.wording": "Weak (draft anchor)",
+      "anchor.source_sufficiency_a3.wording": "Moderate (draft anchor)",
+      "anchor.source_sufficiency_a4.wording": "Strong (draft anchor)",
+      "anchor.source_sufficiency_a5.wording": "Very strong (draft anchor)",
+      "dim.perceived_verifiability.label": "Perceived verifiability",
+      "anchor.perceived_verifiability_a1.wording": "Very weak (draft anchor)",
+      "anchor.perceived_verifiability_a2.wording": "Weak (draft anchor)",
+      "anchor.perceived_verifiability_a3.wording": "Moderate (draft anchor)",
+      "anchor.perceived_verifiability_a4.wording": "Strong (draft anchor)",
+      "anchor.perceived_verifiability_a5.wording": "Very strong (draft anchor)"
+    },
+    "proto_p2": {
+      "label": "P2 · Presentation comparison (provisional)",
+      "designSummary": "Controlled presentation comparison: same answer and same evidence; compare document citation and passage link. Not an established positive effect.",
+      "notes": "Targets refer to case B’s recorded answers and display conditions.",
+      "dim.perceived_trustworthiness.label": "Perceived trustworthiness",
+      "anchor.perceived_trustworthiness_a1.wording": "Very weak (draft anchor)",
+      "anchor.perceived_trustworthiness_a2.wording": "Weak (draft anchor)",
+      "anchor.perceived_trustworthiness_a3.wording": "Moderate (draft anchor)",
+      "anchor.perceived_trustworthiness_a4.wording": "Strong (draft anchor)",
+      "anchor.perceived_trustworthiness_a5.wording": "Very strong (draft anchor)",
+      "dim.usefulness.label": "Usefulness",
+      "anchor.usefulness_a1.wording": "Very weak (draft anchor)",
+      "anchor.usefulness_a2.wording": "Weak (draft anchor)",
+      "anchor.usefulness_a3.wording": "Moderate (draft anchor)",
+      "anchor.usefulness_a4.wording": "Strong (draft anchor)",
+      "anchor.usefulness_a5.wording": "Very strong (draft anchor)",
+      "dim.source_transparency.label": "Source transparency",
+      "anchor.source_transparency_a1.wording": "Very weak (draft anchor)",
+      "anchor.source_transparency_a2.wording": "Weak (draft anchor)",
+      "anchor.source_transparency_a3.wording": "Moderate (draft anchor)",
+      "anchor.source_transparency_a4.wording": "Strong (draft anchor)",
+      "anchor.source_transparency_a5.wording": "Very strong (draft anchor)",
+      "dim.source_sufficiency.label": "Source sufficiency (expert-rated)",
+      "anchor.source_sufficiency_a1.wording": "Very weak (draft anchor)",
+      "anchor.source_sufficiency_a2.wording": "Weak (draft anchor)",
+      "anchor.source_sufficiency_a3.wording": "Moderate (draft anchor)",
+      "anchor.source_sufficiency_a4.wording": "Strong (draft anchor)",
+      "anchor.source_sufficiency_a5.wording": "Very strong (draft anchor)",
+      "dim.perceived_verifiability.label": "Perceived verifiability",
+      "anchor.perceived_verifiability_a1.wording": "Very weak (draft anchor)",
+      "anchor.perceived_verifiability_a2.wording": "Weak (draft anchor)",
+      "anchor.perceived_verifiability_a3.wording": "Moderate (draft anchor)",
+      "anchor.perceived_verifiability_a4.wording": "Strong (draft anchor)",
+      "anchor.perceived_verifiability_a5.wording": "Very strong (draft anchor)"
+    },
+    "proto_p3": {
+      "label": "P3 · Paired coverage (provisional)",
+      "designSummary": "Paired meaning-equivalent queries and their context/answer coverage changes. Not an established effect.",
+      "notes": "Coverage changes are recorded in pairs; expert dimensions stay separate.",
+      "dim.perceived_trustworthiness.label": "Perceived trustworthiness",
+      "anchor.perceived_trustworthiness_a1.wording": "Very weak (draft anchor)",
+      "anchor.perceived_trustworthiness_a2.wording": "Weak (draft anchor)",
+      "anchor.perceived_trustworthiness_a3.wording": "Moderate (draft anchor)",
+      "anchor.perceived_trustworthiness_a4.wording": "Strong (draft anchor)",
+      "anchor.perceived_trustworthiness_a5.wording": "Very strong (draft anchor)",
+      "dim.usefulness.label": "Usefulness",
+      "anchor.usefulness_a1.wording": "Very weak (draft anchor)",
+      "anchor.usefulness_a2.wording": "Weak (draft anchor)",
+      "anchor.usefulness_a3.wording": "Moderate (draft anchor)",
+      "anchor.usefulness_a4.wording": "Strong (draft anchor)",
+      "anchor.usefulness_a5.wording": "Very strong (draft anchor)",
+      "dim.source_transparency.label": "Source transparency",
+      "anchor.source_transparency_a1.wording": "Very weak (draft anchor)",
+      "anchor.source_transparency_a2.wording": "Weak (draft anchor)",
+      "anchor.source_transparency_a3.wording": "Moderate (draft anchor)",
+      "anchor.source_transparency_a4.wording": "Strong (draft anchor)",
+      "anchor.source_transparency_a5.wording": "Very strong (draft anchor)",
+      "dim.source_sufficiency.label": "Source sufficiency (expert-rated)",
+      "anchor.source_sufficiency_a1.wording": "Very weak (draft anchor)",
+      "anchor.source_sufficiency_a2.wording": "Weak (draft anchor)",
+      "anchor.source_sufficiency_a3.wording": "Moderate (draft anchor)",
+      "anchor.source_sufficiency_a4.wording": "Strong (draft anchor)",
+      "anchor.source_sufficiency_a5.wording": "Very strong (draft anchor)",
+      "dim.perceived_verifiability.label": "Perceived verifiability",
+      "anchor.perceived_verifiability_a1.wording": "Very weak (draft anchor)",
+      "anchor.perceived_verifiability_a2.wording": "Weak (draft anchor)",
+      "anchor.perceived_verifiability_a3.wording": "Moderate (draft anchor)",
+      "anchor.perceived_verifiability_a4.wording": "Strong (draft anchor)",
+      "anchor.perceived_verifiability_a5.wording": "Very strong (draft anchor)"
+    },
+    "proto_validity": {
+      "label": "Criterion validation protocol (provisional)",
+      "designSummary": "Open validation checks. Inter-rater agreement is not construct validity. No collected observations.",
+      "notes": "Links validation questions to concrete checks without invented results.",
+      "dim.perceived_trustworthiness.label": "Perceived trustworthiness",
+      "anchor.perceived_trustworthiness_a1.wording": "Very weak (draft anchor)",
+      "anchor.perceived_trustworthiness_a2.wording": "Weak (draft anchor)",
+      "anchor.perceived_trustworthiness_a3.wording": "Moderate (draft anchor)",
+      "anchor.perceived_trustworthiness_a4.wording": "Strong (draft anchor)",
+      "anchor.perceived_trustworthiness_a5.wording": "Very strong (draft anchor)",
+      "dim.usefulness.label": "Usefulness",
+      "anchor.usefulness_a1.wording": "Very weak (draft anchor)",
+      "anchor.usefulness_a2.wording": "Weak (draft anchor)",
+      "anchor.usefulness_a3.wording": "Moderate (draft anchor)",
+      "anchor.usefulness_a4.wording": "Strong (draft anchor)",
+      "anchor.usefulness_a5.wording": "Very strong (draft anchor)",
+      "dim.source_transparency.label": "Source transparency",
+      "anchor.source_transparency_a1.wording": "Very weak (draft anchor)",
+      "anchor.source_transparency_a2.wording": "Weak (draft anchor)",
+      "anchor.source_transparency_a3.wording": "Moderate (draft anchor)",
+      "anchor.source_transparency_a4.wording": "Strong (draft anchor)",
+      "anchor.source_transparency_a5.wording": "Very strong (draft anchor)",
+      "dim.source_sufficiency.label": "Source sufficiency (expert-rated)",
+      "anchor.source_sufficiency_a1.wording": "Very weak (draft anchor)",
+      "anchor.source_sufficiency_a2.wording": "Weak (draft anchor)",
+      "anchor.source_sufficiency_a3.wording": "Moderate (draft anchor)",
+      "anchor.source_sufficiency_a4.wording": "Strong (draft anchor)",
+      "anchor.source_sufficiency_a5.wording": "Very strong (draft anchor)",
+      "dim.perceived_verifiability.label": "Perceived verifiability",
+      "anchor.perceived_verifiability_a1.wording": "Very weak (draft anchor)",
+      "anchor.perceived_verifiability_a2.wording": "Weak (draft anchor)",
+      "anchor.perceived_verifiability_a3.wording": "Moderate (draft anchor)",
+      "anchor.perceived_verifiability_a4.wording": "Strong (draft anchor)",
+      "anchor.perceived_verifiability_a5.wording": "Very strong (draft anchor)"
+    }
+  },
+  "decisions": {
+    "decision_schema1_import": {
+      "label": "Schema 1 import",
+      "statement": "Each schema 1 literature entry was split into a source and an explicitly marked imported summary. The summary was not treated as a claim checked against the original paper.",
+      "scope": "Preserved source material",
+      "rationale": "Publication status was not inferred from preprint information, URL or year. Reading level was not treated as methodological quality. The original document remains in legacy.document."
+    }
+  },
+  "relationships": {
+    "e_1": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_2": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_3": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_4": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_5": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_6": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_7": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_8": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_9": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_10": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_11": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_12": {
+      "label": "motivates the construct",
+      "rationale": "Role described in the article plan or matrix. Transfer into this study is an own adaptation; the link is not a validation result from the original source."
+    },
+    "e_13": {
+      "label": "proposed operationalisation",
+      "rationale": "Study-specific operationalisation that must be piloted and justified."
+    },
+    "e_14": {
+      "label": "proposed operationalisation",
+      "rationale": "Study-specific operationalisation that must be piloted and justified."
+    },
+    "e_15": {
+      "label": "separate comparison measure",
+      "rationale": "Sufficiency complements retrieval-relevance appraisal. A relevance metric does not operationalise sufficiency."
+    },
+    "e_16": {
+      "label": "proposed operationalisation",
+      "rationale": "Study-specific operationalisation that must be piloted and justified."
+    },
+    "e_17": {
+      "label": "proposed operationalisation",
+      "rationale": "Study-specific operationalisation that must be piloted and justified."
+    },
+    "e_18": {
+      "label": "proposed operationalisation",
+      "rationale": "Study-specific operationalisation that must be piloted and justified."
+    },
+    "e_19": {
+      "label": "proposed operationalisation",
+      "rationale": "Study-specific operationalisation that must be piloted and justified."
+    },
+    "e_20": {
+      "label": "proposed operationalisation",
+      "rationale": "Study-specific operationalisation that must be piloted and justified."
+    },
+    "e_21": {
+      "label": "proposed operationalisation",
+      "rationale": "Study-specific operationalisation that must be piloted and justified."
+    },
+    "e_22": {
+      "label": "still to be tested",
+      "rationale": "No collected result; a question or proposition for future research."
+    },
+    "e_23": {
+      "label": "still to be tested",
+      "rationale": "No collected result; a question or proposition for future research."
+    },
+    "e_24": {
+      "label": "still to be tested",
+      "rationale": "No collected result; a question or proposition for future research."
+    },
+    "e_25": {
+      "label": "still to be tested",
+      "rationale": "No collected result; a question or proposition for future research."
+    },
+    "e_26": {
+      "label": "still to be tested",
+      "rationale": "No collected result; a question or proposition for future research."
+    },
+    "e_27": {
+      "label": "still to be tested",
+      "rationale": "No collected result; a question or proposition for future research."
+    },
+    "e_28": {
+      "label": "still to be tested",
+      "rationale": "No collected result; a question or proposition for future research."
+    },
+    "e_29": {
+      "label": "still to be tested",
+      "rationale": "No collected result; a question or proposition for future research."
+    },
+    "e_30": {
+      "label": "proposed operationalisation",
+      "rationale": "No collected result; a question or proposition for future research."
+    },
+    "e_31": {
+      "label": "proposed operationalisation",
+      "rationale": "Provisional adaptation based on a distinction described in the documents."
+    },
+    "e_32": {
+      "label": "motivates the construct",
+      "rationale": "Provisional adaptation based on a distinction described in the documents."
+    }
+  }
+}

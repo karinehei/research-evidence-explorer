@@ -1,8 +1,30 @@
-import { buildFlow, justificationIds } from './graph.ts';
+import { buildFlow, justificationIds, type FlowDisplay } from './graph.ts';
 import { locate } from './model.ts';
 import { contentHash } from './snapshots.ts';
-import { epistemicShort, meaningLabel } from './labels.ts';
+import { labelsFor } from './labels.ts';
+import { t } from './i18n/catalog.ts';
+import { researchTranslationManifest, displayRecordLabel } from './i18n/research.ts';
+import type { Locale } from './i18n/locale.ts';
+import { TRANSLATION_RESOURCE_VERSION } from './i18n/locale.ts';
 import type { EpistemicStatus, Workspace } from './types.ts';
+
+export type FigureDisplayOptions = {
+  locale?: Locale;
+  resolveLabel?: (id: string, fallback: string) => string;
+  hashMatches?: boolean;
+};
+
+function figureLocale(options?: FigureDisplayOptions): Locale {
+  return options?.locale || 'fi';
+}
+
+function figureFlowDisplay(model: Workspace, options?: FigureDisplayOptions): FlowDisplay {
+  const locale = figureLocale(options);
+  const hashMatches = options?.hashMatches !== false;
+  const resolveLabel = options?.resolveLabel
+    || ((id: string, fallback: string) => displayRecordLabel(locale, model, id, hashMatches) || fallback);
+  return { locale, resolveLabel };
+}
 
 export const FIGURE_GENERATOR_VERSION = '1.0.0';
 export const MANUSCRIPT_WIDTH_PX = 700;
@@ -47,6 +69,10 @@ export interface FigureManifest {
   generatorVersion: string;
   exportedAt: string;
   snapshotContentHash: string;
+  /** Presentation language for labels/legend/caption; does not affect snapshotContentHash. */
+  displayLanguage: Locale;
+  /** Editorial translation resource version used for presentation labels. */
+  translationResourceVersion: string;
   mode: FigureMode;
   viewFilter: FigureViewFilter;
   selectedNodeIds: string[];
@@ -111,8 +137,9 @@ function quoteDot(value: string): string {
 export function resolvePresetIds(
   model: Workspace,
   preset: FigurePreset,
-  options: { focusId?: string; caseId?: string } = {}
+  options: { focusId?: string; caseId?: string; locale?: Locale } = {}
 ): { ids: Set<string>; viewFilter: FigureViewFilter } {
+  const locale = options.locale || 'fi';
   if (preset === 'justification') {
     const focusId = options.focusId && locate(model, options.focusId) ? options.focusId : (locate(model, 'sufficiency') ? 'sufficiency' : model.constructs[0]?.id || '');
     const ids = focusId ? justificationIds(model, focusId) : new Set<string>();
@@ -124,7 +151,7 @@ export function resolvePresetIds(
         caseId: '',
         query: '',
         epistemicFilter: 'all',
-        scopeNote: `Lähde–käsite–kriteeri-perustelu valitun kohteen (${focusId || '—'}) ympärillä. Ei koko työtilan kartta.`
+        scopeNote: t(locale, 'figure.scopeJustification', { focusId: focusId || '—' })
       }
     };
   }
@@ -157,7 +184,7 @@ export function resolvePresetIds(
         caseId: '',
         query: '',
         epistemicFilter: 'all',
-        scopeNote: 'Ehdotettu arviointimalli: kriteerit, niihin liittyvät käsitteet ja propositiot. Ei koko kirjallisuuskartta.'
+        scopeNote: t(locale, 'figure.scopeEvaluation')
       }
     };
   }
@@ -195,12 +222,19 @@ export function resolvePresetIds(
       caseId,
       query: '',
       epistemicFilter: 'all',
-      scopeNote: `Rakennettu tapaus ${caseId}: siihen kirjatut propositiot/kriteerit ja niiden käsiteviitteet. Tapaus itsessään ei ole graafin solmu; empiirisiä tuloksia ei väitetä.`
+      scopeNote: t(locale, 'figure.scopeCase', { caseId })
     }
   };
 }
 
-export function buildFigureSelection(model: Workspace, ids: Set<string>): FigureSelection {
+export function buildFigureSelection(
+  model: Workspace,
+  ids: Set<string>,
+  options: FigureDisplayOptions = {}
+): FigureSelection {
+  const locale = figureLocale(options);
+  const L = labelsFor(locale);
+  const display = figureFlowDisplay(model, options);
   const nodeIds = [...ids].filter(id => {
     const found = locate(model, id);
     return found && ['source', 'claim', 'construct', 'criterion', 'proposition'].includes(found.kind);
@@ -214,7 +248,7 @@ export function buildFigureSelection(model: Workspace, ids: Set<string>): Figure
       source: link.source,
       target: link.target,
       epistemicStatus: link.epistemicStatus,
-      label: link.label || meaningLabel[link.meaning],
+      label: display.resolveLabel(link.id, (link.label || '').trim() || L.meaningLabel[link.meaning]),
       locator: link.locator || ''
     }));
   // Selection never strips epistemicStatus: every included relationship keeps its recorded status.
@@ -230,34 +264,47 @@ export function draftFigureCaption(
   model: Workspace,
   selection: FigureSelection,
   viewFilter: FigureViewFilter,
-  mode: FigureMode
+  mode: FigureMode,
+  locale: Locale = 'fi'
 ): string {
   const proposed = selection.relationships.filter(item => item.epistemicStatus === 'hypothesis').length;
   const adaptations = selection.relationships.filter(item => item.epistemicStatus === 'adaptation').length;
   const reported = selection.relationships.filter(item => item.epistemicStatus === 'reported').length;
   const locators = selection.relationships.map(item => item.locator).filter(Boolean);
+  const modeLabel = mode === 'browser-layout'
+    ? t(locale, 'figure.captionModeBrowser')
+    : t(locale, 'figure.captionModeGraphviz');
   const lines = [
-    `Kuvion rajaus: ${viewFilter.scopeNote}`,
-    `Tila: ${model.project.name}. Vientitila: ${mode === 'browser-layout' ? 'selaimen asettelu (tallennetut sijainnit)' : 'Graphviz-asettelu'}.`,
-    `Valinta: ${selection.nodeIds.length} solmua, ${selection.relationshipIds.length} tutkimuksellista yhteyttä, ${selection.claimIds.length} lähdeväitettä.`,
-    `Yhteyksien tiedollinen tila (säilytetty valinnassa): raportoitu ${reported}, oma sovellus ${adaptations}, testaamaton oletus/ehdotus ${proposed}.`,
+    t(locale, 'figure.captionScope', { note: viewFilter.scopeNote }),
+    t(locale, 'figure.captionState', { name: model.project.name, mode: modeLabel }),
+    t(locale, 'figure.captionSelection', {
+      nodes: selection.nodeIds.length,
+      edges: selection.relationshipIds.length,
+      claims: selection.claimIds.length
+    }),
+    t(locale, 'figure.captionEpistemic', { reported, adaptations, proposed }),
     proposed || adaptations
-      ? 'Osa yhteyksistä on ehdotettuja tai omia sovelluksia; kuvio ei ole valmis empiirinen tulos.'
-      : 'Valinnan yhteydet on merkitty raportoiduiksi (ei itsenäisesti varmennettu tässä työtilassa).',
+      ? t(locale, 'figure.captionMixed')
+      : t(locale, 'figure.captionReportedOnly'),
     locators.length
-      ? `Näyttöpaikantimia kirjattu ${locators.length} yhteydelle; tarkista lähdekohtaiset rajaukset työtilasta.`
-      : 'Valituilla yhteyksillä ei ole kirjattuja näyttöpaikantimia; epävarmuus säilyy.',
-    'Tämä kuvateksti on luonnos kuvion rajauksesta. Se ei kirjoita automaattisesti tieteellistä johtopäätöstä.'
+      ? t(locale, 'figure.captionLocators', { count: locators.length })
+      : t(locale, 'figure.captionNoLocators'),
+    t(locale, 'figure.captionDraftNote')
   ];
+  if (viewFilter.preset === 'constructed-case' || viewFilter.caseId) {
+    lines.push(t(locale, 'research.constructedShort'));
+  }
   return lines.join(' ');
 }
 
 export function figureBrowserSvg(
   model: Workspace,
   ids: Set<string>,
-  options: { selectedId?: string; caption?: string; title?: string } = {}
+  options: { selectedId?: string; caption?: string; title?: string } & FigureDisplayOptions = {}
 ): string {
-  const { nodes, edges } = buildFlow(model, ids, options.selectedId || '', '');
+  const locale = figureLocale(options);
+  const display = figureFlowDisplay(model, options);
+  const { nodes, edges } = buildFlow(model, ids, options.selectedId || '', '', display);
   const legendH = 54;
   const captionLines = wrap(options.caption || '', 92);
   const captionH = 18 + captionLines.length * 14;
@@ -270,12 +317,12 @@ export function figureBrowserSvg(
   const fills: Record<string, string> = {
     source: '#eaf0fb', claim: '#e7f3f7', construct: '#e9f2ed', criterion: '#f6efdf', proposition: '#eee9f6'
   };
-  const title = options.title || 'Rajattu tutkimuskuvio (selaimen asettelu)';
+  const title = options.title || t(locale, 'figure.titleBrowser');
   const parts = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img">`,
     `<title>${escapeXml(title)}</title>`,
-    `<desc>${escapeXml('Native SVG text and shapes only; HTML-in-SVG embeds are not used. Solid/dashed/dotted strokes plus colour and text labels mark reported / adaptation / hypothesis. Grey membership line is claim-to-source reference, not a research relationship. Selection preserves each relationship epistemic status. No causal inference; no scientific conclusion asserted by the exporter.')}</desc>`,
+    `<desc>${escapeXml('Native SVG text and shapes only; HTML-in-SVG embeds are not used. Solid/dashed/dotted strokes plus colour and text labels mark reported / adaptation / hypothesis. Grey membership line is claim-to-source reference, not a research relationship. Selection preserves each relationship epistemic status. No causal inference; no scientific conclusion asserted by the exporter. Unicode text is preserved.')}</desc>`,
     '<style>text{font-family:Arial,Helvetica,sans-serif}</style>',
     `<rect width="${width}" height="${height}" fill="white"/>`,
     `<clipPath id="figure-clip"><rect x="0" y="0" width="${width}" height="${contentBottom}"/></clipPath>`,
@@ -305,18 +352,18 @@ export function figureBrowserSvg(
       parts.push(`<text x="${node.position.x + 12}" y="${node.position.y + 40 + index * 16}" font-size="12" fill="#203047">${escapeXml(line)}${more ? '…' : ''}</text>`);
     });
   }
-  if (!nodes.length) parts.push('<text x="24" y="40" font-size="13" fill="#637188">Ei valintaa vastaavia kohteita.</text>');
+  if (!nodes.length) parts.push(`<text x="24" y="40" font-size="13" fill="#637188">${escapeXml(t(locale, 'figure.emptySelection'))}</text>`);
   parts.push('</g>');
   const legendY = contentBottom + 18;
-  parts.push(`<text x="24" y="${legendY}" font-size="11" fill="#203047">Selite</text>`);
+  parts.push(`<text x="24" y="${legendY}" font-size="11" fill="#203047">${escapeXml(t(locale, 'figure.legendTitle'))}</text>`);
   parts.push(`<line x1="24" y1="${legendY + 14}" x2="64" y2="${legendY + 14}" stroke="#315cd7" stroke-width="1.6"/>`);
-  parts.push(`<text x="70" y="${legendY + 18}" font-size="10" fill="#637188">raportoitu</text>`);
+  parts.push(`<text x="70" y="${legendY + 18}" font-size="10" fill="#637188">${escapeXml(t(locale, 'figure.legendReportedShort'))}</text>`);
   parts.push(`<line x1="150" y1="${legendY + 14}" x2="190" y2="${legendY + 14}" stroke="#2f6f4f" stroke-width="1.6" stroke-dasharray="6 4"/>`);
-  parts.push(`<text x="196" y="${legendY + 18}" font-size="10" fill="#637188">oma sovellus</text>`);
+  parts.push(`<text x="196" y="${legendY + 18}" font-size="10" fill="#637188">${escapeXml(t(locale, 'figure.legendAdaptationShort'))}</text>`);
   parts.push(`<line x1="300" y1="${legendY + 14}" x2="340" y2="${legendY + 14}" stroke="#6b4c9a" stroke-width="1.6" stroke-dasharray="2 5"/>`);
-  parts.push(`<text x="346" y="${legendY + 18}" font-size="10" fill="#637188">ehdotus/oletus</text>`);
+  parts.push(`<text x="346" y="${legendY + 18}" font-size="10" fill="#637188">${escapeXml(t(locale, 'figure.legendHypothesisShort'))}</text>`);
   parts.push(`<line x1="460" y1="${legendY + 14}" x2="500" y2="${legendY + 14}" stroke="#7d8da3" stroke-width="1.4" stroke-dasharray="2 3"/>`);
-  parts.push(`<text x="506" y="${legendY + 18}" font-size="10" fill="#637188">lähdeviite</text>`);
+  parts.push(`<text x="506" y="${legendY + 18}" font-size="10" fill="#637188">${escapeXml(t(locale, 'figure.legendMembershipShort'))}</text>`);
   let cy = legendY + 36;
   for (const line of captionLines) {
     parts.push(`<text x="24" y="${cy}" font-size="10" fill="#4b5e78">${escapeXml(line)}</text>`);
@@ -329,10 +376,13 @@ export function figureBrowserSvg(
 export function figureGraphvizDot(
   model: Workspace,
   ids: Set<string>,
-  options: { title?: string; settings?: Partial<typeof DEFAULT_GRAPHVIZ_SETTINGS> } = {}
+  options: { title?: string; settings?: Partial<typeof DEFAULT_GRAPHVIZ_SETTINGS> } & FigureDisplayOptions = {}
 ): string {
+  const locale = figureLocale(options);
+  const L = labelsFor(locale);
+  const display = figureFlowDisplay(model, options);
   const settings = { ...DEFAULT_GRAPHVIZ_SETTINGS, ...options.settings };
-  const selection = buildFigureSelection(model, ids);
+  const selection = buildFigureSelection(model, ids, options);
   const idSet = new Set(selection.nodeIds.filter(id => {
     const found = locate(model, id);
     return found && found.kind !== 'claim';
@@ -343,9 +393,10 @@ export function figureGraphvizDot(
   const edgeColor: Record<EpistemicStatus, string> = {
     reported: '#315cd7', adaptation: '#2f6f4f', hypothesis: '#6b4c9a'
   };
+  const noStatus = locale === 'en' ? 'no status' : 'ei tilaa';
   const lines = [
     'digraph ResearchFigure {',
-    `graph [rankdir=${quoteDot(settings.rankdir)}, bgcolor="white", fontname=${quoteDot(settings.fontname)}, fontsize=${settings.fontsize}, label=${quoteDot(options.title || 'Rajattu tutkimuskuvio (Graphviz)')}, labelloc=t];`,
+    `graph [rankdir=${quoteDot(settings.rankdir)}, bgcolor="white", fontname=${quoteDot(settings.fontname)}, fontsize=${settings.fontsize}, label=${quoteDot(options.title || t(locale, 'figure.titleGraphviz'))}, labelloc=t, charset="UTF-8"];`,
     `node [shape=box, style="rounded,filled", fontname=${quoteDot(settings.fontname)}, fontsize=${settings.fontsize}];`,
     `edge [fontname=${quoteDot(settings.fontname)}, fontsize=${settings.fontsize}];`
   ];
@@ -353,14 +404,15 @@ export function figureGraphvizDot(
     const found = locate(model, id);
     if (!found || found.kind === 'claim' || found.kind === 'relationship' || found.kind === 'case' || found.kind === 'decision' || found.kind === 'protocol') continue;
     const record = found.record as { label?: string; statement?: string; epistemicStatus?: EpistemicStatus };
-    const label = `${record.label || record.statement || id}\n[${epistemicShort[record.epistemicStatus || 'hypothesis'] || 'ei tilaa'}]`;
+    const shown = display.resolveLabel(id, record.label || record.statement || id);
+    const label = `${shown}\n[${L.epistemicShort[record.epistemicStatus || 'hypothesis'] || noStatus}]`;
     const kind = found.kind === 'source' ? 'source' : found.kind;
     lines.push(`${quoteDot(id)} [label=${quoteDot(label)}, fillcolor=${quoteDot(colors[kind] || '#ffffff')}];`);
   }
   for (const rel of selection.relationships) {
     if (!idSet.has(rel.source) || !idSet.has(rel.target)) continue;
     const style = rel.epistemicStatus === 'hypothesis' ? 'dotted' : rel.epistemicStatus === 'adaptation' ? 'dashed' : 'solid';
-    const label = `${rel.label} · ${epistemicShort[rel.epistemicStatus]}${rel.locator ? ` · ${rel.locator}` : ''}`;
+    const label = `${rel.label} · ${L.epistemicShort[rel.epistemicStatus]}${rel.locator ? ` · ${rel.locator}` : ''}`;
     lines.push(`${quoteDot(rel.source)} -> ${quoteDot(rel.target)} [label=${quoteDot(label)}, style=${quoteDot(style)}, color=${quoteDot(edgeColor[rel.epistemicStatus])}];`);
   }
   lines.push('}');
@@ -379,8 +431,17 @@ export async function buildFigureBundle(
     snapshotContentHash?: string;
     layoutSettings?: Record<string, unknown>;
     graphviz?: { available: boolean; version: string | null };
+    locale?: Locale;
+    resolveLabel?: (id: string, fallback: string) => string;
+    hashMatches?: boolean;
   }
 ): Promise<FigureBundle> {
+  const locale = options.locale || 'fi';
+  const display: FigureDisplayOptions = {
+    locale,
+    resolveLabel: options.resolveLabel,
+    hashMatches: options.hashMatches
+  };
   const preset = options.preset || 'justification';
   const resolved = options.ids
     ? {
@@ -391,23 +452,27 @@ export async function buildFigureBundle(
         caseId: options.caseId || '',
         query: '',
         epistemicFilter: 'all' as const,
-        scopeNote: 'Käyttöliittymän tai CLI:n eksplisiittinen valinta. Ei koko työtilan pakotettu kuvio.'
+        scopeNote: t(locale, 'figure.scopeCustom')
       }
     }
-    : resolvePresetIds(model, preset, { focusId: options.focusId, caseId: options.caseId });
-  const selection = buildFigureSelection(model, resolved.ids);
-  const captionDraft = draftFigureCaption(model, selection, resolved.viewFilter, options.mode);
+    : resolvePresetIds(model, preset, { focusId: options.focusId, caseId: options.caseId, locale });
+  const selection = buildFigureSelection(model, resolved.ids, display);
+  const captionDraft = draftFigureCaption(model, selection, resolved.viewFilter, options.mode, locale);
   const graphviz = options.graphviz || { available: false, version: null };
   const hash = options.snapshotContentHash || await contentHash(model);
   const layoutSettings = options.mode === 'browser-layout'
     ? { kind: 'browser-saved-positions', manuscriptWidthPx: MANUSCRIPT_WIDTH_PX, foreignObject: false, ...(options.layoutSettings || {}) }
     : { ...DEFAULT_GRAPHVIZ_SETTINGS, ...(options.layoutSettings || {}) };
   const nodeVersion = figureRuntimeLabel();
+  const translationResourceVersion = researchTranslationManifest().resourceVersion || TRANSLATION_RESOURCE_VERSION;
+  const scopedTitle = t(locale, 'figure.titleScoped', { preset: resolved.viewFilter.preset });
   const manifest: FigureManifest = {
     exportType: 'research-figure-manifest',
     generatorVersion: FIGURE_GENERATOR_VERSION,
     exportedAt: new Date().toISOString(),
     snapshotContentHash: hash,
+    displayLanguage: locale,
+    translationResourceVersion,
     mode: options.mode,
     viewFilter: resolved.viewFilter,
     selectedNodeIds: selection.nodeIds,
@@ -431,7 +496,8 @@ export async function buildFigureBundle(
       svg: figureBrowserSvg(model, resolved.ids, {
         selectedId: options.selectedId,
         caption: captionDraft,
-        title: `Rajattu kuvio · ${resolved.viewFilter.preset}`
+        title: scopedTitle,
+        ...display
       }),
       captionDraft,
       manifest,
@@ -442,7 +508,7 @@ export async function buildFigureBundle(
   }
   return {
     mode: options.mode,
-    dot: figureGraphvizDot(model, resolved.ids, { title: `Rajattu kuvio · ${resolved.viewFilter.preset}` }),
+    dot: figureGraphvizDot(model, resolved.ids, { title: scopedTitle, ...display }),
     captionDraft,
     manifest,
     selection,

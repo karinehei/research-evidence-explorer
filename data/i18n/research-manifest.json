@@ -1,0 +1,7 @@
+{
+  "locale": "en",
+  "resourceVersion": "1.0.0",
+  "sourceContentHash": "sha256:9b898d668b9fc24024f7ea6bf4a4ca378deed453d13438548b0eaca7c527d636",
+  "reviewedAt": "2026-10-26",
+  "note": "Editorial English translations of curated Finnish research text. Citations, author names and Finnish query excerpts stay in the canonical workspace. Hash must match scientificContent of data/research.json."
+}

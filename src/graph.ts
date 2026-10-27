@@ -1,7 +1,13 @@
 import type { Edge, Node } from '@xyflow/react';
 import { locate } from './model.ts';
-import { epistemicShort, kindLabel, meaningLabel } from './labels.ts';
+import type { Locale } from './i18n/locale.ts';
+import { labelsFor } from './labels.ts';
 import type { EpistemicStatus, Position, Workspace } from './types.ts';
+
+export type FlowDisplay = {
+  locale: Locale;
+  resolveLabel: (id: string, fallback: string) => string;
+};
 
 export interface RecordData extends Record<string, unknown> {
   kind: 'source' | 'claim' | 'construct' | 'criterion' | 'proposition';
@@ -79,53 +85,68 @@ function place(kind: RecordData['kind'], index: number, saved?: Position, anchor
   return { x: 28 + column[kind] * 292, y: kind === 'claim' && anchorY !== undefined ? anchorY : 28 + index * 132 };
 }
 
-export function buildFlow(model: Workspace, ids: Set<string>, selectedId: string, selectedEdge: string): { nodes: RecordNode[]; edges: LinkEdge[] } {
+export function buildFlow(
+  model: Workspace,
+  ids: Set<string>,
+  selectedId: string,
+  selectedEdge: string,
+  display?: FlowDisplay
+): { nodes: RecordNode[]; edges: LinkEdge[] } {
+  const locale = display?.locale || 'fi';
+  const L = labelsFor(locale);
+  const resolve = display?.resolveLabel || ((_, fallback: string) => fallback);
   const nodes: RecordNode[] = [];
   const counts = { source: 0, claim: 0, construct: 0, criterion: 0, proposition: 0 };
   const sourceY = new Map<string, number>();
+  const noClaim = locale === 'en' ? 'no claim' : 'ei väitettä';
+  const sourceRef = locale === 'en' ? 'Source ref' : 'Lähdeviite';
+  const sourceRefAria = (a: string, b: string) => locale === 'en'
+    ? `Source reference: ${a} and ${b}. Not a research relationship and not a causal arrow.`
+    : `Lähdeviite: ${a} ja ${b}. Ei tutkimuksellinen yhteys eikä kausaalinuoli.`;
+  const noCausal = locale === 'en' ? 'Not causation.' : 'Ei kausaalisuutta.';
   const push = (id: string, kind: RecordData['kind'], label: string, badge: string, saved?: Position, anchorY?: number) => {
     if (!ids.has(id)) return;
     const position = place(kind, counts[kind], saved, anchorY);
     counts[kind] += 1;
     if (kind === 'source') sourceY.set(id, position.y);
+    const shown = resolve(id, label);
     nodes.push({
       id, type: 'record', position, selected: id === selectedId, draggable: true,
-      ariaLabel: `${kindLabel[kind]}: ${label}. ${badge}.`,
-      data: { kind, label, badge }, style: { width: 230 }
+      ariaLabel: `${L.kindLabel[kind]}: ${shown}. ${badge}.`,
+      data: { kind, label: shown, badge }, style: { width: 230 }
     });
   };
-  model.sources.forEach(record => push(record.id, 'source', record.label, epistemicShort[statusOf(model, record.id) as EpistemicStatus] || 'ei väitettä', record.position));
-  model.claims.forEach((record, index) => push(record.id, 'claim', record.statement || record.id, epistemicShort[record.epistemicStatus], record.position, (sourceY.get(record.sourceId) ?? 28) + model.claims.filter((claim, claimIndex) => claim.sourceId === record.sourceId && claimIndex < index).length * 132));
-  model.constructs.forEach(record => push(record.id, 'construct', record.label, epistemicShort[record.epistemicStatus], record.position));
-  model.criteria.forEach(record => push(record.id, 'criterion', record.label, epistemicShort[record.epistemicStatus], record.position));
-  model.propositions.forEach(record => push(record.id, 'proposition', record.label, epistemicShort[record.epistemicStatus], record.position));
+  model.sources.forEach(record => push(record.id, 'source', record.label, L.epistemicShort[statusOf(model, record.id) as EpistemicStatus] || noClaim, record.position));
+  model.claims.forEach((record, index) => push(record.id, 'claim', record.statement || record.id, L.epistemicShort[record.epistemicStatus], record.position, (sourceY.get(record.sourceId) ?? 28) + model.claims.filter((claim, claimIndex) => claim.sourceId === record.sourceId && claimIndex < index).length * 132));
+  model.constructs.forEach(record => push(record.id, 'construct', record.label, L.epistemicShort[record.epistemicStatus], record.position));
+  model.criteria.forEach(record => push(record.id, 'criterion', record.label, L.epistemicShort[record.epistemicStatus], record.position));
+  model.propositions.forEach(record => push(record.id, 'proposition', record.label, L.epistemicShort[record.epistemicStatus], record.position));
   const labelOf = (id: string) => nodes.find(node => node.id === id)?.data.label || id;
   const edges: LinkEdge[] = [];
   for (const claim of model.claims) {
     if (!ids.has(claim.id) || !ids.has(claim.sourceId)) continue;
     const id = `link:${claim.id}`;
+    const aria = sourceRefAria(labelOf(claim.sourceId), labelOf(claim.id));
     edges.push({
       id, type: 'epistemic', source: claim.sourceId, target: claim.id, selected: selectedEdge === id,
-      ariaLabel: `Lähdeviite: ${labelOf(claim.sourceId)} ja ${labelOf(claim.id)}. Ei tutkimuksellinen yhteys eikä kausaalinuoli.`,
-      data: { text: 'Lähdeviite', pattern: 'membership', color: '#7d8da3', aria: `Lähdeviite: ${labelOf(claim.sourceId)} ja ${labelOf(claim.id)}. Ei tutkimuksellinen yhteys eikä kausaalinuoli.` }
+      ariaLabel: aria,
+      data: { text: sourceRef, pattern: 'membership', color: '#7d8da3', aria }
     });
   }
   for (const link of model.relationships) {
     if (!ids.has(link.source) || !ids.has(link.target)) continue;
-    const text = `${(link.label || '').trim() || meaningLabel[link.meaning]} · ${epistemicShort[link.epistemicStatus]}`;
+    const linkLabel = resolve(link.id, (link.label || '').trim() || L.meaningLabel[link.meaning]);
+    const text = `${linkLabel} · ${L.epistemicShort[link.epistemicStatus]}`;
+    const aria = `${L.meaningLabel[link.meaning]}: ${labelOf(link.source)} → ${labelOf(link.target)}. ${L.epistemicLabel[link.epistemicStatus]}. ${noCausal}`;
     edges.push({
       id: link.id, type: 'epistemic', source: link.source, target: link.target, selected: selectedEdge === link.id,
-      ariaLabel: `${meaningLabel[link.meaning]}: ${labelOf(link.source)} → ${labelOf(link.target)}. ${epistemicLabelSafe(link.epistemicStatus)}. Ei kausaalisuutta.`,
+      ariaLabel: aria,
       data: {
         text, color: epistemicColor[link.epistemicStatus],
         pattern: link.epistemicStatus === 'hypothesis' ? 'dotted' : link.epistemicStatus === 'adaptation' ? 'dashed' : 'solid',
-        aria: `${meaningLabel[link.meaning]}: ${labelOf(link.source)} → ${labelOf(link.target)}. ${epistemicLabelSafe(link.epistemicStatus)}. Ei kausaalisuutta.`
+        aria
       }
     });
   }
   return { nodes, edges };
-}
-
-function epistemicLabelSafe(status: EpistemicStatus): string {
-  return status === 'reported' ? 'Raportoitu, ei varmennettu' : status === 'adaptation' ? 'Oma sovellus' : 'Testaamaton oletus';
 }
