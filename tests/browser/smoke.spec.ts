@@ -440,3 +440,52 @@ test('English mode shows source/claim form labels and nested case translations',
   expect(box!.width).toBeLessThanOrEqual(390);
   await page.keyboard.press('Escape');
 });
+
+test('English add-record, construct/criterion labels, validation and removal feedback', async ({ page }) => {
+  await forceLocale(page, 'en');
+  await page.goto(`${root}#graph/sufficiency`);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+
+  const inspector = page.locator('.inspector');
+  await expect(inspector.getByLabel('Definition object')).toBeVisible();
+  await expect(inspector.getByLabel('Competing definitions')).toBeVisible();
+  await expect(inspector.getByLabel('Own reflection or next check')).toBeVisible();
+
+  await page.goto(`${root}#graph/ranking`);
+  await expect(inspector.getByLabel('Evidence requirement')).toBeVisible();
+  await expect(inspector.getByLabel('Decision rule')).toBeVisible();
+  await expect(inspector.getByText('Construct references')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Add record' }).click();
+  await expect(inspector.getByRole('heading', { level: 2, name: 'Add research record' })).toBeVisible();
+  await expect(inspector.getByLabel('Record type')).toBeVisible();
+  await inspector.getByLabel('Name').fill('EN-ADD-TEST');
+  await inspector.getByLabel('Content or definition').fill('Constructed definition for localisation smoke.');
+  await inspector.getByRole('button', { name: 'Add record', exact: true }).click();
+  await expect(page.locator('#message')).toContainText('Record was added.');
+  await expect(inspector.getByRole('heading', { level: 2, name: 'EN-ADD-TEST' })).toBeVisible();
+  await expect(inspector.getByLabel('Definition object')).toBeVisible();
+
+  await page.goto(`${root}#cases/A`);
+  await expect(page.getByRole('heading', { level: 1, name: 'From task to evidence' })).toBeVisible();
+  await page.getByRole('button', { name: 'Edit case' }).click();
+  await page.getByRole('textbox', { name: 'Task', exact: true }).fill('x'.repeat(8001));
+  await page.getByRole('button', { name: 'Save case' }).click();
+  await expect(page.locator('#message')).toContainText(/invalid text/i);
+  await expect(page.locator('#message')).not.toContainText(/virheellinen teksti/i);
+
+  await page.getByRole('button', { name: 'From sources to criteria' }).click();
+  const dirty = page.getByRole('dialog', { name: 'Unsaved changes' });
+  await expect(dirty).toBeVisible();
+  await dirty.getByRole('button', { name: 'Discard changes' }).click();
+  await expect(dirty).toBeHidden();
+  await page.goto(`${root}#graph/sufficiency`);
+  await expect(page.getByRole('heading', { level: 2, name: /Evidence sufficiency|Näytön riittävyys/i })).toBeVisible();
+  await page.getByRole('button', { name: 'Remove record and its links' }).click();
+  const removal = page.getByRole('dialog', { name: 'Removal detaches references' });
+  await expect(removal).toBeVisible();
+  await expect(removal.getByText(/The link ends at the record being removed/i).first()).toBeVisible();
+  await expect(removal.getByRole('button', { name: 'Remove and detach references' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(removal).toBeHidden();
+});

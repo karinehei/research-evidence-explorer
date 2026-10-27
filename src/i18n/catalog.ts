@@ -511,6 +511,7 @@ export const uiFi = {
     nameRequired: 'Nimi puuttuu.',
     pickSourceRequired: 'Valitse lähde.',
     recordAdded: 'Kohde lisättiin.',
+    noSelectableRecords: 'Ei valittavia kohteita.',
     addNode: {
       title: 'Lisää tutkimuskohde',
       submit: 'Lisää kohde',
@@ -1237,6 +1238,7 @@ export const uiEn = {
     nameRequired: 'Name is required.',
     pickSourceRequired: 'Select a source.',
     recordAdded: 'Record was added.',
+    noSelectableRecords: 'No selectable records.',
     addNode: {
       title: 'Add research record',
       submit: 'Add record',

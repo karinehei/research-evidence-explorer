@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useI18n } from './i18n/index.ts';
 
 export function TextField({ label, value, onChange, area = false }: { label: string; value: string; onChange: (value: string) => void; area?: boolean }) {
   const id = useId();
@@ -13,9 +14,10 @@ export function SelectField({ label, value, onChange, options }: { label: string
 }
 
 export function Checks({ title, records, selected, onChange }: { title: string; records: { id: string; label: string }[]; selected: string[]; onChange: (ids: string[]) => void }) {
+  const { t } = useI18n();
   return <fieldset className="checks"><legend>{title}</legend>{records.length ? records.map(record => <label key={record.id}><input type="checkbox" checked={selected.includes(record.id)} onChange={event => {
     const next = new Set(selected);
     if (event.target.checked) next.add(record.id); else next.delete(record.id);
     onChange(records.map(item => item.id).filter(id => next.has(id)));
-  }} /> {record.label}</label>) : <p className="subtle">Ei valittavia kohteita.</p>}</fieldset>;
+  }} /> {record.label}</label>) : <p className="subtle">{t('inspector.noSelectableRecords')}</p>}</fieldset>;
 }

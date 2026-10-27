@@ -598,7 +598,15 @@ function AddNode({ model, guard, onSave, onMessage, onOpen }: { model: Workspace
   });
   const kindOptions = (['source', 'claim', 'construct', 'criterion', 'proposition'] as const).map(id => ({ id, label: L.kindLabel[id] }));
   return <aside className="inspector" aria-label={t('inspector.aria')}><h2>{t('inspector.addNode.title')}</h2>
-    <FormShell submit={() => { const ok = persist(); if (ok && created.id) onOpen(created.id); return ok; }} label={t('inspector.addNode.submit')}>
+    <FormShell submit={() => {
+      const ok = persist();
+      if (ok && created.id) {
+        // Successful create must not leave the add form dirty, or hash navigation to the new record is blocked.
+        guard.current = { isDirty: () => false, save: () => true, reset: () => undefined };
+        onOpen(created.id);
+      }
+      return ok;
+    }} label={t('inspector.addNode.submit')}>
       <SelectField label={t('inspector.addNode.kind')} value={draft.kind} onChange={value => setDraft(current => ({ ...current, kind: value }))} options={kindOptions} />
       {draft.kind !== 'claim' && <TextField label={t('inspector.name')} value={draft.label} onChange={value => setDraft(current => ({ ...current, label: value }))} />}
       <TextField label={draft.kind === 'claim' ? t('inspector.addNode.importedSummary') : t('inspector.addNode.contentOrDefinition')} value={draft.text} onChange={value => setDraft(current => ({ ...current, text: value }))} area />
