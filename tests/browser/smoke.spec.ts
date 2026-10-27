@@ -296,6 +296,37 @@ test('filter changes are announced without repeating on selection', async ({ pag
   await expect(graphLive).toHaveText(graphText || '');
 });
 
+test('matrix construct context, expanded details and on-demand editor', async ({ page }) => {
+  await openApp(page, '#matrix/sufficiency');
+  await expect(page).toHaveURL(/#matrix\/sufficiency/);
+  await expect(page.locator('.matrix-context-banner')).toContainText(/Käsitekonteksti/);
+  await expect(page.locator('.matrix-compact')).toBeVisible();
+
+  const detailsToggle = page.locator('.matrix-table-compact button[aria-controls]').first();
+  await expect(detailsToggle).toHaveAttribute('aria-expanded', 'false');
+  await detailsToggle.click();
+  await expect(detailsToggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(detailsToggle).toHaveAccessibleName('Piilota tiedot');
+  await expect(page.locator('.matrix-table-compact .matrix-details').first()).toBeVisible();
+  await expect(page.locator('.matrix-table-compact .matrix-details').first()).toContainText(/Määritelmät|Lähdeväitteet|Operatiivinen|Päättelyn rajat/);
+
+  await page.locator('.matrix-table-compact').getByRole('button', { name: 'Muokkaa tietuetta' }).first().click();
+  const editor = page.getByRole('dialog', { name: 'Muokkaa tietuetta' });
+  await expect(editor).toBeVisible();
+  await expect(editor.locator('.inspector')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(editor).toBeHidden();
+
+  await page.getByRole('button', { name: 'Näytä kaikki kriteerit' }).click();
+  await expect(page).toHaveURL(/\/#matrix$/);
+  await expect(page.locator('.matrix-context-banner')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'English' }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.getByRole('button', { name: 'Compact' })).toBeVisible();
+  await expect(page.getByText(/Counts describe recorded links only/i).first()).toBeVisible();
+});
+
 test('narrow and wide layouts do not overflow the page, and dialogs stay on screen', async ({ page }) => {
   await openApp(page, '#matrix');
   for (const width of [320, 390, 768, 1366]) {
@@ -308,7 +339,7 @@ test('narrow and wide layouts do not overflow the page, and dialogs stay on scre
     expect(action).toBeTruthy();
     expect(action!.x).toBeGreaterThanOrEqual(0);
     expect(action!.x + action!.width).toBeLessThanOrEqual(width + 1);
-    await expect(page.locator('.table-wrap').first()).toBeVisible();
+    await expect(page.locator('.matrix-compact, .table-wrap').first()).toBeVisible();
   }
   await page.setViewportSize({ width: 320, height: 640 });
   await page.getByRole('button', { name: 'Tietomallista ja käytöstä' }).click();

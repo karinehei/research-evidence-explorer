@@ -102,6 +102,7 @@ function AppShell({ opened, model, setModel }: {
   const [snapshotOpen, setSnapshotOpen] = useState(false);
   const [figureOpen, setFigureOpen] = useState(false);
   const [caseEditing, setCaseEditing] = useState(false);
+  const [matrixEditorOpen, setMatrixEditorOpen] = useState(false);
   const [actorLabel, setActorLabel] = useState(() => {
     try { return localStorage.getItem(ACTOR_KEY) || ''; }
     catch { return ''; }
@@ -150,6 +151,10 @@ function AppShell({ opened, model, setModel }: {
   useEffect(() => {
     if (!trace) setTraceText(t('graph.traceIdle'));
   }, [locale, t, trace]);
+
+  useEffect(() => {
+    if (route.view !== 'matrix') setMatrixEditorOpen(false);
+  }, [route.view]);
 
   function commit(next: Workspace, success = '', options: { reason?: string; actorLabel?: string; kind?: EditEventKind; skipAutoLog?: boolean; summary?: string } = {}): boolean {
     try {
@@ -377,6 +382,28 @@ function AppShell({ opened, model, setModel }: {
     }), 'research-map.svg', 'image/svg+xml;charset=utf-8');
   }
 
+  function closeMatrixEditor() {
+    guarded(() => setMatrixEditorOpen(false));
+  }
+
+  function openMatrixEditor(id: string) {
+    guarded(() => {
+      selectRecord(id);
+      setMatrixEditorOpen(true);
+    });
+  }
+
+  function clearMatrixConstructContext() {
+    assignHash('#matrix');
+  }
+
+  const workspaceClass = route.view === 'graph'
+    ? 'graph-workspace'
+    : route.view === 'matrix'
+      ? 'matrix-workspace'
+      : 'split-workspace';
+  const showSidebarInspector = route.view !== 'history' && route.view !== 'matrix';
+
   const [title, description] = descriptions[route.view];
   return <><a className="skip" href="#workspace">{t('brand.skip')}</a>
     <header className="topbar"><div className="identity"><span className="mark" aria-hidden="true">R</span><div><strong>Research Evidence Explorer</strong><span>{t('brand.tagline')}</span></div></div>
@@ -387,7 +414,7 @@ function AppShell({ opened, model, setModel }: {
         <div id="message" role="status" aria-live="polite" className={message.error ? 'error' : ''}>{message.text}</div>
         <p id="graph-filter-status" className="sr-only" aria-live="polite">{route.view === 'graph' ? graphFilterNote : ''}</p>
         {route.view === 'graph' && <div className="toolbar"><label>{t('graph.search')}<input type="search" value={query} placeholder={t('graph.searchPlaceholder')} onChange={event => { setQuery(event.target.value); setTrace(null); }} /></label><label>{t('graph.status')}<select value={status} onChange={event => { setStatus(event.target.value); setTrace(null); }}><option value="all">{t('graph.statusAll')}</option><option value="reported">{t('graph.statusReported')}</option><option value="adaptation">{t('graph.statusAdaptation')}</option><option value="hypothesis">{t('graph.statusHypothesis')}</option></select></label><button type="button" onClick={() => assignHash(formatHash('graph', selectedId, route.scope === 'map' ? 'focus' : 'map'))}>{route.scope === 'map' ? t('graph.showFocus') : t('graph.showMap')}</button><button type="button" onClick={() => flowApi.current?.zoomIn()}>{t('graph.zoomIn')}</button><button type="button" onClick={() => flowApi.current?.zoomOut()}>{t('graph.zoomOut')}</button><button type="button" onClick={() => flowApi.current?.fit()}>{t('graph.fit')}</button><button type="button" onClick={() => flowApi.current?.home()}>{t('graph.home')}</button><button type="button" onClick={() => guarded(() => { const copy = clone(modelRef.current); for (const key of ['sources', 'claims', 'constructs', 'criteria', 'propositions'] as const) copy[key].forEach(record => { delete record.position; }); commit(copy, t('graph.reflowDone')); setFitToken(value => value + 1); })}>{t('graph.reflow')}</button><button type="button" onClick={() => guarded(() => { setEdgeId(''); setMode({ type: 'add-node' }); })}>{t('graph.addNode')}</button></div>}
-        <div className={route.view === 'graph' ? 'graph-workspace' : 'split-workspace'}>
+        <div className={workspaceClass}>
           {route.view === 'graph' && <section className="graph-area" aria-label={t('graph.canvasAria')}><div className="lane-heads"><span>{t('graph.laneSources')}</span><span>{t('graph.laneClaims')}</span><span>{t('graph.laneConstructs')}</span><span>{t('graph.laneCriteria')}</span><span>{t('graph.lanePropositions')}</span></div>
             <FlowMap model={model} ids={ids} selectedId={edgeId ? '' : selectedId} selectedEdge={edgeId} trace={trace} fitToken={fitToken} guardTick={guardTick} api={flowApi} locale={locale} resolveLabel={id => displayRecordLabel(locale, model, id, hashMatches)} onSelectNode={selectRecord} onSelectEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onMove={(id, position) => { const copy = clone(modelRef.current); const found = locate(copy, id) as { record?: { position?: { x: number; y: number } } } | null; if (found?.record) found.record.position = position; commit(copy); }} />
             <div className="legend" aria-label={t('graph.legendAria')}><span><i className="line solid" aria-hidden="true" />{t('graph.legendReported')}</span><span><i className="line dashed" aria-hidden="true" />{t('graph.legendAdaptation')}</span><span><i className="line dotted" aria-hidden="true" />{t('graph.legendHypothesis')}</span><span><i className="line membership" aria-hidden="true" />{t('graph.legendMembership')}</span></div>
@@ -396,11 +423,11 @@ function AppShell({ opened, model, setModel }: {
               const label = displayRecordLabel(locale, model, id, hashMatches) || id;
               return <li key={id}><button type="button" className="quiet" onClick={() => selectRecord(id)}>{label} <span className="subtle">({id})</span></button></li>;
             })}</ul></details></section>}
-          {route.view === 'matrix' && <MatrixView model={model} selectedId={selectedId} onSelect={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onCsv={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')} />}
+          {route.view === 'matrix' && <MatrixView model={model} selectedId={selectedId} onSelect={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onCsv={() => download(csv(model), 'research-records.csv', 'text/csv;charset=utf-8')} onEditRecord={openMatrixEditor} onClearConstructContext={clearMatrixConstructContext} />}
           {route.view === 'cases' && <CasesView model={model} selectedId={selectedId} onSave={commit} guard={guard} onEditModeChange={setCaseEditing} onLeave={guarded} onSelect={selectRecord} />}
           {route.view === 'questions' && <QuestionsView model={model} selectedId={selectedId} onSelect={selectRecord} onTrace={id => assignHash(formatHash('graph', id, 'focus'))} onAddDecision={addDecision} onSave={commit} />}
           {route.view === 'history' && <HistoryView model={model} actorLabel={actorLabel} onActorLabel={updateActorLabel} />}
-          {route.view !== 'history' && <Inspector model={model} selectedId={selectedId} edgeId={edgeId} mode={mode} guard={guard} caseDraftPaused={route.view === 'cases' && caseEditing} onSave={commit} onMessage={text => setMessage({ text, error: true })} onOpen={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onAddEdge={sourceId => guarded(() => { setEdgeId(''); setMode({ type: 'add-edge', sourceId }); })} onAddClaim={addClaim} onRemove={requestRemove} />}
+          {showSidebarInspector && <Inspector model={model} selectedId={selectedId} edgeId={edgeId} mode={mode} guard={guard} caseDraftPaused={route.view === 'cases' && caseEditing} onSave={commit} onMessage={text => setMessage({ text, error: true })} onOpen={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onAddEdge={sourceId => guarded(() => { setEdgeId(''); setMode({ type: 'add-edge', sourceId }); })} onAddClaim={addClaim} onRemove={requestRemove} />}
         </div>
         {route.view === 'graph' && <details className="trace"><summary>{t('graph.traceSummary')}</summary><p>{labelsFor(locale).traceLimitation}</p><div className="trace-controls"><label>{t('graph.traceStart')}<select value={traceStart} onChange={event => setTraceStart(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{displayRecordLabel(locale, model, record.id, hashMatches) || record.label}</option>)}</select></label><label>{t('graph.traceEnd')}<select value={traceEnd} onChange={event => setTraceEnd(event.target.value)}>{records.map(record => <option key={record.id} value={record.id}>{displayRecordLabel(locale, model, record.id, hashMatches) || record.label}</option>)}</select></label><button type="button" onClick={() => { setQuery(''); setStatus('all'); setFitToken(value => value + 1); const result = path(model, traceStart, traceEnd) as { nodes: string[]; edges: string[] } | null; setTrace(result); setTraceText(formatTrace(model, result, locale)); if (route.scope !== 'map') assignHash(formatHash('graph', selectedId, 'map')); }}>{t('graph.showTrace')}</button><button type="button" onClick={() => { setTrace(null); setTraceText(t('graph.traceIdle')); }}>{t('graph.clearTrace')}</button></div><p aria-live="polite">{traceText}</p></details>}
         <footer>{t('brand.footer')}</footer>
@@ -434,5 +461,8 @@ function AppShell({ opened, model, setModel }: {
       <ul>{removal?.effects.map(effect => <li key={`${effect.id}-${effect.code || effect.reason}`}>{(effect.label || effect.id)} — {formatRemovalEffect(locale, effect)}</li>)}</ul>
       <div className="actions"><button type="button" onClick={() => setRemoval(null)}>{t('dialog.cancel')}</button><button type="button" className="primary" onClick={confirmRemoval}>{t('dialog.removalConfirm')}</button></div>
     </Modal>
+    {route.view === 'matrix' && <Modal open={matrixEditorOpen} className="wide-modal matrix-editor-dialog" title={t('matrix.editRecord')} onClose={closeMatrixEditor}>
+      <Inspector model={model} selectedId={selectedId} edgeId={edgeId} mode={mode} guard={guard} caseDraftPaused={false} onSave={commit} onMessage={text => setMessage({ text, error: true })} onOpen={selectRecord} onEdge={id => guarded(() => { setMode({ type: 'record' }); setEdgeId(id); })} onAddEdge={sourceId => guarded(() => { setEdgeId(''); setMode({ type: 'add-edge', sourceId }); })} onAddClaim={addClaim} onRemove={requestRemove} />
+    </Modal>}
   </>;
 }
