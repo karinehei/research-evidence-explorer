@@ -11,8 +11,10 @@ import {
   caseField, displayRecordLabel, researchTranslationManifest, translateResearchField
 } from '../src/i18n/research.ts';
 import { TRANSLATION_RESOURCE_VERSION } from '../src/i18n/locale.ts';
+import { formatRemovalEffect, formatUserError } from '../src/i18n/errors.ts';
+import { ModelError, isModelError } from '../src/model-errors.ts';
 import { figureBrowserSvg, resolvePresetIds } from '../src/figures.ts';
-import { load } from '../src/model.ts';
+import { load, planRemoval, validate } from '../src/model.ts';
 import { contentHash } from '../src/snapshots.ts';
 import researchEn from '../data/i18n/research-en.json' with { type: 'json' };
 
@@ -141,7 +143,7 @@ test('contentHash is stable across a locale-switch simulation and matches resear
   const after = await contentHash(model);
   assert.equal(after, before);
   assert.equal(before, manifest.sourceContentHash);
-  assert.equal(manifest.resourceVersion, '1.1.0');
+  assert.equal(manifest.resourceVersion, '1.2.0');
   assert.equal(TRANSLATION_RESOURCE_VERSION, manifest.resourceVersion);
 });
 
@@ -203,4 +205,36 @@ test('English source and claim inspector catalogue keys exist', () => {
   assert.match(t('en', 'inspector.addClaimManual'), /Add source claim manually/i);
   assert.match(t('fi', 'inspector.biblioSection'), /Bibliografinen identiteetti/i);
   assert.notEqual(t('en', 'inspector.biblioSection'), t('fi', 'inspector.biblioSection'));
+});
+
+test('ModelError carries code and formatUserError localises at presentation boundary', () => {
+  const err = new ModelError('invalidText', { field: 'Lähteen nimi' }, 'Lähteen nimi: virheellinen teksti.');
+  assert.equal(isModelError(err), true);
+  assert.equal(err.code, 'invalidText');
+  assert.equal(err.message, 'Lähteen nimi: virheellinen teksti.');
+  assert.equal(formatUserError('fi', err), 'Lähteen nimi: virheellinen teksti.');
+  assert.equal(formatUserError('en', err), 'Source name: invalid text.');
+  assert.match(formatUserError('en', new ModelError('invalidDoi', {}, 'DOI on virheellinen.')), /DOI is invalid/i);
+  assert.match(formatRemovalEffect('en', {
+    id: 'e1',
+    reason: 'Yhteys päättyy poistettavaan kohteeseen, joten se poistetaan.',
+    code: 'removal.endsRelationship'
+  }), /ends at the record being removed/i);
+});
+
+test('validate empty label throws ModelError with Finnish message for tests', () => {
+  const copy = structuredClone(model);
+  copy.sources[0].label = '';
+  assert.throws(() => validate(copy), (error: unknown) => {
+    assert.equal(isModelError(error), true);
+    assert.equal((error as ModelError).code, 'invalidText');
+    assert.match((error as Error).message, /virheellinen teksti/);
+    return true;
+  });
+});
+
+test('planRemoval effects expose stable codes without Finnish substring matching', () => {
+  const plan = planRemoval(model, 'jarvelin15');
+  assert.ok(plan.effects.some(effect => effect.code === 'removal.endsRelationship' || effect.code === 'removal.deleteEvidence'));
+  assert.ok(plan.effects.every(effect => typeof effect.code === 'string' && effect.code.startsWith('removal.')));
 });

@@ -1,4 +1,5 @@
 import { allIds, relationshipDraft } from './model.ts';
+import { failCoded } from './model-errors.ts';
 import { meaningLabel } from './labels.ts';
 import type { Meaning, Workspace } from './types.ts';
 
@@ -20,8 +21,10 @@ export function requireConnection(fields: {
   id: string; meaning: string; source: string; target: string; rationale?: string; locator?: string;
   epistemicStatus?: string; reviewState?: string; claimIds?: string[]; sourceIds?: string[];
 }) {
-  if (!meanings.includes(fields.meaning as Meaning)) throw new Error('Valitse yhteyden merkitys. Nuolelle ei anneta kausaalista oletusmerkitystä.');
-  if (!fields.target || fields.target === fields.source) throw new Error('Valitse toinen päätepiste.');
+  if (!meanings.includes(fields.meaning as Meaning)) {
+    failCoded('pickLinkMeaning', {}, 'Valitse yhteyden merkitys. Nuolelle ei anneta kausaalista oletusmerkitystä.');
+  }
+  if (!fields.target || fields.target === fields.source) failCoded('pickOtherEndpoint', {}, 'Valitse toinen päätepiste.');
   return relationshipDraft({
     id: fields.id,
     meaning: fields.meaning,

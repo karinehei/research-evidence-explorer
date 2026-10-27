@@ -2,6 +2,7 @@
 // Runtime schema checks are the contract for both the browser and the command line.
 import { hydrateConstructedCase } from './cases.ts';
 import { hydrateProposition, hydrateProtocol } from './protocols.ts';
+import { failCoded } from './model-errors.ts';
 const SCHEMA = 2;
   const facetStates = ['full', 'partial', 'absent', 'conflicting', 'unresolved'];
   const claimKinds = ['association', 'controlled-comparison', 'paired-coverage', 'other'];
@@ -44,7 +45,9 @@ const SCHEMA = 2;
 
   function validateLegacy(value) {
     const fail = msg => { throw new Error(msg); };
-    const str = (x, label, max = 8000, nonempty = false) => { if (typeof x !== 'string' || x.length > max || (nonempty && !x.trim())) fail(label + ': virheellinen teksti.'); };
+    const str = (x, label, max = 8000, nonempty = false) => {
+      if (typeof x !== 'string' || x.length > max || (nonempty && !x.trim())) failCoded('invalidText', { field: label }, label + ': virheellinen teksti.');
+    };
     if (!isObj(value) || value.schemaVersion !== 1) fail('Tuettu schemaVersion on 1.');
     if (!isObj(value.project)) fail('Projektin tiedot puuttuvat.');
     str(value.project.name, 'Projektin nimi', 120, true);
@@ -57,8 +60,8 @@ const SCHEMA = 2;
       ids.add(n.id);
       if (!legacyKinds.includes(n.kind) || !legacyStatuses.includes(n.status) || !access.includes(n.access)) fail('Tuntematon kohdetyyppi, väitteen tila tai lukemistieto.');
       for (const field of ['label', 'description', 'boundary', 'locator', 'basis', 'notes', 'url', 'unit']) str(n[field], field, field === 'label' ? 160 : 8000, field === 'label');
-      if (n.url && !/^https?:\/\//i.test(n.url)) fail('Lähdelinkin tulee alkaa http:// tai https://.');
-      if (n.position !== undefined && (!isObj(n.position) || !Number.isFinite(n.position.x) || !Number.isFinite(n.position.y) || Math.abs(n.position.x) > 20000 || Math.abs(n.position.y) > 20000)) fail('Virheellinen sijainti.');
+      if (n.url && !/^https?:\/\//i.test(n.url)) failCoded('invalidUrl', {}, 'Lähdelinkin tulee alkaa http:// tai https://.');
+      if (n.position !== undefined && (!isObj(n.position) || !Number.isFinite(n.position.x) || !Number.isFinite(n.position.y) || Math.abs(n.position.x) > 20000 || Math.abs(n.position.y) > 20000)) failCoded('invalidPosition', { field: 'Sijainti' }, 'Virheellinen sijainti.');
     }
     const edgeIds = new Set();
     for (const e of value.edges) {
@@ -151,25 +154,33 @@ const SCHEMA = 2;
 
   function validate(value) {
     const fail = msg => { throw new Error(msg); };
-    const str = (x, label, max = 8000, nonempty = false) => { if (typeof x !== 'string' || x.length > max || (nonempty && !x.trim())) fail(label + ': virheellinen teksti.'); };
-    const oneOf = (x, allowed, label) => { if (!allowed.includes(x)) fail(label + ': virheellinen arvo.'); };
+    const str = (x, label, max = 8000, nonempty = false) => {
+      if (typeof x !== 'string' || x.length > max || (nonempty && !x.trim())) failCoded('invalidText', { field: label }, label + ': virheellinen teksti.');
+    };
+    const oneOf = (x, allowed, label) => {
+      if (!allowed.includes(x)) failCoded('invalidValue', { field: label }, label + ': virheellinen arvo.');
+    };
     const keys = (obj, allowed, label) => {
-      if (!isObj(obj)) fail(label + ': virheellinen tietue.');
-      for (const key of Object.keys(obj)) if (!allowed.includes(key)) fail(label + ': tuntematon kenttä ' + key + '.');
+      if (!isObj(obj)) failCoded('invalidRecord', { field: label }, label + ': virheellinen tietue.');
+      for (const key of Object.keys(obj)) if (!allowed.includes(key)) failCoded('unknownField', { field: label, key }, label + ': tuntematon kenttä ' + key + '.');
     };
     const position = (record, label) => {
       if (record.position === undefined) return;
-      if (!isObj(record.position) || !Number.isFinite(record.position.x) || !Number.isFinite(record.position.y) || Math.abs(record.position.x) > 20000 || Math.abs(record.position.y) > 20000) fail(label + ': virheellinen sijainti.');
+      if (!isObj(record.position) || !Number.isFinite(record.position.x) || !Number.isFinite(record.position.y) || Math.abs(record.position.x) > 20000 || Math.abs(record.position.y) > 20000) {
+        failCoded('invalidPosition', { field: label }, label + ': virheellinen sijainti.');
+      }
     };
     const idList = (list, label, allowed) => {
-      if (!Array.isArray(list)) fail(label + ': virheellinen viitelista.');
+      if (!Array.isArray(list)) failCoded('invalidRefList', { field: label }, label + ': virheellinen viitelista.');
       const seen = new Set();
       for (const id of list) {
-        if (typeof id !== 'string' || !idPattern.test(id) || seen.has(id) || !allowed.has(id)) fail(label + ': virheellinen viite.');
+        if (typeof id !== 'string' || !idPattern.test(id) || seen.has(id) || !allowed.has(id)) {
+          failCoded('invalidReference', { field: label }, label + ': virheellinen viite.');
+        }
         seen.add(id);
       }
     };
-    if (!isObj(value) || value.schemaVersion !== 2) fail('Tuettu schemaVersion on 2.');
+    if (!isObj(value) || value.schemaVersion !== 2) failCoded('schemaVersionUnsupported', { version: 2 }, 'Tuettu schemaVersion on 2.');
     if (!Array.isArray(value.protocols)) value = { ...value, protocols: [] };
     if (!Array.isArray(value.recordRevisions)) value = { ...value, recordRevisions: [] };
     if (!Array.isArray(value.editLog)) value = { ...value, editLog: [] };
@@ -178,14 +189,17 @@ const SCHEMA = 2;
     str(value.project.name, 'Projektin nimi', 120, true);
     str(value.project.description, 'Projektin kuvaus');
     for (const [key, max] of [['sources', 400], ['claims', 400], ['constructs', 400], ['criteria', 400], ['relationships', 1200], ['propositions', 400], ['protocols', 40], ['cases', 20], ['decisions', 40]]) {
-      if (!Array.isArray(value[key]) || value[key].length > max) fail('Kokoelman ' + key + ' määrä on virheellinen.');
+      if (!Array.isArray(value[key]) || value[key].length > max) failCoded('collectionCountInvalid', { key }, 'Kokoelman ' + key + ' määrä on virheellinen.');
     }
     if (!Array.isArray(value.recordRevisions) || value.recordRevisions.length > 2000) fail('Versiolaskurin määrä on virheellinen.');
     if (!Array.isArray(value.editLog) || value.editLog.length > 500) fail('Muokkaushistorian määrä on virheellinen.');
     const graphCount = value.sources.length + value.constructs.length + value.criteria.length + value.propositions.length;
-    if (graphCount < 1 || graphCount > 400) fail('Tarvitaan 1–400 lähdettä, käsitettä, kriteeriä tai propositiota.');
+    if (graphCount < 1 || graphCount > 400) failCoded('graphCountInvalid', {}, 'Tarvitaan 1–400 lähdettä, käsitettä, kriteeriä tai propositiota.');
     const ids = new Set();
-    const take = (id, label) => { if (typeof id !== 'string' || !idPattern.test(id) || ids.has(id)) fail(label + ': tunniste on virheellinen tai toistuu.'); ids.add(id); };
+    const take = (id, label) => {
+      if (typeof id !== 'string' || !idPattern.test(id) || ids.has(id)) failCoded('invalidId', { field: label }, label + ': tunniste on virheellinen tai toistuu.');
+      ids.add(id);
+    };
     const attachmentMeta = (list, label) => {
       if (!Array.isArray(list) || list.length > 40) fail(label + ': liitetietojen määrä on virheellinen.');
       for (const item of list) {
@@ -217,18 +231,20 @@ const SCHEMA = 2;
       if (s.nextCheck !== undefined) str(s.nextCheck, 'Seuraava tarkistus');
       if (s.researchRole !== undefined) oneOf(s.researchRole, researchRoles, 'Lähteen rooli');
       oneOf(s.publicationStatus, publication, 'Julkaisun tila'); oneOf(s.access, access, 'Lukemistieto');
-      if (s.url && !/^https?:\/\//i.test(s.url)) fail('Lähdelinkin tulee alkaa http:// tai https://.');
-      if (s.doi && !/^10\.\d{4,9}\/\S+$/.test(s.doi)) fail('DOI on virheellinen.');
+      if (s.url && !/^https?:\/\//i.test(s.url)) failCoded('invalidUrl', {}, 'Lähdelinkin tulee alkaa http:// tai https://.');
+      if (s.doi && !/^10\.\d{4,9}\/\S+$/.test(s.doi)) failCoded('invalidDoi', {}, 'DOI on virheellinen.');
       bibliographicImport(s, 'Lähde');
       position(s, 'Lähde');
     }
     const sourceIds = new Set(value.sources.map(s => s.id));
-    for (const s of value.sources) if (s.versionOf && (!sourceIds.has(s.versionOf) || s.versionOf === s.id)) fail('Lähteen versio viittaa puuttuvaan tai samaan lähteeseen.');
+    for (const s of value.sources) if (s.versionOf && (!sourceIds.has(s.versionOf) || s.versionOf === s.id)) {
+      failCoded('sourceVersionMissingOrSelf', {}, 'Lähteen versio viittaa puuttuvaan tai samaan lähteeseen.');
+    }
     for (const s of value.sources) {
       const seen = new Set();
       let current = s.versionOf;
       while (current) {
-        if (seen.has(current)) fail('Lähteen versioyhteys muodostaa silmukan.');
+        if (seen.has(current)) failCoded('sourceVersionCycle', {}, 'Lähteen versioyhteys muodostaa silmukan.');
         seen.add(current);
         current = value.sources.find(x => x.id === current).versionOf;
       }
@@ -237,7 +253,7 @@ const SCHEMA = 2;
       keys(c, ['id', 'sourceId', 'statement', 'methodContext', 'locator', 'limitations', 'provenance', 'appraisal', 'basis', 'epistemicStatus', 'reviewState', 'notes', 'position'], 'Lähdeväite');
       position(c, 'Lähdeväite');
       take(c.id, 'Lähdeväite');
-      if (!sourceIds.has(c.sourceId)) fail('Lähdeväite viittaa puuttuvaan lähteeseen.');
+      if (!sourceIds.has(c.sourceId)) failCoded('claimMissingSource', { what: 'lähteeseen' }, 'Lähdeväite viittaa puuttuvaan lähteeseen.');
       str(c.statement, 'Väite'); str(c.methodContext, 'Menetelmä ja konteksti'); str(c.locator, 'Lähdekohta'); str(c.limitations, 'Rajaus'); str(c.basis, 'Perusta'); str(c.notes, 'Muistiinpanot');
       oneOf(c.provenance, provenance, 'Väitteen alkuperä'); oneOf(c.appraisal, appraisal, 'Arviointi'); oneOf(c.epistemicStatus, epistemic, 'Tiedollinen tila'); oneOf(c.reviewState, reviewStates, 'Arvioinnin tila');
     }
@@ -335,14 +351,16 @@ const SCHEMA = 2;
       if (proto.compositeTrustScore !== 'not-computed') fail('Yhdistelmäluottamuspistettä ei lasketa.');
     }
     for (const p of propositions) {
-      for (const id of p.protocolIds) if (!protocols.some(proto => proto.id === id)) fail('Proposition protokolla viite puuttuu.');
+      for (const id of p.protocolIds) if (!protocols.some(proto => proto.id === id)) {
+        failCoded('missingReference', { what: 'protokolla' }, 'Proposition protokolla viite puuttuu.');
+      }
     }
     const graphIds = new Set([...value.sources, ...value.constructs, ...value.criteria, ...propositions].map(r => r.id));
     const claimIds = new Set(value.claims.map(c => c.id));
     for (const r of value.relationships) {
       keys(r, ['id', 'meaning', 'source', 'target', 'label', 'rationale', 'locator', 'claimIds', 'sourceIds', 'epistemicStatus', 'reviewState', 'reviewNote'], 'Yhteys');
       take(r.id, 'Yhteys');
-      if (!graphIds.has(r.source) || !graphIds.has(r.target)) fail('Yhteyden päätepiste puuttuu.');
+      if (!graphIds.has(r.source) || !graphIds.has(r.target)) failCoded('relationshipEndpointMissing', {}, 'Yhteyden päätepiste puuttuu.');
       oneOf(r.meaning, relations, 'Yhteyden merkitys');
       str(r.label, 'Yhteyden nimi'); str(r.rationale, 'Perustelu'); str(r.locator, 'Lähdekohta'); str(r.reviewNote, 'Arvioinnin muistiinpano');
       idList(r.claimIds, 'Väiteviite', claimIds); idList(r.sourceIds, 'Lähdeviite', sourceIds);
@@ -492,14 +510,16 @@ const SCHEMA = 2;
   }
 
   function load(value) {
-    if (!isObj(value) || (value.schemaVersion !== 1 && value.schemaVersion !== 2)) throw new Error('Tiedoston schemaVersion ei ole tuettu. Tuettuja versioita ovat 1 ja 2.');
+    if (!isObj(value) || (value.schemaVersion !== 1 && value.schemaVersion !== 2)) {
+      failCoded('schemaVersionUnsupportedFile', {}, 'Tiedoston schemaVersion ei ole tuettu. Tuettuja versioita ovat 1 ja 2.');
+    }
     return value.schemaVersion === 1 ? migrate(value) : validate(value);
   }
 
   function applyImport(current, incoming) {
-    if (!isObj(current)) throw new Error('Nykyinen työtila puuttuu.');
-    try { return { ok: true, model: load(incoming), error: '' }; }
-    catch (error) { return { ok: false, model: current, error: error.message }; }
+    if (!isObj(current)) failCoded('workspaceMissing', {}, 'Nykyinen työtila puuttuu.');
+    try { return { ok: true, model: load(incoming), error: '', errorObject: null }; }
+    catch (error) { return { ok: false, model: current, error: error instanceof Error ? error.message : String(error), errorObject: error }; }
   }
 
   function graphNodes(model) {
@@ -541,14 +561,19 @@ const SCHEMA = 2;
 
   function planRemoval(model, id) {
     const found = locate(model, id);
-    if (!found) throw new Error('Kohdetta ei löydy.');
-    if (['source', 'construct', 'criterion', 'proposition'].includes(found.kind) && graphNodes(model).length <= 1) throw new Error('Viimeistä kohdetta ei voi poistaa.');
+    if (!found) failCoded('recordNotFound', {}, 'Kohdetta ei löydy.');
+    if (['source', 'construct', 'criterion', 'proposition'].includes(found.kind) && graphNodes(model).length <= 1) {
+      failCoded('lastRecordCannotRemove', {}, 'Viimeistä kohdetta ei voi poistaa.');
+    }
     const next = clone(model);
     const effects = [];
     const drop = new Set([id]);
-    const effect = (recordId, label, reason, kind) => effects.push({ id: recordId, label, reason, kind });
+    const effect = (recordId, label, reason, kind, code) => effects.push({ id: recordId, label, reason, kind, code });
     if (found.kind === 'source') {
-      for (const claim of next.claims) if (claim.sourceId === id) { drop.add(claim.id); effect(claim.id, claim.statement.slice(0, 80) || claim.id, 'Lähteen yhteenveto poistetaan.', 'evidence'); }
+      for (const claim of next.claims) if (claim.sourceId === id) {
+        drop.add(claim.id);
+        effect(claim.id, claim.statement.slice(0, 80) || claim.id, 'Lähteen yhteenveto poistetaan.', 'evidence', 'removal.deleteEvidence');
+      }
       next.claims = next.claims.filter(c => c.sourceId !== id);
       next.sources = next.sources.filter(s => s.id !== id);
     } else if (found.kind === 'claim') next.claims = next.claims.filter(c => c.id !== id);
@@ -563,11 +588,16 @@ const SCHEMA = 2;
       return { model: validate(next), effects, needsConfirmation: false };
     }
     next.relationships = next.relationships.filter(r => {
-      if (drop.has(r.source) || drop.has(r.target)) { effect(r.id, r.label || r.id, 'Yhteys päättyy poistettavaan kohteeseen, joten se poistetaan.', 'incident-link'); return false; }
+      if (drop.has(r.source) || drop.has(r.target)) {
+        effect(r.id, r.label || r.id, 'Yhteys päättyy poistettavaan kohteeseen, joten se poistetaan.', 'incident-link', 'removal.endsRelationship');
+        return false;
+      }
       const claimsBefore = r.claimIds.length, sourcesBefore = r.sourceIds.length;
       r.claimIds = r.claimIds.filter(x => !drop.has(x));
       r.sourceIds = r.sourceIds.filter(x => !drop.has(x));
-      if (r.claimIds.length !== claimsBefore || r.sourceIds.length !== sourcesBefore) effect(r.id, r.label || r.id, 'Yhteyden lähde- tai väiteviite irrotetaan.', 'reference');
+      if (r.claimIds.length !== claimsBefore || r.sourceIds.length !== sourcesBefore) {
+        effect(r.id, r.label || r.id, 'Yhteyden lähde- tai väiteviite irrotetaan.', 'reference', 'removal.detachReference');
+      }
       return true;
     });
     const gap = 'Käsiteviite poistettiin; viite on täsmennettävä.';
@@ -575,30 +605,31 @@ const SCHEMA = 2;
       if (!c.constructIds.some(x => drop.has(x))) continue;
       c.constructIds = c.constructIds.filter(x => !drop.has(x));
       if (!c.constructIds.length && !c.validationNeed.includes(gap)) c.validationNeed = (c.validationNeed ? c.validationNeed.trim() + ' ' : '') + gap;
-      effect(c.id, c.label, c.constructIds.length ? 'Käsiteviite irrotetaan.' : 'Ainoa käsiteviite irrotetaan. Kriteeri säilyy, mutta viite on täsmennettävä.', 'reference');
+      if (c.constructIds.length) effect(c.id, c.label, 'Käsiteviite irrotetaan.', 'reference', 'removal.detachConstructRef');
+      else effect(c.id, c.label, 'Ainoa käsiteviite irrotetaan. Kriteeri säilyy, mutta viite on täsmennettävä.', 'reference', 'removal.detachSoleConstructRef');
     }
     for (const p of next.propositions) {
       let changed = false;
       if (p.criterionIds.some(x => drop.has(x))) { p.criterionIds = p.criterionIds.filter(x => !drop.has(x)); changed = true; }
       if ((p.constructIds || []).some(x => drop.has(x))) { p.constructIds = p.constructIds.filter(x => !drop.has(x)); changed = true; }
       if ((p.protocolIds || []).some(x => drop.has(x))) { p.protocolIds = p.protocolIds.filter(x => !drop.has(x)); changed = true; }
-      if (changed) effect(p.id, p.label, 'Proposition viite irrotetaan.', 'reference');
+      if (changed) effect(p.id, p.label, 'Proposition viite irrotetaan.', 'reference', 'removal.detachPropositionRef');
     }
     for (const proto of (next.protocols || [])) {
       let changed = false;
       for (const key of ['propositionIds', 'criterionIds', 'constructIds']) if ((proto[key] || []).some(x => drop.has(x))) { proto[key] = proto[key].filter(x => !drop.has(x)); changed = true; }
-      if (changed) effect(proto.id, proto.label, 'Protokollan viite irrotetaan.', 'reference');
+      if (changed) effect(proto.id, proto.label, 'Protokollan viite irrotetaan.', 'reference', 'removal.detachProtocolRef');
     }
-    for (const s of next.sources) if (drop.has(s.versionOf)) { s.versionOf = ''; effect(s.id, s.label, 'Versioviite irrotetaan.', 'reference'); }
+    for (const s of next.sources) if (drop.has(s.versionOf)) { s.versionOf = ''; effect(s.id, s.label, 'Versioviite irrotetaan.', 'reference', 'removal.detachVersionRef'); }
     for (const c of next.cases) {
       let changed = false;
       for (const key of ['propositionIds', 'criterionIds', 'decisionIds']) if (c[key].some(x => drop.has(x))) { c[key] = c[key].filter(x => !drop.has(x)); changed = true; }
-      if (changed) effect(c.id, c.title, 'Rakennetun esimerkin viite irrotetaan.', 'reference');
+      if (changed) effect(c.id, c.title, 'Rakennetun esimerkin viite irrotetaan.', 'reference', 'removal.detachCaseRef');
     }
     for (const d of next.decisions) {
       if (!d.recordIds.some(x => drop.has(x))) continue;
       d.recordIds = d.recordIds.filter(x => !drop.has(x));
-      effect(d.id, d.label, 'Tutkimuspäätöksen viite irrotetaan.', 'reference');
+      effect(d.id, d.label, 'Tutkimuspäätöksen viite irrotetaan.', 'reference', 'removal.detachDecisionRef');
     }
     return { model: validate(next), effects, needsConfirmation: effects.some(e => e.kind !== 'incident-link') };
   }

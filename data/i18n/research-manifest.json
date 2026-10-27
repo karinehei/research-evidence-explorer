@@ -1,6 +1,6 @@
 {
   "locale": "en",
-  "resourceVersion": "1.1.0",
+  "resourceVersion": "1.2.0",
   "sourceContentHash": "sha256:9b898d668b9fc24024f7ea6bf4a4ca378deed453d13438548b0eaca7c527d636",
   "reviewedAt": "2026-10-27",
   "note": "Editorial English translations of curated Finnish research text. Citations, author names and Finnish query excerpts stay in the canonical workspace. Hash must match scientificContent of data/research.json. Cases A–C include nested facet/answer/passage/display/context/claimAnn/snap/column/row fields; claims include statement and limitations. Constructed passage texts are translated as analytical examples, not empirical excerpts."

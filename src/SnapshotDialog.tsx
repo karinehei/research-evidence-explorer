@@ -4,6 +4,7 @@ import {
   loadPreImportBackup, previewImport, storePreImportBackup, type ImportPreview, type SnapshotComparison
 } from './snapshots.ts';
 import { useI18n } from './i18n/index.ts';
+import { formatUserError } from './i18n/errors.ts';
 import { Modal } from './Modal.tsx';
 import type { Workspace } from './types.ts';
 
@@ -23,7 +24,7 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
   onReplace: (next: Workspace, message: string, backup: Workspace, options?: { skipAutoLog?: boolean }) => boolean;
   actorLabel: string;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [content, setContent] = useState('');
   const [layout, setLayout] = useState('');
   const [preview, setPreview] = useState<ImportPreview | null>(null);
@@ -43,10 +44,10 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
         setContent(await contentHash(model));
         setLayout(await layoutHash(model));
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : t('snapshot.hashFailed'));
+        setMessage(formatUserError(locale, error) || t('snapshot.hashFailed'));
       }
     })();
-  }, [open, model, t]);
+  }, [open, model, t, locale]);
 
   async function exportSnapshot() {
     setBusy(true);
@@ -55,7 +56,7 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
       downloadText('research-snapshot.json', JSON.stringify(snapshot, null, 2));
       setMessage(t('snapshot.exportOk', { hash: snapshot.contentHash, disclaimer: t('snapshot.hashDisclaimer') }));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t('snapshot.exportFail'));
+      setMessage(formatUserError(locale, error) || t('snapshot.exportFail'));
     } finally {
       setBusy(false);
     }
@@ -63,22 +64,23 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
 
   async function onFile(file: File | null) {
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { setMessage('Tiedosto ylittää 2 Mt:n tuontirajan.'); return; }
+    if (file.size > 2 * 1024 * 1024) { setMessage(t('snapshot.tooLarge')); return; }
     setBusy(true);
     try {
       const parsed = JSON.parse(await file.text());
       const nextPreview = previewImport(model, parsed);
       setPreview(nextPreview);
       setPending(nextPreview.ok ? parsed : null);
-      if (!nextPreview.ok) setMessage(`Tuonti hylättäisiin; nykyinen työtila säilyy. ${nextPreview.error}`);
-      else {
-        setMessage('Esikatselu valmis. Hyväksyntä korvaa työtilan; tunnisteita ei yhdistetä.');
+      if (!nextPreview.ok) {
+        setMessage(t('snapshot.rejectKeep', { error: formatUserError(locale, nextPreview.cause || nextPreview.error) }));
+      } else {
+        setMessage(t('snapshot.previewReady'));
         if (nextPreview.model) setCompare(await compareSnapshots(model, nextPreview.model));
       }
     } catch (error) {
       setPreview(null);
       setPending(null);
-      setMessage(`Jäsennyksen epäonnistui; nykyinen työtila säilyi. ${error instanceof Error ? error.message : ''}`);
+      setMessage(t('snapshot.parseFail', { error: formatUserError(locale, error) }));
     } finally {
       setBusy(false);
     }
@@ -89,7 +91,7 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
     const stored = storePreImportBackup(model);
     const result = applySnapshotImport(model, pending);
     if (!result.ok) {
-      setMessage(`Tuonti hylättiin; nykyinen työtila säilyi. ${result.error}`);
+      setMessage(t('snapshot.rejectKeep', { error: formatUserError(locale, result.cause || result.error) }));
       return;
     }
     const ok = onReplace(
@@ -132,11 +134,11 @@ export function SnapshotDialog({ model, open, onClose, onReplace, actorLabel }: 
 }
 
 function PreviewBlock({ preview, compare }: { preview: ImportPreview; compare: SnapshotComparison | null }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   return <div className="protocol-panel">
     <h3>{t('snapshot.preview')}</h3>
     <p className="subtle">{preview.note}</p>
-    {!preview.ok && <p className="error">{preview.error}</p>}
+    {!preview.ok && <p className="error">{formatUserError(locale, preview.cause || preview.error)}</p>}
     {preview.ok && <>
       <p className="subtle">{t('snapshot.addedIds', { ids: preview.addedIds.join(', ') || t('snapshot.none') })}</p>
       <p className="subtle">{t('snapshot.removedIds', { ids: preview.removedIds.join(', ') || t('snapshot.none') })}</p>

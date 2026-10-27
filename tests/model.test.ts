@@ -222,12 +222,15 @@ test('removal clears references, keeps the source model, and refuses the last gr
   assert.equal(sourcePlan.model.sources.some(s => s.id === 'jarvelin15'), false);
   assert.equal(sourcePlan.model.claims.some(c => c.sourceId === 'jarvelin15' || c.id === 'claim_jarvelin15'), false);
   assert.equal(sourcePlan.model.relationships.some(r => r.source === 'jarvelin15' || r.target === 'jarvelin15' || r.claimIds.includes('claim_jarvelin15') || r.sourceIds.includes('jarvelin15')), false);
+  assert.ok(sourcePlan.effects.some(e => e.code === 'removal.deleteEvidence'));
+  assert.ok(sourcePlan.effects.every(e => e.reason && e.code));
   assert.doesNotThrow(() => M.validate(sourcePlan.model));
   const criterion = model.criteria.find(c => c.constructIds.length === 1);
   const constructPlan = M.planRemoval(model, criterion.constructIds[0]);
   const updated = constructPlan.model.criteria.find(c => c.id === criterion.id);
   assert.deepEqual(updated.constructIds, []);
   assert.match(updated.validationNeed, /Käsiteviite poistettiin/);
+  assert.ok(constructPlan.effects.some(e => e.code === 'removal.detachSoleConstructRef'));
   assert.equal(constructPlan.needsConfirmation, true);
   assert.doesNotThrow(() => M.validate(constructPlan.model));
   const only = M.validate({

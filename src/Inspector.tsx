@@ -1,21 +1,20 @@
 import { useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
 import { access, appraisal, epistemic, locate, provenance, relations, reviewStates } from './model.ts';
-import {
-  epistemicLabel, reviewLabel, labelsFor
-} from './labels.ts';
+import { labelsFor } from './labels.ts';
 import { clone, newId, requireConnection } from './edit.ts';
 import { useDraft, type DirtyApi } from './draft.ts';
 import { Checks, SelectField, TextField } from './fields.tsx';
-import { useI18n, displayRecordLabel, translateResearchField } from './i18n/index.ts';
+import { useI18n, displayRecordLabel, formatShortCitation, translateResearchField, type MessageKey } from './i18n/index.ts';
+import { formatUserError } from './i18n/errors.ts';
 import { appendStatementRevision, claimKindLabel, PROTOCOL_DISCLAIMER } from './protocols.ts';
 import type { Access, Appraisal, ConstructedCase, Criterion, Decision, EpistemicStatus, IntendedClaimKind, Meaning, Provenance, PublicationStatus, Relationship, ResearchRole, ReviewState, Source, Workspace } from './types.ts';
+
+const claimKindMessage = (id: IntendedClaimKind): MessageKey => `inspector.claimKind.${id}` as MessageKey;
 
 type Mode = { type: 'record' } | { type: 'add-node' } | { type: 'add-edge'; sourceId: string };
 type Save = (next: Workspace, message: string) => boolean;
 const asList = (value: unknown) => value as string[];
 const option = (ids: string[], labels: Record<string, string>) => ids.map(id => ({ id, label: labels[id] || id }));
-const epistemicOptions = option(asList(epistemic), epistemicLabel);
-const reviewOptions = option(asList(reviewStates), reviewLabel);
 
 function titleOf(model: Workspace, id: string, locale: 'fi' | 'en' = 'fi', hashMatches = true): string {
   return displayRecordLabel(locale, model, id, hashMatches) || (() => {
@@ -173,7 +172,7 @@ function SourceForm({ model, source, guard, onSave, onOpen, onEdge, onAddEdge, o
   };
   const notRec = t('inspector.notRecorded');
   return <>
-    <div className="eyebrow">{t('inspector.sourceEyebrow')}</div><h2>{source.label}</h2>
+    <div className="eyebrow">{t('inspector.sourceEyebrow')}</div><h2>{formatShortCitation(locale, source.label)}</h2>
     <p className="subtle">{t('inspector.sourceIntro')}</p>
     <FormShell submit={persist} label={t('inspector.save')}>
       <Section title={t('inspector.biblioSection')} note={t('inspector.biblioNote')}>
@@ -327,6 +326,8 @@ function ConstructForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
     return onSave(copy, t('inspector.savedConstruct'));
   });
   const patch = <K extends keyof typeof record>(key: K, value: (typeof record)[K]) => setDraft(current => ({ ...current, [key]: value }));
+  const epistemicOptions = option(asList(epistemic), L.epistemicLabel);
+  const reviewOptions = option(asList(reviewStates), L.reviewLabel);
   const labelDisplay = translateResearchField(locale, 'constructs', record.id, 'label', record.label, { hashMatches });
   const definitionDisplay = translateResearchField(locale, 'constructs', record.id, 'definition', record.definition, { hashMatches });
   return <>
@@ -338,16 +339,16 @@ function ConstructForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
     <FormShell submit={persist} label={t('inspector.save')}>
       <TextField label={t('inspector.name')} value={draft.label} onChange={value => patch('label', value)} />
       <TextField label={t('inspector.definition')} value={draft.definition} onChange={value => patch('definition', value)} area />
-      <TextField label="Määritelmän kohde" value={draft.object} onChange={value => patch('object', value)} />
-      <TextField label="Yksikkö" value={draft.unit} onChange={value => patch('unit', value)} />
-      <TextField label="Ala" value={draft.scope} onChange={value => patch('scope', value)} area />
-      <TextField label="Kilpailevat määritelmät" value={draft.competingDefinitions} onChange={value => patch('competingDefinitions', value)} area />
-      <TextField label="Valittu rajaus" value={draft.boundary} onChange={value => patch('boundary', value)} area />
-      <SelectField label="Tiedollinen tila" value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
-      <SelectField label="Kirjauksen tila" value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
-      <TextField label="Tulkinnan perustana oleva asiakirja" value={draft.basis} onChange={value => patch('basis', value)} />
-      <TextField label="Lähdekohta" value={draft.locator} onChange={value => patch('locator', value)} />
-      <TextField label="Oma pohdinta tai seuraava tarkistus" value={draft.notes} onChange={value => patch('notes', value)} area />
+      <TextField label={t('inspector.definitionObject')} value={draft.object} onChange={value => patch('object', value)} />
+      <TextField label={t('inspector.unit')} value={draft.unit} onChange={value => patch('unit', value)} />
+      <TextField label={t('inspector.scope')} value={draft.scope} onChange={value => patch('scope', value)} area />
+      <TextField label={t('inspector.competingDefinitions')} value={draft.competingDefinitions} onChange={value => patch('competingDefinitions', value)} area />
+      <TextField label={t('inspector.selectedBoundary')} value={draft.boundary} onChange={value => patch('boundary', value)} area />
+      <SelectField label={t('inspector.epistemic')} value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
+      <SelectField label={t('inspector.review')} value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
+      <TextField label={t('inspector.basisDocument')} value={draft.basis} onChange={value => patch('basis', value)} />
+      <TextField label={t('inspector.locator')} value={draft.locator} onChange={value => patch('locator', value)} />
+      <TextField label={t('inspector.reflectionOrNext')} value={draft.notes} onChange={value => patch('notes', value)} area />
     </FormShell>
     <Links model={model} id={record.id} onEdge={onEdge} onAddEdge={onAddEdge} />
     <Remove id={record.id} onRemove={onRemove} />
@@ -367,6 +368,8 @@ function CriterionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
     return onSave(copy, t('inspector.savedCriterion'));
   });
   const patch = <K extends keyof Criterion>(key: K, value: Criterion[K]) => setDraft(current => ({ ...current, [key]: value }));
+  const epistemicOptions = option(asList(epistemic), L.epistemicLabel);
+  const reviewOptions = option(asList(reviewStates), L.reviewLabel);
   const labelDisplay = translateResearchField(locale, 'criteria', record.id, 'label', record.label, { hashMatches });
   const evidenceDisplay = translateResearchField(locale, 'criteria', record.id, 'evidenceRequirements', record.evidenceRequirements, { hashMatches });
   return <>
@@ -377,18 +380,19 @@ function CriterionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, onRe
     <span className={`tag ${record.epistemicStatus}`}>{L.epistemicLabel[record.epistemicStatus]}</span> <span className="tag">{L.reviewLabel[record.reviewState]}</span>
     <FormShell submit={persist} label={t('inspector.save')}>
       <TextField label={t('inspector.name')} value={draft.label} onChange={value => patch('label', value)} />
-      <Checks title="Käsiteviitteet" records={model.constructs.map(item => ({ id: item.id, label: titleOf(model, item.id, locale, hashMatches) }))} selected={draft.constructIds} onChange={ids => patch('constructIds', ids)} />
-      <TextField label="Näyttövaatimus" value={draft.evidenceRequirements} onChange={value => patch('evidenceRequirements', value)} area />
-      <TextField label="Arvioija" value={draft.assessor} onChange={value => patch('assessor', value)} />
-      <TextField label="Päätössääntö" value={draft.decisionRule} onChange={value => patch('decisionRule', value)} area />
-      <TextField label="Sallittu päättely" value={draft.permittedInference} onChange={value => patch('permittedInference', value)} area />
-      <TextField label="Täsmennettävä validointi" value={draft.validationNeed} onChange={value => patch('validationNeed', value)} area />
-      <TextField label="Arviointiyksikkö" value={draft.unit} onChange={value => patch('unit', value)} />
-      <SelectField label="Tiedollinen tila" value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
-      <SelectField label="Kirjauksen tila" value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
-      <TextField label="Tulkinnan perustana oleva asiakirja" value={draft.basis} onChange={value => patch('basis', value)} />
-      <TextField label="Lähdekohta" value={draft.locator} onChange={value => patch('locator', value)} />
-      <TextField label="Oma pohdinta tai seuraava tarkistus" value={draft.notes} onChange={value => patch('notes', value)} area />
+      <Checks title={t('inspector.constructRefs')} records={model.constructs.map(item => ({ id: item.id, label: titleOf(model, item.id, locale, hashMatches) }))} selected={draft.constructIds} onChange={ids => patch('constructIds', ids)} />
+      {!draft.constructIds.length && <p className="subtle">{t('inspector.constructRefNeeded')}</p>}
+      <TextField label={t('inspector.evidenceRequirement')} value={draft.evidenceRequirements} onChange={value => patch('evidenceRequirements', value)} area />
+      <TextField label={t('inspector.assessorField')} value={draft.assessor} onChange={value => patch('assessor', value)} />
+      <TextField label={t('inspector.decisionRule')} value={draft.decisionRule} onChange={value => patch('decisionRule', value)} area />
+      <TextField label={t('inspector.permittedInference')} value={draft.permittedInference} onChange={value => patch('permittedInference', value)} area />
+      <TextField label={t('inspector.validationNeed')} value={draft.validationNeed} onChange={value => patch('validationNeed', value)} area />
+      <TextField label={t('inspector.assessmentUnit')} value={draft.unit} onChange={value => patch('unit', value)} />
+      <SelectField label={t('inspector.epistemic')} value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
+      <SelectField label={t('inspector.review')} value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
+      <TextField label={t('inspector.basisDocument')} value={draft.basis} onChange={value => patch('basis', value)} />
+      <TextField label={t('inspector.locator')} value={draft.locator} onChange={value => patch('locator', value)} />
+      <TextField label={t('inspector.reflectionOrNext')} value={draft.notes} onChange={value => patch('notes', value)} area />
     </FormShell>
     <Links model={model} id={record.id} onEdge={onEdge} onAddEdge={onAddEdge} />
     <Remove id={record.id} onRemove={onRemove} />
@@ -424,10 +428,16 @@ function PropositionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, on
     return onSave(copy, t('inspector.savedProposition'));
   });
   const patch = <K extends keyof typeof draft>(key: K, value: (typeof draft)[K]) => setDraft(current => ({ ...current, [key]: value }));
-  const claimKindOptions = (['association', 'controlled-comparison', 'paired-coverage', 'other'] as IntendedClaimKind[]).map(id => ({ id, label: claimKindLabel[id] }));
+  const epistemicOptions = option(asList(epistemic), L.epistemicLabel);
+  const reviewOptions = option(asList(reviewStates), L.reviewLabel);
+  const claimKindOptions = (['association', 'controlled-comparison', 'paired-coverage', 'other'] as IntendedClaimKind[]).map(id => ({
+    id,
+    label: t(claimKindMessage(id))
+  }));
   const labelDisplay = translateResearchField(locale, 'propositions', record.id, 'label', record.label, { hashMatches });
   const statementDisplay = translateResearchField(locale, 'propositions', record.id, 'statement', record.statement, { hashMatches });
   const boundaryDisplay = translateResearchField(locale, 'propositions', record.id, 'boundary', record.boundary, { hashMatches });
+  const intendedKindLabel = t(claimKindMessage(record.intendedClaimKind));
   return <>
     <div className="eyebrow">{t('inspector.propositionEyebrow')}</div><h2>{labelDisplay.text}</h2>
     <TranslationNotice notice={labelDisplay.notice} />
@@ -436,34 +446,34 @@ function PropositionForm({ model, recordId, guard, onSave, onEdge, onAddEdge, on
     <p className="subtle">{boundaryDisplay.text}</p>
     <TranslationNotice notice={boundaryDisplay.notice} />
     <span className={`tag ${record.epistemicStatus}`}>{L.epistemicLabel[record.epistemicStatus]}</span> <span className="tag">{L.reviewLabel[record.reviewState]}</span>
-    <span className="tag">{claimKindLabel[record.intendedClaimKind]}</span>
+    <span className="tag">{intendedKindLabel}</span>
     <FormShell submit={() => {
       if (draft.statement !== record.statement && !(draft.statementRationale || statementRationale).trim()) return false;
       return persist();
     }} label={t('inspector.save')}>
       <TextField label={t('inspector.name')} value={draft.label} onChange={value => patch('label', value)} />
-      <TextField label="Väite" value={draft.statement} onChange={value => patch('statement', value)} area />
-      {draft.statement !== record.statement && <TextField label="Väitteen muutoksen perustelu (pakollinen)" value={draft.statementRationale || statementRationale} onChange={value => { setStatementRationale(value); patch('statementRationale', value); }} area />}
-      <TextField label="Mitä tästä ei voi päätellä" value={draft.boundary} onChange={value => patch('boundary', value)} area />
-      <TextField label="Yksikkö" value={draft.unit} onChange={value => patch('unit', value)} />
-      <TextField label="Käsitteellinen perustelu" value={draft.conceptualRationale} onChange={value => patch('conceptualRationale', value)} area />
-      <SelectField label="Ehdotettu väitelaji" value={draft.intendedClaimKind} onChange={value => patch('intendedClaimKind', value as IntendedClaimKind)} options={claimKindOptions} />
-      <TextField label="Ehdotettu väite / yhteys" value={draft.intendedClaim} onChange={value => patch('intendedClaim', value)} area />
-      <TextField label="Ehdotettu asetelma" value={draft.proposedDesign} onChange={value => patch('proposedDesign', value)} area />
-      <TextField label="Mahdolliset vastaesimerkit" value={draft.counterexamples} onChange={value => patch('counterexamples', value)} area />
-      <TextField label="Tarvittava näyttö" value={draft.evidenceNeeded} onChange={value => patch('evidenceNeeded', value)} area />
-      <Checks title="Kriteeriviitteet" records={model.criteria.map(item => ({ id: item.id, label: item.label }))} selected={draft.criterionIds} onChange={ids => patch('criterionIds', ids)} />
-      <Checks title="Käsiteviitteet" records={model.constructs.map(item => ({ id: item.id, label: item.label }))} selected={draft.constructIds} onChange={ids => patch('constructIds', ids)} />
-      <Checks title="Protokollaviitteet" records={model.protocols.map(item => ({ id: item.id, label: item.label }))} selected={draft.protocolIds} onChange={ids => patch('protocolIds', ids)} />
-      <SelectField label="Tiedollinen tila" value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
-      <SelectField label="Kirjauksen tila" value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
-      <TextField label="Tulkinnan perustana oleva asiakirja" value={draft.basis} onChange={value => patch('basis', value)} />
-      <TextField label="Lähdekohta" value={draft.locator} onChange={value => patch('locator', value)} />
-      <TextField label="Oma pohdinta tai seuraava tarkistus" value={draft.notes} onChange={value => patch('notes', value)} area />
+      <TextField label={t('inspector.propositionStatement')} value={draft.statement} onChange={value => patch('statement', value)} area />
+      {draft.statement !== record.statement && <TextField label={t('inspector.statementChangeRationale')} value={draft.statementRationale || statementRationale} onChange={value => { setStatementRationale(value); patch('statementRationale', value); }} area />}
+      <TextField label={t('inspector.limitations')} value={draft.boundary} onChange={value => patch('boundary', value)} area />
+      <TextField label={t('inspector.unit')} value={draft.unit} onChange={value => patch('unit', value)} />
+      <TextField label={t('inspector.conceptualRationale')} value={draft.conceptualRationale} onChange={value => patch('conceptualRationale', value)} area />
+      <SelectField label={t('inspector.intendedClaimKind')} value={draft.intendedClaimKind} onChange={value => patch('intendedClaimKind', value as IntendedClaimKind)} options={claimKindOptions} />
+      <TextField label={t('inspector.intendedClaim')} value={draft.intendedClaim} onChange={value => patch('intendedClaim', value)} area />
+      <TextField label={t('inspector.proposedDesign')} value={draft.proposedDesign} onChange={value => patch('proposedDesign', value)} area />
+      <TextField label={t('inspector.counterexamples')} value={draft.counterexamples} onChange={value => patch('counterexamples', value)} area />
+      <TextField label={t('inspector.evidenceNeeded')} value={draft.evidenceNeeded} onChange={value => patch('evidenceNeeded', value)} area />
+      <Checks title={t('inspector.criterionRefs')} records={model.criteria.map(item => ({ id: item.id, label: titleOf(model, item.id, locale, hashMatches) }))} selected={draft.criterionIds} onChange={ids => patch('criterionIds', ids)} />
+      <Checks title={t('inspector.constructRefs')} records={model.constructs.map(item => ({ id: item.id, label: titleOf(model, item.id, locale, hashMatches) }))} selected={draft.constructIds} onChange={ids => patch('constructIds', ids)} />
+      <Checks title={t('inspector.protocolRefs')} records={model.protocols.map(item => ({ id: item.id, label: titleOf(model, item.id, locale, hashMatches) }))} selected={draft.protocolIds} onChange={ids => patch('protocolIds', ids)} />
+      <SelectField label={t('inspector.epistemic')} value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
+      <SelectField label={t('inspector.review')} value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
+      <TextField label={t('inspector.basisDocument')} value={draft.basis} onChange={value => patch('basis', value)} />
+      <TextField label={t('inspector.locator')} value={draft.locator} onChange={value => patch('locator', value)} />
+      <TextField label={t('inspector.reflectionOrNext')} value={draft.notes} onChange={value => patch('notes', value)} area />
     </FormShell>
-    {!!record.statementRevisions.length && <div className="field-title">Väitteen muutosloki</div>}
+    {!!record.statementRevisions.length && <div className="field-title">{t('inspector.statementRevisionLog')}</div>}
     {record.statementRevisions.map((rev, index) => <p key={index} className="subtle">{rev.revisedAt}: {rev.rationale}</p>)}
-    {record.protocolIds.map(id => <button key={id} type="button" onClick={() => onOpen(id)}>Avaa protokolla {id}</button>)}
+    {record.protocolIds.map(id => <button key={id} type="button" onClick={() => onOpen(id)}>{t('inspector.openProtocol', { id })}</button>)}
     <Links model={model} id={record.id} onEdge={onEdge} onAddEdge={onAddEdge} />
     <Remove id={record.id} onRemove={onRemove} />
   </>;
@@ -539,6 +549,8 @@ function DecisionForm({ model, recordId, guard, onSave, onRemove }: { model: Wor
     return onSave(copy, t('inspector.savedDecision'));
   });
   const patch = <K extends keyof Decision>(key: K, value: Decision[K]) => setDraft(current => ({ ...current, [key]: value }));
+  const epistemicOptions = option(asList(epistemic), L.epistemicLabel);
+  const reviewOptions = option(asList(reviewStates), L.reviewLabel);
   const labelDisplay = translateResearchField(locale, 'decisions', record.id, 'label', record.label, { hashMatches });
   const statementDisplay = translateResearchField(locale, 'decisions', record.id, 'statement', record.statement, { hashMatches });
   return <>
@@ -549,22 +561,24 @@ function DecisionForm({ model, recordId, guard, onSave, onRemove }: { model: Wor
     <span className={`tag ${record.epistemicStatus}`}>{L.epistemicLabel[record.epistemicStatus]}</span> <span className="tag">{L.reviewLabel[record.reviewState]}</span>
     <FormShell submit={persist} label={t('inspector.saveDecision')}>
       <TextField label={t('inspector.name')} value={draft.label} onChange={value => patch('label', value)} />
-      <TextField label="Päätös" value={draft.statement} onChange={value => patch('statement', value)} area />
-      <TextField label="Ala" value={draft.scope} onChange={value => patch('scope', value)} />
-      <TextField label="Perustelu" value={draft.rationale} onChange={value => patch('rationale', value)} area />
-      <SelectField label="Tiedollinen tila" value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
-      <SelectField label="Kirjauksen tila" value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
+      <TextField label={t('inspector.decisionStatement')} value={draft.statement} onChange={value => patch('statement', value)} area />
+      <TextField label={t('inspector.scope')} value={draft.scope} onChange={value => patch('scope', value)} />
+      <TextField label={t('inspector.rationale')} value={draft.rationale} onChange={value => patch('rationale', value)} area />
+      <SelectField label={t('inspector.epistemic')} value={draft.epistemicStatus} onChange={value => patch('epistemicStatus', value as EpistemicStatus)} options={epistemicOptions} />
+      <SelectField label={t('inspector.review')} value={draft.reviewState} onChange={value => patch('reviewState', value as ReviewState)} options={reviewOptions} />
     </FormShell>
-    <button type="button" className="delete" onClick={() => onRemove(record.id)}>Poista päätös</button>
+    <button type="button" className="delete" onClick={() => onRemove(record.id)}>{t('inspector.removeDecision')}</button>
   </>;
 }
 
 function AddNode({ model, guard, onSave, onMessage, onOpen }: { model: Workspace; guard: RefObject<DirtyApi | null>; onSave: Save; onMessage: (text: string) => void; onOpen: (id: string) => void }) {
+  const { locale, t, hashMatches } = useI18n();
+  const L = labelsFor(locale);
   const blank = { kind: 'construct', label: '', text: '', sourceId: '', constructId: '' };
   const created = { id: '' };
   const { draft, setDraft, persist } = useDraft(blank, guard, next => {
-    if (next.kind !== 'claim' && !next.label.trim()) { onMessage('Nimi puuttuu.'); return false; }
-    if (next.kind === 'claim' && !next.sourceId) { onMessage('Valitse lähde.'); return false; }
+    if (next.kind !== 'claim' && !next.label.trim()) { onMessage(t('inspector.nameRequired')); return false; }
+    if (next.kind === 'claim' && !next.sourceId) { onMessage(t('inspector.pickSourceRequired')); return false; }
     const copy = clone(model);
     const id = newId(copy, next.kind === 'claim' ? 'claim' : next.kind);
     const reviewState = 'proposed' as const;
@@ -573,23 +587,25 @@ function AddNode({ model, guard, onSave, onMessage, onOpen }: { model: Workspace
       if (next.text.trim()) copy.claims.push({ id: newId(copy, 'claim'), sourceId: id, statement: next.text, methodContext: '', locator: '', limitations: '', provenance: 'imported-summary', appraisal: 'not-appraised', basis: '', epistemicStatus: 'reported', reviewState, notes: '' });
     } else if (next.kind === 'claim') copy.claims.push({ id, sourceId: next.sourceId, statement: next.text, methodContext: '', locator: '', limitations: '', provenance: 'imported-summary', appraisal: 'not-appraised', basis: '', epistemicStatus: 'reported', reviewState, notes: '' });
     else if (next.kind === 'construct') copy.constructs.push({ id, label: next.label.trim(), definition: next.text, object: '', unit: '', scope: '', competingDefinitions: '', boundary: '', epistemicStatus: 'adaptation', reviewState, basis: '', locator: '', notes: '' });
-    else if (next.kind === 'criterion') copy.criteria.push({ id, label: next.label.trim(), constructIds: next.constructId ? [next.constructId] : [], evidenceRequirements: next.text, assessor: '', decisionRule: '', permittedInference: '', validationNeed: next.constructId ? '' : 'Käsiteviite on täsmennettävä.', unit: '', epistemicStatus: 'adaptation', reviewState, basis: '', locator: '', notes: '' });
+    else if (next.kind === 'criterion') copy.criteria.push({ id, label: next.label.trim(), constructIds: next.constructId ? [next.constructId] : [], evidenceRequirements: next.text, assessor: '', decisionRule: '', permittedInference: '', validationNeed: '', unit: '', epistemicStatus: 'adaptation', reviewState, basis: '', locator: '', notes: '' });
     else copy.propositions.push({
       id, label: next.label.trim(), statement: next.text, boundary: '', unit: '', criterionIds: [], constructIds: [],
       conceptualRationale: '', intendedClaimKind: 'other', intendedClaim: '', proposedDesign: '', counterexamples: '',
       evidenceNeeded: '', protocolIds: [], statementRevisions: [], epistemicStatus: 'hypothesis', reviewState, basis: '', locator: '', notes: ''
     });
     created.id = id;
-    return onSave(copy, 'Kohde lisättiin.');
+    return onSave(copy, t('inspector.recordAdded'));
   });
-  return <aside className="inspector" aria-label="Valitun kohteen tiedot"><h2>Lisää tutkimuskohde</h2>
-    <FormShell submit={() => { const ok = persist(); if (ok && created.id) onOpen(created.id); return ok; }} label="Lisää kohde">
-      <SelectField label="Kohdetyyppi" value={draft.kind} onChange={value => setDraft(current => ({ ...current, kind: value }))} options={[{ id: 'source', label: 'Lähde' }, { id: 'claim', label: 'Lähdeväite' }, { id: 'construct', label: 'Käsite' }, { id: 'criterion', label: 'Kriteeri' }, { id: 'proposition', label: 'Propositio' }]} />
-      {draft.kind !== 'claim' && <TextField label="Nimi" value={draft.label} onChange={value => setDraft(current => ({ ...current, label: value }))} />}
-      <TextField label={draft.kind === 'claim' ? 'Tuodun yhteenvedon teksti' : 'Sisältö tai määritelmä'} value={draft.text} onChange={value => setDraft(current => ({ ...current, text: value }))} area />
-      {draft.kind === 'claim' && <SelectField label="Lähde" value={draft.sourceId} onChange={value => setDraft(current => ({ ...current, sourceId: value }))} options={[{ id: '', label: 'Valitse lähde' }, ...model.sources.map(source => ({ id: source.id, label: source.label }))]} />}
-      {draft.kind === 'criterion' && <SelectField label="Käsite, johon kriteeri viittaa" value={draft.constructId} onChange={value => setDraft(current => ({ ...current, constructId: value }))} options={[{ id: '', label: 'Ei käsiteviitettä vielä' }, ...model.constructs.map(item => ({ id: item.id, label: item.label }))]} />}
-      {draft.kind === 'claim' && <p className="subtle">Uusi väite on tuotu yhteenveto, ei alkuperäisvarmennus.</p>}
+  const kindOptions = (['source', 'claim', 'construct', 'criterion', 'proposition'] as const).map(id => ({ id, label: L.kindLabel[id] }));
+  return <aside className="inspector" aria-label={t('inspector.aria')}><h2>{t('inspector.addNode.title')}</h2>
+    <FormShell submit={() => { const ok = persist(); if (ok && created.id) onOpen(created.id); return ok; }} label={t('inspector.addNode.submit')}>
+      <SelectField label={t('inspector.addNode.kind')} value={draft.kind} onChange={value => setDraft(current => ({ ...current, kind: value }))} options={kindOptions} />
+      {draft.kind !== 'claim' && <TextField label={t('inspector.name')} value={draft.label} onChange={value => setDraft(current => ({ ...current, label: value }))} />}
+      <TextField label={draft.kind === 'claim' ? t('inspector.addNode.importedSummary') : t('inspector.addNode.contentOrDefinition')} value={draft.text} onChange={value => setDraft(current => ({ ...current, text: value }))} area />
+      {draft.kind === 'claim' && <SelectField label={L.kindLabel.source} value={draft.sourceId} onChange={value => setDraft(current => ({ ...current, sourceId: value }))} options={[{ id: '', label: t('inspector.addNode.pickSource') }, ...model.sources.map(source => ({ id: source.id, label: formatShortCitation(locale, source.label) }))]} />}
+      {draft.kind === 'criterion' && <SelectField label={t('inspector.addNode.constructForCriterion')} value={draft.constructId} onChange={value => setDraft(current => ({ ...current, constructId: value }))} options={[{ id: '', label: t('inspector.addNode.noConstructYet') }, ...model.constructs.map(item => ({ id: item.id, label: titleOf(model, item.id, locale, hashMatches) }))]} />}
+      {draft.kind === 'criterion' && !draft.constructId && <p className="subtle">{t('inspector.constructRefNeeded')}</p>}
+      {draft.kind === 'claim' && <p className="subtle">{t('inspector.addNode.newClaimImported')}</p>}
     </FormShell>
   </aside>;
 }
@@ -608,7 +624,7 @@ function AddEdge({ model, sourceId, guard, onSave, onMessage, onEdge }: { model:
       created.id = id;
       return onSave(copy, t('inspector.linkAdded'));
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : t('inspector.linkAddFailed'));
+      onMessage(formatUserError(locale, error) || t('inspector.linkAddFailed'));
       return false;
     }
   });

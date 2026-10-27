@@ -18,6 +18,7 @@ import { FigureExportDialog } from './FigureExportDialog.tsx';
 import { Modal } from './Modal.tsx';
 import { prepareCommit, prepareUndo } from './snapshots.ts';
 import { I18nProvider, LanguageSelector, useI18n, displayRecordLabel } from './i18n/index.ts';
+import { formatRemovalEffect, formatUserError } from './i18n/errors.ts';
 import type { DirtyApi } from './draft.ts';
 import type { EditEventKind, Workspace } from './types.ts';
 
@@ -26,7 +27,8 @@ const ACTOR_KEY = 'research-evidence-explorer-actor-label-v1';
 
 type SaveKind = 'local' | 'stored' | 'memory';
 type Mode = { type: 'record' } | { type: 'add-node' } | { type: 'add-edge'; sourceId: string };
-type Removal = { id: string; model: Workspace; effects: { label?: string; id: string; reason: string }[] };
+type RemovalEffect = { label?: string; id: string; reason: string; code?: string; kind?: string };
+type Removal = { id: string; model: Workspace; effects: RemovalEffect[] };
 
 function here(hash: string): string {
   return `${location.pathname}${location.search}${hash}`;
@@ -181,7 +183,7 @@ function AppShell({ opened, model, setModel }: {
       }
       return true;
     } catch (error) {
-      setMessage({ text: error instanceof Error ? error.message : t('top.changeRejected'), error: true });
+      setMessage({ text: formatUserError(locale, error) || t('top.changeRejected'), error: true });
       return false;
     }
   }
@@ -245,7 +247,7 @@ function AppShell({ opened, model, setModel }: {
         reason: t('top.undoReason')
       })) as Workspace;
     } catch (error) {
-      setMessage({ text: error instanceof Error ? error.message : t('top.undoRejected'), error: true });
+      setMessage({ text: formatUserError(locale, error) || t('top.undoRejected'), error: true });
       undoRef.current = [...undoRef.current, previous];
       setUndoCount(undoRef.current.length);
       return;
@@ -295,10 +297,14 @@ function AppShell({ opened, model, setModel }: {
       try {
         const plan = planRemoval(modelRef.current, id) as Removal & { needsConfirmation: boolean; effects: Removal['effects'] };
         const kind = locate(modelRef.current, id)?.kind;
-        const quiet = kind === 'relationship' ? t('top.relationshipRemoved') : plan.effects.some(effect => effect.reason.includes('päättyy')) ? t('top.recordRemovedWithLinks') : t('top.recordRemoved');
+        const quiet = kind === 'relationship'
+          ? t('top.relationshipRemoved')
+          : plan.effects.some(effect => effect.code === 'removal.endsRelationship')
+            ? t('top.recordRemovedWithLinks')
+            : t('top.recordRemoved');
         if (!plan.needsConfirmation) { if (commit(plan.model, quiet)) setEdgeId(''); return; }
         setRemoval({ id, model: plan.model, effects: plan.effects });
-      } catch (error) { setMessage({ text: error instanceof Error ? error.message : t('top.removeFailed'), error: true }); }
+      } catch (error) { setMessage({ text: formatUserError(locale, error) || t('top.removeFailed'), error: true }); }
     });
   }
 
@@ -425,7 +431,7 @@ function AppShell({ opened, model, setModel }: {
     <FigureExportDialog model={model} open={figureOpen} onClose={() => setFigureOpen(false)} visibleIds={ids} selectedId={selectedId} focusId={selectedId} />
     <Modal open={Boolean(removal)} title={t('dialog.removalTitle')} onClose={() => setRemoval(null)}>
       <p>{t('dialog.removalBody')}</p>
-      <ul>{removal?.effects.map(effect => <li key={`${effect.id}-${effect.reason}`}>{(effect.label || effect.id)} — {effect.reason}</li>)}</ul>
+      <ul>{removal?.effects.map(effect => <li key={`${effect.id}-${effect.code || effect.reason}`}>{(effect.label || effect.id)} — {formatRemovalEffect(locale, effect)}</li>)}</ul>
       <div className="actions"><button type="button" onClick={() => setRemoval(null)}>{t('dialog.cancel')}</button><button type="button" className="primary" onClick={confirmRemoval}>{t('dialog.removalConfirm')}</button></div>
     </Modal>
   </>;

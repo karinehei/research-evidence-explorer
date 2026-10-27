@@ -57,6 +57,8 @@ export interface ResearchSnapshot {
 export interface ImportPreview {
   ok: boolean;
   error: string;
+  /** Original thrown value for presentation-boundary localisation (Error.message stays Finnish). */
+  cause?: unknown;
   model: Workspace | null;
   addedIds: string[];
   removedIds: string[];
@@ -215,6 +217,7 @@ export function previewImport(current: Workspace, incoming: unknown): ImportPrev
     return {
       ok: false,
       error: error instanceof Error ? error.message : 'Tuonti epäonnistui.',
+      cause: error,
       model: null,
       addedIds: [],
       removedIds: [],
@@ -232,13 +235,14 @@ export function applySnapshotImport(current: Workspace, incoming: unknown): {
   ok: boolean;
   model: Workspace;
   error: string;
+  cause?: unknown;
   preview: ImportPreview;
   backup: Workspace;
 } {
   const backup = clone(current);
   const preview = previewImport(current, incoming);
   if (!preview.ok || !preview.model) {
-    return { ok: false, model: current, error: preview.error || 'Tuonti hylättiin.', preview, backup };
+    return { ok: false, model: current, error: preview.error || 'Tuonti hylättiin.', cause: preview.cause, preview, backup };
   }
   // Do not merge identities or drop unresolved version chains — validate already enforces versionOf integrity.
   const withEvent = appendEditEvent(preview.model, {
@@ -260,6 +264,7 @@ export function applySnapshotImport(current: Workspace, incoming: unknown): {
       ok: false,
       model: current,
       error: error instanceof Error ? error.message : 'Tuonnin validointi epäonnistui.',
+      cause: error,
       preview,
       backup
     };
