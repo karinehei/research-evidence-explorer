@@ -11,12 +11,14 @@ export function Modal({
   onClose,
   children,
   className = '',
+  closeLabel = 'Sulje',
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
   className?: string;
+  closeLabel?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -59,7 +61,7 @@ export function Modal({
     >
       <div className="dialog-head">
         <h2 id={titleId}>{title}</h2>
-        <button type="button" aria-label="Sulje" onClick={() => onCloseRef.current()}>×</button>
+        <button type="button" aria-label={closeLabel} onClick={() => onCloseRef.current()}>×</button>
       </div>
       <div className="dialog-body">{children}</div>
     </dialog>

@@ -16,6 +16,7 @@ import { HistoryView } from './HistoryView.tsx';
 import { SnapshotDialog } from './SnapshotDialog.tsx';
 import { FigureExportDialog } from './FigureExportDialog.tsx';
 import { Modal } from './Modal.tsx';
+import { UserGuide } from './UserGuide.tsx';
 import { prepareCommit, prepareUndo } from './snapshots.ts';
 import { I18nProvider, LanguageSelector, useI18n, displayRecordLabel } from './i18n/index.ts';
 import { formatRemovalEffect, formatUserError } from './i18n/errors.ts';
@@ -98,6 +99,7 @@ function AppShell({ opened, model, setModel }: {
   const [dirtyKind, setDirtyKind] = useState<'navigate' | 'undo'>('navigate');
   const [exportOpen, setExportOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const [cslOpen, setCslOpen] = useState(false);
   const [snapshotOpen, setSnapshotOpen] = useState(false);
   const [figureOpen, setFigureOpen] = useState(false);
@@ -409,7 +411,7 @@ function AppShell({ opened, model, setModel }: {
     <header className="topbar"><div className="identity"><span className="mark" aria-hidden="true">R</span><div><strong>Research Evidence Explorer</strong><span>{t('brand.tagline')}</span></div></div>
       <div className="top-actions"><LanguageSelector /><span className="save-state" role="status">{saveState}</span><button type="button" disabled={!undoCount} onClick={() => { if (guard.current?.isDirty()) { setDirtyKind('undo'); setDirtyOpen(true); setGuardTick(value => value + 1); } else performUndo(); }}>{t('top.undo')}</button><button type="button" className="primary" onClick={() => download(JSON.stringify(model, null, 2), 'research-workspace.json', 'application/json')}>{t('top.exportJson')}</button><button type="button" onClick={() => guarded(() => setSnapshotOpen(true))}>{t('top.snapshot')}</button><button type="button" onClick={() => guarded(() => setCslOpen(true))}>{t('top.csl')}</button></div></header>
     <div className="shell"><aside className="sidebar"><div className="section-label">{t('brand.workspace')}</div><nav aria-label={t('nav.aria')}>{navItems.map(([view, number, label]) => <button type="button" key={view} className={route.view === view ? 'nav active' : 'nav'} aria-current={route.view === view ? 'page' : undefined} onClick={() => assignHash(formatHash(view, selectedId, view === 'graph' ? route.scope : 'focus'))}>{number} <span>{label}</span></button>)}</nav>
-      <div className="sidebar-bottom"><div className="section-label">{t('brand.phase')}</div><strong>{t('brand.phaseTitle')}</strong><p>{t('brand.phaseBody')}</p><button type="button" className="quiet" onClick={() => setAboutOpen(true)}>{t('top.about')}</button></div></aside>
+      <div className="sidebar-bottom"><div className="section-label">{t('brand.phase')}</div><strong>{t('brand.phaseTitle')}</strong><p>{t('brand.phaseBody')}</p><div className="sidebar-help"><button type="button" className="quiet" onClick={() => setGuideOpen(true)}>{t('top.guide')}</button><button type="button" className="quiet" onClick={() => setAboutOpen(true)}>{t('top.about')}</button></div></div></aside>
       <main id="workspace" tabIndex={-1}><div className="page-head"><div><div className="eyebrow">{t('brand.eyebrow')}</div><h1>{title}</h1><p>{description}</p></div><button type="button" onClick={() => setExportOpen(true)}>{t('top.exportView')}</button></div>
         <div id="message" role="status" aria-live="polite" className={message.error ? 'error' : ''}>{message.text}</div>
         <p id="graph-filter-status" className="sr-only" aria-live="polite">{route.view === 'graph' ? graphFilterNote : ''}</p>
@@ -453,6 +455,7 @@ function AppShell({ opened, model, setModel }: {
       <p>{t('dialog.aboutP8')}</p>
       <button type="button" className="primary" onClick={() => setAboutOpen(false)}>{t('dialog.close')}</button>
     </Modal>
+    <UserGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
     <CslImportDialog open={cslOpen} model={model} onClose={() => setCslOpen(false)} onApply={(next, text) => commit(next, text, { kind: 'csl-import', reason: text, actorLabel })} />
     <SnapshotDialog model={model} open={snapshotOpen} onClose={() => setSnapshotOpen(false)} onReplace={replaceFromSnapshot} actorLabel={actorLabel} />
     <FigureExportDialog model={model} open={figureOpen} onClose={() => setFigureOpen(false)} visibleIds={ids} selectedId={selectedId} focusId={selectedId} />

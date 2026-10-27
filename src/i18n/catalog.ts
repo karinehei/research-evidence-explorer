@@ -49,6 +49,7 @@ export const uiFi = {
     exportJson: 'Vie JSON',
     snapshot: 'Tilannekuva / tuo',
     csl: 'Tuo Zotero CSL',
+    guide: 'Käyttöohje',
     about: 'Tietomallista ja käytöstä',
     exportView: 'Vie näkymä',
     storageUnread: 'Paikallista tallennetta ei voitu lukea. Lähtömalli avattiin; tallenne säilyy koskemattomana seuraavaan muokkaukseen asti.',
@@ -65,6 +66,11 @@ export const uiFi = {
     newDecisionLabel: 'Uusi päätös',
     decisionAdded: 'Tutkimuspäätös lisättiin ehdotuksena.',
     importNoChange: 'Tuonti vastasi nykyistä työtilaa. Muutoksia ei tehty.'
+  },
+  guide: {
+    title: 'Käyttöohje',
+    toc: 'Sisällys',
+    openHint: 'Tutkijan käytännön opas kuratoidun esimerkin tarkasteluun ja oman työn tallentamiseen.'
   },
   graph: {
     search: 'Hae kohdetta',
@@ -799,6 +805,7 @@ export const uiEn = {
     exportJson: 'Export JSON',
     snapshot: 'Snapshot / import',
     csl: 'Import Zotero CSL',
+    guide: 'How to use',
     about: 'About the data model',
     exportView: 'Export view',
     storageUnread: 'The local save could not be read. The curated seed was opened; the save remains untouched until the next edit.',
@@ -815,6 +822,11 @@ export const uiEn = {
     newDecisionLabel: 'New decision',
     decisionAdded: 'A research decision was added as a proposal.',
     importNoChange: 'The import matched the current workspace. No changes were made.'
+  },
+  guide: {
+    title: 'How to use',
+    toc: 'Contents',
+    openHint: 'A practical researcher guide to inspecting the curated example and preserving your work.'
   },
   graph: {
     search: 'Search records',

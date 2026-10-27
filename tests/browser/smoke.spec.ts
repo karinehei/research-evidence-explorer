@@ -327,6 +327,41 @@ test('matrix construct context, expanded details and on-demand editor', async ({
   await expect(page.getByText(/Counts describe recorded links only/i).first()).toBeVisible();
 });
 
+test('user guide keeps route, context and language in sync', async ({ page }) => {
+  await openApp(page, '#matrix/sufficiency');
+  const banner = page.locator('.matrix-context-banner');
+  await expect(banner).toContainText('Käsitekonteksti');
+  const opener = page.locator('.sidebar-help button').first();
+  await expect(opener).toHaveAccessibleName('Käyttöohje');
+  await opener.click();
+
+  const guide = page.getByRole('dialog', { name: 'Käyttöohje' });
+  await expect(guide).toBeVisible();
+
+  // Switch language via the in-dialog control before TOC scrolling can bury it.
+  await guide.locator('.guide-language').getByRole('button', { name: 'English' }).click();
+  const guideEn = page.getByRole('dialog', { name: 'How to use' });
+  await expect(guideEn).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2, name: 'How to use' })).toBeVisible();
+  await expect(page).toHaveURL(/#matrix\/sufficiency$/);
+  await expect(banner).toContainText('Construct context');
+
+  await guideEn.getByRole('button', { name: /I\. Export data and figures/ }).click();
+  const exporting = guideEn.locator('#guide-exporting');
+  await expect(exporting).toBeVisible();
+  await expect.poll(() => exporting.evaluate(section => {
+    const rect = section.getBoundingClientRect();
+    const dialog = section.closest('dialog')!.getBoundingClientRect();
+    return rect.top >= dialog.top && rect.top < dialog.bottom;
+  })).toBe(true);
+
+  await page.keyboard.press('Escape');
+  await expect(guideEn).toBeHidden();
+  await expect(opener).toBeFocused();
+  await expect(page).toHaveURL(/#matrix\/sufficiency$/);
+  await expect(banner).toContainText('Evidence sufficiency');
+});
+
 test('narrow and wide layouts do not overflow the page, and dialogs stay on screen', async ({ page }) => {
   await openApp(page, '#matrix');
   for (const width of [320, 390, 768, 1366, 1440]) {

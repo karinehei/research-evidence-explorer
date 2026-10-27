@@ -4,6 +4,9 @@ An initial research workspace for developing the conceptual model of Finnish hea
 
 The interface supports Finnish and English (default Finnish; see [docs/i18n.md](docs/i18n.md)). The curated seed is a **selected starting model**, not a complete conversion of the literature matrix or a completed review. It contains 11 sources, 11 imported source claims, 9 constructs, 7 criteria, 32 relationships, 4 open propositions, 4 provisional assessment protocols and 3 constructed cases. The stored workspace is schema 2. A schema 1 export still imports through the migration in `src/model.ts`. The record types, migration rules and fields that still need appraisal are documented in [docs/schema.md](docs/schema.md). Portable snapshots, content hashes and the local decision log are documented in [docs/snapshots.md](docs/snapshots.md).
 
+- [User guide (English)](docs/user-guide.en.md)
+- [Käyttöohje (suomi)](docs/user-guide.fi.md)
+
 ## Run the workspace
 
 The application is a React and TypeScript project built with Vite. React Flow draws the map. Development uses a local server, and the published copy is the built `dist/` directory served by a static server or GitHub Pages. The module build does not open directly from a `file://` address.
